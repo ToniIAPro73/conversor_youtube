@@ -570,6 +570,36 @@ print(f"  {copied} paquetes copiados a node_modules/")
 PYEOF
 ok "Capa node_modules plana creada"
 
+info "Eliminando store .pnpm para evitar rutas demasiado largas en Windows..."
+rm -rf "$STAGING_DIR/app/node_modules/.pnpm"
+ok "Store .pnpm eliminado del paquete portable"
+
+info "Verificando longitud de rutas internas del paquete..."
+export _STAGING_DIR="$STAGING_DIR"
+python3 - << 'PYEOF'
+import os
+from pathlib import Path
+
+staging_dir = Path(os.environ["_STAGING_DIR"])
+max_len = 0
+max_path = ""
+for root, _, files in os.walk(staging_dir):
+    for fname in files:
+        rel = Path(root, fname).relative_to(staging_dir.parent).as_posix()
+        if len(rel) > max_len:
+            max_len = len(rel)
+            max_path = rel
+
+print(f"  Ruta interna mas larga: {max_len} caracteres")
+print(f"  {max_path}")
+if max_len > 180:
+    raise SystemExit(
+        "La ruta interna mas larga supera 180 caracteres; Windows Explorer "
+        "puede fallar si el usuario extrae el ZIP en una carpeta profunda."
+    )
+PYEOF
+ok "Longitud de rutas compatible con extraccion normal en Windows"
+
 # ── 21. Crear el ZIP ──────────────────────────────────────────────────────────
 info "Creando ZIP..."
 rm -f "$OUT_ZIP"

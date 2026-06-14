@@ -121,7 +121,24 @@ else
   ok "  Sin binarios .so/.dylib en app/"
 fi
 
-# ── 8. No contiene rutas del desarrollador ───────────────────────────────────
+# ── 8. No contiene store .pnpm ni rutas internas largas ──────────────────────
+info "Verificando compatibilidad de rutas Windows..."
+if [[ -d "$EXTRACTED/app/node_modules/.pnpm" ]]; then
+  fail "  El paquete contiene app/node_modules/.pnpm; puede provocar rutas demasiado largas"
+else
+  ok "  Sin app/node_modules/.pnpm"
+fi
+
+MAX_PATH_INFO="$(cd "$VERIFY_STAGING" && find Link2Media-Windows-x64 -type f | awk '{ if (length($0) > max) { max=length($0); path=$0 } } END { print max " " path }')"
+MAX_PATH_LEN="${MAX_PATH_INFO%% *}"
+MAX_PATH_NAME="${MAX_PATH_INFO#* }"
+if [[ "${MAX_PATH_LEN:-0}" -gt 180 ]]; then
+  fail "  Ruta interna demasiado larga (${MAX_PATH_LEN} caracteres): $MAX_PATH_NAME"
+else
+  ok "  Ruta interna mas larga: ${MAX_PATH_LEN} caracteres"
+fi
+
+# ── 9. No contiene rutas del desarrollador ───────────────────────────────────
 info "Verificando ausencia de rutas del desarrollador en BAT/PS1..."
 DEV_PATHS=("/home/toni" "/root" "/home/antonio" "C:\\Users\\antonio" "wsl.localhost")
 for p in "${DEV_PATHS[@]}"; do
@@ -133,7 +150,7 @@ for p in "${DEV_PATHS[@]}"; do
   fi
 done
 
-# ── 9. .bat contiene %~dp0 (rutas relativas) ─────────────────────────────────
+# ── 10. .bat contiene %~dp0 (rutas relativas) ────────────────────────────────
 info "Verificando que el BAT usa %%~dp0 ..."
 if grep -q "%~dp0" "$EXTRACTED/INICIAR_LINK2MEDIA.bat" 2>/dev/null; then
   ok "  INICIAR_LINK2MEDIA.bat usa %%~dp0"
@@ -141,7 +158,7 @@ else
   fail "  INICIAR_LINK2MEDIA.bat no usa %%~dp0 — las rutas pueden ser absolutas del dev"
 fi
 
-# ── 10. Verificación Windows (si cmd.exe está disponible) ────────────────────
+# ── 11. Verificación Windows (si cmd.exe está disponible) ────────────────────
 echo ""
 info "Verificaciones Windows..."
 if command -v cmd.exe >/dev/null 2>&1; then
