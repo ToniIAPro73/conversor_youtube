@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import { CONFIG } from "../config";
-import { AppError, ERROR_CODES } from "../errors";
+import { AppError, ERROR_CODES, ERROR_MESSAGES } from "../errors";
 import { MetadataResponse } from "../youtube/schemas";
 
 interface YtdlpFormat {
