@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: link2media
+    env: node
+    plan: free
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22.2.1
+      - key: APP_NAME
+        value: Link2Media
+      - key: MEDIA_TEMP_DIR
+        value: .tmp/media
+    # Note: On Render, you can use a custom build script to install ffmpeg
+    # or use a Docker-based deploy if needed. For the native Node env,
+    # ffmpeg is often pre-installed or available via environment packages.

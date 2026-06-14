@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { MetadataResponse } from "@/lib/youtube/schemas";
 import { toast, Toaster } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 interface JobStatusData {
   jobId: string;
@@ -39,6 +39,7 @@ export default function Home() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<JobStatusData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [dependencyError, setDependencyError] = useState<string | null>(null);
 
   // Derived quality if not manually selected
   const quality = useMemo(() => {
@@ -81,6 +82,7 @@ export default function Home() {
     setJobId(null);
     setJobStatus(null);
     setSelectedQuality(null);
+    setDependencyError(null);
     
     try {
       const res = await fetch("/api/metadata", {
@@ -90,7 +92,12 @@ export default function Home() {
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al analizar");
+      if (!res.ok) {
+        if (data.code === "DEPENDENCY_MISSING") {
+          setDependencyError(data.error);
+        }
+        throw new Error(data.error || "Error al analizar");
+      }
       
       setMetadata(data);
     } catch (error: unknown) {
@@ -128,7 +135,12 @@ export default function Home() {
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al iniciar");
+      if (!res.ok) {
+        if (data.code === "DEPENDENCY_MISSING") {
+          setDependencyError(data.error);
+        }
+        throw new Error(data.error || "Error al iniciar");
+      }
       
       setJobId(data.jobId);
     } catch (error: unknown) {
@@ -149,6 +161,7 @@ export default function Home() {
     setIsProcessing(false);
     setRightsConfirmed(false);
     setSelectedQuality(null);
+    setDependencyError(null);
   };
 
   return (
@@ -188,6 +201,22 @@ export default function Home() {
               Aceptamos enlaces de youtube.com, youtu.be y music.youtube.com
             </p>
           </section>
+
+          {dependencyError && (
+            <div className="p-5 bg-red-500/5 border border-red-500/20 rounded-2xl text-red-400 text-sm animate-in zoom-in-95 duration-300">
+              <div className="flex items-center gap-2 mb-2 font-bold text-base">
+                <AlertTriangle className="h-5 w-5" />
+                Error de Configuración del Servidor
+              </div>
+              <p className="opacity-90 leading-relaxed mb-4">
+                {dependencyError}
+              </p>
+              <div className="p-3 bg-red-500/10 rounded-lg text-[13px] border border-red-500/10">
+                <p className="font-semibold mb-1">💡 Solución sugerida:</p>
+                Despliega esta aplicación en un servidor con soporte para binarios (Render, Railway, VPS) en lugar de Vercel. Consulta el <strong>README.md</strong> para más detalles.
+              </div>
+            </div>
+          )}
 
           {metadata && !jobStatus && (
             <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
