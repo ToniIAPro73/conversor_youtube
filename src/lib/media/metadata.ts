@@ -73,8 +73,12 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
       }
     });
 
-    process.on("error", () => {
-      reject(new AppError(ERROR_CODES.INTERNAL_ERROR, "Error al ejecutar yt-dlp."));
+    process.on("error", (err: any) => {
+      if (err.code === "ENOENT") {
+        reject(new AppError(ERROR_CODES.DEPENDENCY_MISSING, ERROR_MESSAGES.DEPENDENCY_MISSING, 500));
+      } else {
+        reject(new AppError(ERROR_CODES.INTERNAL_ERROR, "Error al ejecutar yt-dlp.", 500));
+      }
     });
   });
 }

@@ -45,7 +45,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   CONTENT_RESTRICTED: 'El contenido tiene restricciones de edad o región.',
   DURATION_LIMIT_EXCEEDED: 'El vídeo excede la duración máxima permitida.',
   FORMAT_NOT_AVAILABLE: 'El formato solicitado no está disponible para este vídeo.',
-  DEPENDENCY_MISSING: 'Error interno: faltan dependencias en el servidor.',
+  DEPENDENCY_MISSING: 'Error: No se han encontrado las dependencias necesarias (yt-dlp/ffmpeg) en el servidor. Vercel no es compatible sin configuración adicional.',
   RATE_LIMITED: 'Demasiadas peticiones. Por favor, espera un momento.',
   JOB_ALREADY_ACTIVE: 'Ya tienes un proceso activo.',
   QUEUE_FULL: 'El servidor está saturado. Inténtalo más tarde.',
@@ -59,3 +59,4 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   CANCELLED: 'El proceso ha sido cancelado.',
   INTERNAL_ERROR: 'Ocurrió un error interno en el servidor.',
 };
+

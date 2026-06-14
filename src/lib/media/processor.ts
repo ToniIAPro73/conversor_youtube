@@ -97,10 +97,14 @@ export async function processJob(jobId: string) {
       }
     });
 
-    process.on("error", () => {
+    process.on("error", (err: any) => {
+      let errorMsg = "Error al iniciar el proceso de conversión.";
+      if (err.code === "ENOENT") {
+        errorMsg = "Error: Dependencias no encontradas (yt-dlp/ffmpeg). Vercel no es compatible.";
+      }
       jobManager.updateJob(jobId, { 
         status: "failed", 
-        error: "Error al iniciar el proceso de conversión.",
+        error: errorMsg,
         stage: "Error",
       });
     });
