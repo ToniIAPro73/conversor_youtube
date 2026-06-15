@@ -1,18 +1,29 @@
-import { Job } from "./job-types";
+import {
+  createJob as dbCreateJob,
+  getJob as dbGetJob,
+  updateJob as dbUpdateJob,
+  getActiveJobsCount as dbGetActiveJobsCount,
+  getClientActiveJob as dbGetClientActiveJob,
+  listJobs as dbListJobs,
+  markInterruptedJobs,
+  cleanupExpiredJobs,
+  type JobRow,
+  type JobStatus,
+} from "../infrastructure/db/job-repository";
 import { CONFIG } from "../config";
 import crypto from "crypto";
-import { cleanupTempDir } from "./cleanup";
+
+export type { JobStatus, JobRow as Job };
 
 class JobManager {
   private static instance: JobManager;
-  private jobs: Map<string, Job> = new Map();
 
   private constructor() {
-    // Run initial cleanup
     if (typeof window === "undefined") {
-      cleanupTempDir();
-      // Start periodic cleanup
-      setInterval(() => this.cleanupExpiredJobs(), 5 * 60 * 1000);
+      // Mark any jobs that were active when the process died
+      markInterruptedJobs();
+      // Periodic cleanup
+      setInterval(() => cleanupExpiredJobs(), 5 * 60 * 1000);
     }
   }
 
@@ -23,65 +34,53 @@ class JobManager {
     return JobManager.instance;
   }
 
-  public createJob(videoId: string, format: "mp3" | "mp4", quality: string, clientIp: string): Job {
-    const id = crypto.randomBytes(16).toString("hex");
-    const now = Date.now();
-    
-    const job: Job = {
-      id,
-      videoId,
-      format,
+  public createJob(
+    inputReference: string,
+    outputFormat: string,
+    quality: string,
+    clientIp: string,
+    operation = "transcode-audio",
+    inputKind: "remote-url" | "local-file" = "remote-url",
+    inputTitle?: string
+  ): JobRow {
+    return dbCreateJob({
+      inputKind,
+      inputReference,
+      inputTitle,
+      operation,
+      outputFormat,
       quality,
-      status: "queued",
-      progress: 0,
-      stage: "En cola",
-      createdAt: now,
-      updatedAt: now,
-      expiresAt: now + CONFIG.media.limits.jobTtlMinutes * 60 * 1000,
       clientIp,
-    };
-
-    this.jobs.set(id, job);
-    return job;
+      ttlMinutes: CONFIG.media.limits.jobTtlMinutes,
+    });
   }
 
-  public getJob(id: string): Job | undefined {
-    return this.jobs.get(id);
+  public getJob(id: string): JobRow | null {
+    return dbGetJob(id);
   }
 
-  public updateJob(id: string, updates: Partial<Job>): void {
-    const job = this.jobs.get(id);
-    if (job) {
-      const updatedJob = { 
-        ...job, 
-        ...updates, 
-        updatedAt: Date.now() 
-      };
-      this.jobs.set(id, updatedJob);
-    }
+  public updateJob(id: string, updates: Parameters<typeof dbUpdateJob>[1]): void {
+    dbUpdateJob(id, updates);
   }
 
   public getActiveJobsCount(): number {
-    return Array.from(this.jobs.values()).filter(
-      (j) => ["queued", "downloading", "processing", "verifying"].includes(j.status)
-    ).length;
+    return dbGetActiveJobsCount();
   }
 
-  public getClientActiveJob(clientIp: string): Job | undefined {
-    return Array.from(this.jobs.values()).find(
-      (j) => j.clientIp === clientIp && ["queued", "downloading", "processing", "verifying"].includes(j.status)
-    );
+  public getClientActiveJob(clientIp: string): JobRow | null {
+    return dbGetClientActiveJob(clientIp);
   }
 
-  private cleanupExpiredJobs(): void {
-    const now = Date.now();
-    for (const [id, job] of this.jobs.entries()) {
-      if (now > job.expiresAt) {
-        this.jobs.delete(id);
-        // Note: Actual file cleanup would be handled by cleanup-temp.mjs
-        // or we could add specific file deletion logic here.
-      }
-    }
+  public listJobs(limit = 50): JobRow[] {
+    return dbListJobs(limit);
+  }
+
+  public generateDownloadToken(): string {
+    return crypto.randomBytes(32).toString("hex");
+  }
+
+  public hashToken(token: string): string {
+    return crypto.createHash("sha256").update(token).digest("hex");
   }
 }
 

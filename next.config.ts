@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    serverComponentsHmrCache: false,
+  },
+  serverExternalPackages: ["better-sqlite3"],
 };
 
 export default nextConfig;
