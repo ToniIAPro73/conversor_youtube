@@ -33,7 +33,7 @@ export function InputAnalysisCard({ result, onReset }: Props) {
   const audioCount = d.audioStreams.length;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] overflow-hidden">
+    <div className="rounded-2xl border border-white/10 bg-white/4 overflow-hidden">
       {/* Thumbnail or header */}
       {thumbnailUrl && (
         <div className="relative">
@@ -43,7 +43,7 @@ export function InputAnalysisCard({ result, onReset }: Props) {
             alt={`Miniatura de ${title}`}
             className="w-full aspect-video object-cover opacity-70"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent" />
         </div>
       )}
 
