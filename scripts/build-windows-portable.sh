@@ -164,6 +164,35 @@ rm -rf "$TMP_NODE_EXTRACT"
 [[ -f "$RUNTIME_DIR/node.exe" ]] || die "node.exe no encontrado tras la extracción"
 ok "node.exe extraído"
 
+# ── 10b. Descargar (y cachear) better-sqlite3 Windows nativo ─────────────────
+# La descarga se hace aquí para que SQLITE3_SHA256 y SQLITE3_WINDOWS_VERSION
+# estén definidos antes de que los pasos 16-18 generen los manifests.
+# La instalación en staging se hace en el paso 19b (tras limpiar el .node Linux).
+info "Resolviendo versión de better-sqlite3..."
+if [[ -z "$SQLITE3_WINDOWS_VERSION" ]]; then
+  SQLITE3_WINDOWS_VERSION="$(node -e "const p=require('./node_modules/better-sqlite3/package.json');console.log(p.version);" 2>/dev/null \
+    || python3 -c "
+import json, re, pathlib
+txt = pathlib.Path('package.json').read_text()
+data = json.loads(txt)
+ver = data.get('dependencies', {}).get('better-sqlite3', '12.10.1')
+print(re.sub(r'^[\^~]', '', ver))
+")"
+fi
+info "better-sqlite3: v${SQLITE3_WINDOWS_VERSION} (node-v${NODE_MODULES_ABI})"
+
+SQLITE3_ASSET="better-sqlite3-v${SQLITE3_WINDOWS_VERSION}-node-v${NODE_MODULES_ABI}-win32-x64.tar.gz"
+SQLITE3_URL="https://github.com/WiseLibs/better-sqlite3/releases/download/v${SQLITE3_WINDOWS_VERSION}/${SQLITE3_ASSET}"
+SQLITE3_CACHE="$CACHE_DIR/$SQLITE3_ASSET"
+
+if [[ ! -f "$SQLITE3_CACHE" ]]; then
+  info "Descargando $SQLITE3_ASSET ..."
+  curl --fail --location --retry 3 --progress-bar -o "$SQLITE3_CACHE" "$SQLITE3_URL" \
+    || die "No se pudo descargar better-sqlite3 desde $SQLITE3_URL"
+fi
+SQLITE3_SHA256="$(sha256sum "$SQLITE3_CACHE" | awk '{print $1}')"
+ok "better-sqlite3 cacheado (SHA256: ${SQLITE3_SHA256:0:16}...)"
+
 # ── 11. Descargar / reutilizar yt-dlp.exe ────────────────────────────────────
 info "Preparando yt-dlp.exe..."
 
@@ -525,32 +554,9 @@ else
   ok "No se encontraron binarios Linux en app/"
 fi
 
-# ── 19b. Descargar e instalar better-sqlite3 Windows nativo ──────────────────
-info "Preparando better-sqlite3 nativo para Windows x64..."
-
-if [[ -z "$SQLITE3_WINDOWS_VERSION" ]]; then
-  SQLITE3_WINDOWS_VERSION="$(node -e "const p=require('./node_modules/better-sqlite3/package.json');console.log(p.version);" 2>/dev/null \
-    || python3 -c "
-import json, re, pathlib
-txt = pathlib.Path('package.json').read_text()
-data = json.loads(txt)
-ver = data.get('dependencies', {}).get('better-sqlite3', '12.10.1')
-print(re.sub(r'^[\^~]', '', ver))
-")"
-  info "Versión better-sqlite3: $SQLITE3_WINDOWS_VERSION"
-fi
-
-SQLITE3_ASSET="better-sqlite3-v${SQLITE3_WINDOWS_VERSION}-node-v${NODE_MODULES_ABI}-win32-x64.tar.gz"
-SQLITE3_URL="https://github.com/WiseLibs/better-sqlite3/releases/download/v${SQLITE3_WINDOWS_VERSION}/${SQLITE3_ASSET}"
-SQLITE3_CACHE="$CACHE_DIR/$SQLITE3_ASSET"
-
-if [[ ! -f "$SQLITE3_CACHE" ]]; then
-  info "Descargando $SQLITE3_ASSET ..."
-  curl --fail --location --retry 3 --progress-bar -o "$SQLITE3_CACHE" "$SQLITE3_URL" \
-    || die "No se pudo descargar better-sqlite3 Windows binary desde $SQLITE3_URL"
-fi
-
-SQLITE3_SHA256="$(sha256sum "$SQLITE3_CACHE" | awk '{print $1}')"
+# ── 19b. Instalar better-sqlite3 Windows nativo en staging ───────────────────
+# El tarball ya fue descargado y verificado en el paso 10b.
+info "Instalando better_sqlite3.node (Windows x64) en staging..."
 
 SQLITE3_TARGET="$STAGING_DIR/app/node_modules/better-sqlite3/build/Release"
 mkdir -p "$SQLITE3_TARGET"
