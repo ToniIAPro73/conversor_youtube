@@ -11,6 +11,7 @@ import { JobHistory } from "@/components/history/job-history";
 import { ToolStatusPanel } from "@/components/diagnostics/tool-status-panel";
 import type { CapabilityInfo } from "@/lib/domain/unified-analysis";
 import { Layers, History, Stethoscope, CheckCircle2, ArrowRight } from "lucide-react";
+import Image from "next/image";
 import { t } from "@/i18n";
 
 type Tab = "convert" | "history" | "diagnostics";
@@ -240,13 +241,14 @@ export default function Home() {
         <header className="pt-6 pb-5 flex flex-col items-center text-center">
           {/* Logo centrado */}
           <div className="mb-4 flex items-center justify-center">
-            <div className="relative flex h-11 w-11 items-center justify-center rounded-[14px] border border-teal-300/30 bg-linear-to-br from-teal-400/22 to-teal-600/10 shadow-[0_0_28px_rgba(20,184,166,0.24),0_12px_32px_rgba(0,0,0,0.36)]">
-              <svg viewBox="0 0 24 24" className="h-5 w-5 text-teal-200 fill-current drop-shadow-[0_0_6px_rgba(45,212,191,0.55)]" aria-hidden="true">
-                <path d="M10 15.5v-7l6 3.5-6 3.5z" />
-                <path fillRule="evenodd" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM5 12a7 7 0 1014 0 7 7 0 00-14 0z" />
-              </svg>
-              <div className="absolute inset-0 rounded-[14px] ring-1 ring-inset ring-white/8 pointer-events-none" aria-hidden="true" />
-            </div>
+            <Image
+              src="/brand/logo-anclora-fileStudio.webp"
+              alt="Anclora FileStudio"
+              width={72}
+              height={72}
+              priority
+              className="drop-shadow-[0_0_24px_rgba(20,184,166,0.35)]"
+            />
           </div>
 
           <h1 className="max-w-xl text-balance text-[2.4rem] font-black leading-[0.93] tracking-tight sm:text-5xl">
