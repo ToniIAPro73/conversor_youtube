@@ -237,40 +237,65 @@ export default function Home() {
       />
 
       <div className="relative mx-auto max-w-3xl px-4 pb-24 sm:px-6">
-        <header className="pt-10 pb-8 sm:pt-14">
-          <div className="mb-5 inline-flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-teal-300/25 bg-teal-400/15 shadow-[0_18px_50px_rgba(20,184,166,0.16)]">
-              <svg viewBox="0 0 24 24" className="h-5 w-5 text-white fill-current" aria-hidden="true">
+        <header className="pt-12 pb-10 sm:pt-16 flex flex-col items-center text-center">
+          {/* Logo badge */}
+          <div className="mb-6 flex flex-col items-center gap-3">
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-[20px] border border-teal-300/30 bg-linear-to-br from-teal-400/25 to-teal-600/10 shadow-[0_0_40px_rgba(20,184,166,0.28),0_20px_60px_rgba(0,0,0,0.4)]">
+              <svg viewBox="0 0 24 24" className="h-7 w-7 text-teal-200 fill-current drop-shadow-[0_0_8px_rgba(45,212,191,0.6)]" aria-hidden="true">
                 <path d="M10 15.5v-7l6 3.5-6 3.5z" />
                 <path fillRule="evenodd" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM5 12a7 7 0 1014 0 7 7 0 00-14 0z" />
               </svg>
+              {/* glow ring */}
+              <div className="absolute inset-0 rounded-[20px] ring-1 ring-inset ring-white/8 pointer-events-none" aria-hidden="true" />
             </div>
-            <div className="text-left">
-              <span className="block text-xl font-semibold tracking-tight">Link2Media</span>
-              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-teal-200/55">
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-2xl font-bold tracking-tight text-white">Link2Media</span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-teal-300/60">
+                <span className="h-px w-4 bg-teal-300/30" />
                 Portable local
+                <span className="h-px w-4 bg-teal-300/30" />
               </span>
             </div>
           </div>
+
           <h1 className="max-w-2xl text-balance text-4xl font-black leading-[0.95] tracking-tight sm:text-6xl">
-            Conversor universal <span className="text-teal-300">local</span>
+            Conversor universal{" "}
+            <span className="bg-linear-to-r from-teal-300 to-teal-400 bg-clip-text text-transparent">local</span>
           </h1>
-          <p className="mt-4 max-w-lg text-pretty text-base leading-7 text-stone-300/68">
+          <p className="mt-5 max-w-md text-pretty text-base leading-7 text-stone-400">
             Pega un enlace o sube cualquier archivo. El sistema detecta lo que se puede hacer con él.
           </p>
         </header>
 
         <nav
           aria-label="Secciones de la aplicación"
-          className="mb-6 grid grid-cols-3 overflow-hidden rounded-[18px] border border-white/10 bg-[#171a1f]/88 p-1 shadow-[0_24px_80px_rgba(0,0,0,0.32)] backdrop-blur"
+          className="mb-6 grid grid-cols-3 gap-1.5 rounded-[20px] border border-white/8 bg-[#13161b]/90 p-1.5 shadow-[0_24px_80px_rgba(0,0,0,0.40)] backdrop-blur-md"
         >
           {(
             [
-              { id: "convert" as Tab, icon: <Layers className="h-4 w-4" />, label: t("nav.convert") },
-              { id: "history" as Tab, icon: <History className="h-4 w-4" />, label: t("nav.history") },
-              { id: "diagnostics" as Tab, icon: <Stethoscope className="h-4 w-4" />, label: t("nav.diagnostics") },
+              {
+                id: "convert" as Tab,
+                icon: <Layers className="h-4 w-4" />,
+                label: t("nav.convert"),
+                activeClass: "bg-teal-400/18 text-teal-200 shadow-[0_0_20px_rgba(45,212,191,0.15)] ring-1 ring-teal-300/25",
+                inactiveClass: "text-stone-500 hover:bg-white/5 hover:text-stone-300",
+              },
+              {
+                id: "history" as Tab,
+                icon: <History className="h-4 w-4" />,
+                label: t("nav.history"),
+                activeClass: "bg-amber-400/15 text-amber-200 shadow-[0_0_20px_rgba(251,191,36,0.12)] ring-1 ring-amber-300/25",
+                inactiveClass: "text-stone-500 hover:bg-amber-400/6 hover:text-amber-200/70",
+              },
+              {
+                id: "diagnostics" as Tab,
+                icon: <Stethoscope className="h-4 w-4" />,
+                label: t("nav.diagnostics"),
+                activeClass: "bg-violet-400/15 text-violet-200 shadow-[0_0_20px_rgba(167,139,250,0.12)] ring-1 ring-violet-300/25",
+                inactiveClass: "text-stone-500 hover:bg-violet-400/6 hover:text-violet-200/70",
+              },
             ] as const
-          ).map(({ id, icon, label }) => (
+          ).map(({ id, icon, label, activeClass, inactiveClass }) => (
             <button
               key={id}
               type="button"
@@ -278,10 +303,8 @@ export default function Home() {
               role="tab"
               aria-selected={activeTab === id}
               aria-controls={`panel-${id}`}
-              className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-[14px] px-2 py-3 text-sm font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/70 motion-reduce:transition-none ${
-                activeTab === id
-                  ? "bg-stone-100 text-[#101316] shadow-[0_10px_24px_rgba(0,0,0,0.28)]"
-                  : "text-stone-400 hover:bg-white/5 hover:text-stone-100"
+              className={`flex min-h-[48px] items-center justify-center gap-2 rounded-[14px] px-3 py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/70 motion-reduce:transition-none ${
+                activeTab === id ? activeClass : inactiveClass
               }`}
             >
               {icon}
@@ -449,10 +472,19 @@ export default function Home() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-20 border-t border-white/8 pt-6 text-center">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-stone-500">
-            Link2Media · Procesamiento 100% local · {new Date().getFullYear()}
-          </p>
+        <footer className="mt-20 flex flex-col items-center gap-2 border-t border-white/6 pt-8">
+          <div className="flex items-center gap-2">
+            <span className="h-px w-8 bg-linear-to-r from-transparent to-white/15" />
+            <p className="text-[10px] font-medium uppercase tracking-[0.26em] text-stone-600">
+              Link2Media
+            </p>
+            <span className="h-1 w-1 rounded-full bg-teal-400/40" />
+            <p className="text-[10px] font-medium uppercase tracking-[0.26em] text-stone-600">
+              100% local
+            </p>
+            <span className="h-px w-8 bg-linear-to-l from-transparent to-white/15" />
+          </div>
+          <p className="text-[9px] tracking-widest text-stone-700">{new Date().getFullYear()}</p>
         </footer>
       </div>
     </div>
