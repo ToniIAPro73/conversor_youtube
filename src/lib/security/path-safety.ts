@@ -1,13 +1,55 @@
 import path from "path";
-import { CONFIG } from "../config";
+import fs from "fs";
 
-export function ensurePathSafety(targetPath: string): string {
-  const absoluteTargetPath = path.resolve(targetPath);
-  const absoluteTempDir = CONFIG.media.tempDir;
+/**
+ * Validates that targetPath is strictly inside allowedRoot.
+ * Uses path.resolve + path.relative to prevent traversal; does NOT rely on startsWith alone.
+ * Returns the resolved absolute path on success.
+ * Throws on traversal attempt.
+ */
+export function ensurePathSafety(targetPath: string, allowedRoot?: string): string {
+  const root = allowedRoot ?? getDefaultTempDir();
+  const resolvedTarget = path.resolve(targetPath);
+  const resolvedRoot = path.resolve(root);
 
-  if (!absoluteTargetPath.startsWith(absoluteTempDir)) {
-    throw new Error("Security Error: Path traversal attempt detected.");
+  const relative = path.relative(resolvedRoot, resolvedTarget);
+
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(
+      `Security: path traversal attempt — "${resolvedTarget}" is outside allowed root "${resolvedRoot}"`
+    );
   }
 
-  return absoluteTargetPath;
+  return resolvedTarget;
+}
+
+/**
+ * Resolves and validates a relative path against the allowed root.
+ * Use this when you receive a stored relative path from the database.
+ */
+export function resolveArtifactPath(relativePath: string, allowedRoot?: string): string {
+  const root = allowedRoot ?? getDefaultTempDir();
+  const resolvedRoot = path.resolve(root);
+  const candidate = path.resolve(resolvedRoot, relativePath);
+  return ensurePathSafety(candidate, resolvedRoot);
+}
+
+/**
+ * Safe check whether a path exists inside the allowed root.
+ * Never throws; returns false if the path is invalid or outside root.
+ */
+export function safeExistsInRoot(targetPath: string, allowedRoot?: string): boolean {
+  try {
+    const resolved = ensurePathSafety(targetPath, allowedRoot);
+    return fs.existsSync(resolved);
+  } catch {
+    return false;
+  }
+}
+
+function getDefaultTempDir(): string {
+  // Lazy import to avoid circular deps
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { CONFIG } = require("../config") as { CONFIG: { media: { tempDir: string } } };
+  return CONFIG.media.tempDir;
 }

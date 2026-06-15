@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, RotateCcw, History } from "lucide-react";
+import { useState } from "react";
+import { Download, RotateCcw, History, Loader2 } from "lucide-react";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -20,7 +21,32 @@ interface Props {
 }
 
 export function ArtifactResultCard({ jobId, fileName, format, sizeBytes, downloadTokenHash, onReset, onViewHistory }: Props) {
-  const downloadUrl = `/api/download/${jobId}`;
+  const [fetching, setFetching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDownload = async () => {
+    if (fetching) return;
+    setFetching(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/token`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error al obtener token");
+      const url = data.downloadUrl as string;
+
+      // Trigger download programmatically
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al descargar");
+    } finally {
+      setFetching(false);
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-400">
@@ -36,18 +62,32 @@ export function ArtifactResultCard({ jobId, fileName, format, sizeBytes, downloa
         </div>
       </div>
 
+      {error && (
+        <p role="alert" className="text-sm text-red-400">{error}</p>
+      )}
+
       <div className="space-y-2">
         {downloadTokenHash ? (
-          <a
-            href={downloadUrl}
-            download={fileName}
-            className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-colors"
+          <button
+            type="button"
+            onClick={() => void handleDownload()}
+            disabled={fetching}
+            className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-colors disabled:opacity-60"
           >
-            <Download className="h-4 w-4" />
-            Descargar {format.toUpperCase()}
-          </a>
+            {fetching ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Preparando descarga...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                Descargar {format.toUpperCase()}
+              </>
+            )}
+          </button>
         ) : (
-          <p className="text-sm text-white/40 text-center">Archivo no disponible (token inválido).</p>
+          <p className="text-sm text-white/40 text-center">Archivo no disponible.</p>
         )}
 
         <div className="flex gap-2">

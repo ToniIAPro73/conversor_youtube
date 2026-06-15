@@ -132,7 +132,7 @@ export function JobHistory() {
             <div
               key={job.id}
               role="listitem"
-              className="rounded-xl border border-white/8 bg-white/[0.025] p-3.5 space-y-2"
+              className="rounded-xl border border-white/8 bg-white/2.5 p-3.5 space-y-2"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">

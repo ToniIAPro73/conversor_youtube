@@ -190,7 +190,7 @@ export default function Home() {
         {/* Header */}
         <header className="text-center pt-12 pb-8">
           <div className="inline-flex items-center gap-2.5 mb-5">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+            <div className="h-10 w-10 rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
               <svg viewBox="0 0 24 24" className="h-5 w-5 text-white fill-current" aria-hidden="true">
                 <path d="M10 15.5v-7l6 3.5-6 3.5z" />
                 <path fillRule="evenodd" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM5 12a7 7 0 1014 0 7 7 0 00-14 0z" />
@@ -209,7 +209,7 @@ export default function Home() {
         {/* Navigation tabs */}
         <nav
           aria-label="Secciones de la aplicación"
-          className="flex rounded-2xl overflow-hidden border border-white/10 bg-white/[0.04] mb-6"
+          className="flex rounded-2xl overflow-hidden border border-white/10 bg-white/4 mb-6"
         >
           {(
             [
