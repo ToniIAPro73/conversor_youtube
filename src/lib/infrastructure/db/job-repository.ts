@@ -38,6 +38,19 @@ export interface JobRow {
   cancelled_at: string | null;
   updated_at: string;
   expires_at: string;
+  // Universal fields (migration v2)
+  category: string | null;
+  engine_id: string | null;
+  engine_version: string | null;
+  conversion_id: string | null;
+  input_mime_type: string | null;
+  input_format: string | null;
+  output_mime_type: string | null;
+  loss_profile: string | null;
+  batch_id: string | null;
+  warnings_json: string | null;
+  validation_json: string | null;
+  toolchain_snapshot_json: string | null;
 }
 
 export interface CreateJobParams {
@@ -104,6 +117,19 @@ export function updateJob(
       | "started_at"
       | "completed_at"
       | "cancelled_at"
+      | "input_title"
+      | "category"
+      | "engine_id"
+      | "engine_version"
+      | "conversion_id"
+      | "input_mime_type"
+      | "input_format"
+      | "output_mime_type"
+      | "loss_profile"
+      | "batch_id"
+      | "warnings_json"
+      | "validation_json"
+      | "toolchain_snapshot_json"
     >
   >
 ): void {

@@ -7,6 +7,8 @@ import { sanitizeFilename } from "@/lib/security/sanitize-filename";
 import { ensurePathSafety } from "@/lib/security/path-safety";
 import { buildDescriptor } from "@/lib/detection/file-detector";
 import { ALL_ALLOWED_EXTENSIONS, FORMAT_BY_EXTENSION } from "@/lib/domain/format-catalog";
+import type { UniversalFileAnalysis } from "@/lib/domain/unified-analysis";
+import type { FileCategory } from "@/lib/domain/descriptors";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
@@ -125,7 +127,7 @@ async function handleFileUpload(req: NextRequest): Promise<NextResponse> {
   if (isMedia) {
     return handleMediaFile(storedPath, originalName, uploadId, file.size);
   }
-  return handleUniversalFile(storedPath, originalName, uploadId, file.size);
+  return handleUniversalFile(storedPath, originalName, uploadId, file.size, ext);
 }
 
 async function handleMediaFile(storedPath: string, originalName: string, uploadId: string, sizeBytes: number): Promise<NextResponse> {
@@ -140,8 +142,8 @@ async function handleMediaFile(storedPath: string, originalName: string, uploadI
 
   const relPath = path.relative(CONFIG.media.tempDir, storedPath);
   return NextResponse.json({
-    kind: "local-file",
-    uploadId,
+    kind: "local-media",
+    inputId: uploadId,
     originalName,
     storedRelativePath: relPath,
     sizeBytes,
@@ -149,7 +151,7 @@ async function handleMediaFile(storedPath: string, originalName: string, uploadI
   });
 }
 
-async function handleUniversalFile(storedPath: string, originalName: string, uploadId: string, sizeBytes: number): Promise<NextResponse> {
+async function handleUniversalFile(storedPath: string, originalName: string, uploadId: string, sizeBytes: number, ext: string): Promise<NextResponse> {
   try {
     const relPath = path.relative(CONFIG.media.tempDir, storedPath);
     const universalDescriptor = await buildDescriptor(
@@ -157,12 +159,33 @@ async function handleUniversalFile(storedPath: string, originalName: string, upl
       { kind: "local-upload", originalName, storedRelativePath: relPath },
       uploadId
     );
-    return NextResponse.json({
+
+    // Persist input metadata to the inputs table
+    persistInputMetadata(uploadId, universalDescriptor, relPath);
+
+    // Build a proper UniversalFileAnalysis response
+    const analysis: UniversalFileAnalysis = {
       kind: "universal-file",
-      uploadId,
+      inputId: uploadId,
       originalName,
       storedRelativePath: relPath,
       sizeBytes,
+      descriptor: universalDescriptor.attributes,
+      category: universalDescriptor.category as FileCategory,
+      detectedFormat: universalDescriptor.detectedFormat,
+      confidence: deriveConfidenceFromDescriptor(universalDescriptor),
+      warnings: universalDescriptor.warnings.map((w) => ({
+        code: w.code,
+        message: w.message,
+        severity: w.severity as "info" | "warning" | "danger",
+      })),
+      detectedMimeType: universalDescriptor.detectedMimeType,
+      sha256: universalDescriptor.sha256,
+    };
+
+    return NextResponse.json({
+      ...analysis,
+      // Also include the full descriptor for capabilities lookup
       universalDescriptor,
     });
   } catch (error: unknown) {
@@ -170,4 +193,65 @@ async function handleUniversalFile(storedPath: string, originalName: string, upl
     const msg = error instanceof Error ? error.message : "Error al analizar el archivo.";
     return NextResponse.json({ error: msg, code: "ANALYSIS_FAILED" }, { status: 422 });
   }
+}
+
+/**
+ * Persist input metadata to the inputs table for stable reference.
+ */
+function persistInputMetadata(
+  inputId: string,
+  descriptor: import("@/lib/domain/descriptors").UniversalFileDescriptor,
+  storedRelativePath: string
+): void {
+  try {
+    const { getDb } = require("@/lib/infrastructure/db/database") as { getDb: () => import("better-sqlite3").Database };
+    const db = getDb();
+    const ttlMinutes = CONFIG.media.limits.jobTtlMinutes;
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000).toISOString();
+
+    db.prepare(`
+      INSERT OR IGNORE INTO inputs (
+        id, original_name, extension, detected_mime_type, detected_format,
+        category, size_bytes, sha256, stored_relative_path,
+        attributes_json, warnings_json, analyzed_by, analyzed_at,
+        expires_at, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+    `).run(
+      inputId,
+      descriptor.originalName,
+      descriptor.extension ?? null,
+      descriptor.detectedMimeType ?? null,
+      descriptor.detectedFormat ?? null,
+      descriptor.category,
+      descriptor.sizeBytes,
+      descriptor.sha256 ?? null,
+      storedRelativePath,
+      JSON.stringify(descriptor.attributes),
+      JSON.stringify(descriptor.warnings),
+      descriptor.analyzedBy.join(","),
+      descriptor.analyzedAt,
+      expiresAt
+    );
+  } catch (err) {
+    // Non-fatal: the input is still available via the uploads directory
+    console.warn("[analyze] Failed to persist input metadata:", err);
+  }
+}
+
+/**
+ * Derive confidence from the descriptor's detection results.
+ */
+function deriveConfidenceFromDescriptor(
+  descriptor: import("@/lib/domain/descriptors").UniversalFileDescriptor
+): "high" | "medium" | "low" {
+  const hasMagicDetection = descriptor.analyzedBy.includes("file-detector") && descriptor.detectedMimeType !== null;
+  const extensionMatch = descriptor.extension !== null &&
+    descriptor.detectedFormat === descriptor.extension;
+  const hasMismatch = descriptor.warnings.some(
+    (w) => w.code === "MIME_EXTENSION_MISMATCH"
+  );
+
+  if (hasMagicDetection && extensionMatch && !hasMismatch) return "high";
+  if (hasMagicDetection || extensionMatch) return "medium";
+  return "low";
 }

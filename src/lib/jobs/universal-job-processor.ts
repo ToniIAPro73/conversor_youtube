@@ -1,0 +1,501 @@
+// Universal Job Processor — orchestrator for non-media conversion jobs.
+// Recovers job from DB, resolves engine, builds plan, executes, validates, persists.
+// Marked as completed ONLY after output validation passes.
+
+import path from "path";
+import fs from "fs";
+import crypto from "crypto";
+import type { ConversionPlan, ExecutionResult, ArtifactValidation, ConversionCapability } from "../domain/engines";
+import type { FileCategory, LossProfile } from "../domain/descriptors";
+import { getEngine, getCapabilities } from "../engines/registry";
+import { jobManager } from "./job-manager";
+import { CONFIG } from "../config";
+import { ensurePathSafety } from "../security/path-safety";
+import { sanitizeFilename } from "../security/sanitize-filename";
+import { FORMAT_BY_EXTENSION, MIME_TO_FORMAT } from "../domain/format-catalog";
+
+// ── Errors ────────────────────────────────────────────────────────────────────
+
+class JobProcessingError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string
+  ) {
+    super(message);
+    this.name = "JobProcessingError";
+  }
+}
+
+// ── Magic bytes table for output validation ──────────────────────────────────
+
+const MAGIC_SIGNATURES: Array<{ bytes: Buffer; offset: number; mimeType: string }> = [
+  { bytes: Buffer.from([0xff, 0xd8, 0xff]), offset: 0, mimeType: "image/jpeg" },
+  { bytes: Buffer.from([0x89, 0x50, 0x4e, 0x47]), offset: 0, mimeType: "image/png" },
+  { bytes: Buffer.from([0x47, 0x49, 0x46]), offset: 0, mimeType: "image/gif" },
+  { bytes: Buffer.from([0x52, 0x49, 0x46, 0x46]), offset: 0, mimeType: "image/webp" },
+  { bytes: Buffer.from([0x25, 0x50, 0x44, 0x46]), offset: 0, mimeType: "application/pdf" },
+  { bytes: Buffer.from([0x50, 0x4b, 0x03, 0x04]), offset: 0, mimeType: "application/zip" },
+  { bytes: Buffer.from([0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c]), offset: 0, mimeType: "application/x-7z-compressed" },
+  { bytes: Buffer.from([0x1f, 0x8b]), offset: 0, mimeType: "application/gzip" },
+];
+
+function detectOutputMime(filePath: string): string | null {
+  try {
+    const fd = fs.openSync(filePath, "r");
+    try {
+      for (const sig of MAGIC_SIGNATURES) {
+        const buf = Buffer.alloc(sig.bytes.length);
+        fs.readSync(fd, buf, 0, sig.bytes.length, sig.offset);
+        if (buf.equals(sig.bytes)) return sig.mimeType;
+      }
+      // Check for RIFF → WebP specifically (bytes 8-11)
+      const riffBuf = Buffer.alloc(12);
+      fs.readSync(fd, riffBuf, 0, 12, 0);
+      const typeBytes = riffBuf.slice(8, 12).toString("ascii");
+      if (typeBytes === "WEBP") return "image/webp";
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch {
+    // Cannot read file
+  }
+  return null;
+}
+
+// ── Output MIME from format catalog ──────────────────────────────────────────
+
+function getOutputMimeType(outputFormat: string): string {
+  const fmtDef = FORMAT_BY_EXTENSION.get(outputFormat);
+  if (fmtDef && fmtDef.mimeTypes.length > 0) return fmtDef.mimeTypes[0];
+
+  // Fallback MIME mapping
+  const FALLBACK: Record<string, string> = {
+    json: "application/json",
+    yaml: "application/x-yaml",
+    yml: "application/x-yaml",
+    toml: "application/toml",
+    xml: "application/xml",
+    csv: "text/csv",
+    tsv: "text/tab-separated-values",
+    md: "text/markdown",
+    html: "text/html",
+    txt: "text/plain",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    odt: "application/vnd.oasis.opendocument.text",
+    pdf: "application/pdf",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ods: "application/vnd.oasis.opendocument.spreadsheet",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    odp: "application/vnd.oasis.opendocument.presentation",
+    zip: "application/zip",
+    "7z": "application/x-7z-compressed",
+    tar: "application/x-tar",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    avif: "image/avif",
+    tiff: "image/tiff",
+    gif: "image/gif",
+    tex: "application/x-latex",
+    rst: "text/x-rst",
+    rtf: "application/rtf",
+  };
+  return FALLBACK[outputFormat] ?? "application/octet-stream";
+}
+
+// ── Log redaction ─────────────────────────────────────────────────────────────
+
+function redact(message: string): string {
+  // Remove absolute paths from log messages
+  return message.replace(/\/[^\s"',:;)]+/g, (m) => {
+    const parts = m.split("/");
+    return parts.length > 3 ? `/.../${parts.slice(-2).join("/")}` : m;
+  });
+}
+
+// ── Main processor ────────────────────────────────────────────────────────────
+
+export async function processUniversalJob(jobId: string): Promise<void> {
+  const log: string[] = [];
+
+  try {
+    // 1. Recover job from DB
+    const job = jobManager.getJob(jobId);
+    if (!job) {
+      throw new JobProcessingError("JOB_NOT_FOUND", `Job ${jobId} not found`);
+    }
+
+    if (job.status !== "queued") {
+      throw new JobProcessingError("INVALID_STATE", `Job ${jobId} is not queued (status: ${job.status})`);
+    }
+
+    log.push(`[universal-job] Starting job ${jobId}`);
+
+    // 2. Get input file path
+    const inputPath = resolveInputPath(job.input_reference, job.input_kind);
+    if (!fs.existsSync(inputPath)) {
+      throw new JobProcessingError("INPUT_NOT_FOUND", `Input file not found at ${redact(inputPath)}`);
+    }
+
+    // 3. Re-validate capability against the engine registry
+    const conversionId = job.conversion_id;
+    if (!conversionId) {
+      throw new JobProcessingError("MISSING_CONVERSION_ID", `Job ${jobId} has no conversion_id`);
+    }
+
+    // 4. Resolve engine from the registry via conversion_id
+    // The conversion_id contains the engine id prefix (e.g., "sharp-image-xxx-yyy")
+    const engineId = extractEngineIdFromConversionId(conversionId);
+    const engine = getEngine(engineId);
+    if (!engine) {
+      throw new JobProcessingError("ENGINE_NOT_FOUND", `Engine ${engineId} not found for capability ${conversionId}`);
+    }
+
+    // Probe the engine to ensure it's available
+    const probeResult = await engine.probe();
+    if (!probeResult.available) {
+      throw new JobProcessingError("ENGINE_UNAVAILABLE", `Engine ${engineId} is not available: ${probeResult.error ?? "unknown error"}`);
+    }
+
+    log.push(`[universal-job] Engine: ${engineId} v${probeResult.version ?? "unknown"}`);
+
+    // Update job to processing state
+    jobManager.updateJob(jobId, {
+      status: "processing",
+      stage: "Preparando conversión",
+      progress: 5,
+      started_at: new Date().toISOString(),
+      engine_id: engineId,
+    });
+
+    // 5. Create isolated working directory
+    const jobDir = path.join(CONFIG.media.tempDir, jobId);
+    if (!fs.existsSync(jobDir)) {
+      fs.mkdirSync(jobDir, { recursive: true });
+    }
+
+    const outputFormat = job.output_format;
+    const outputExt = `.${outputFormat}`;
+    const outputPath = path.join(jobDir, `output${outputExt}`);
+
+    // Ensure output path is safe
+    try {
+      ensurePathSafety(outputPath);
+    } catch (err) {
+      throw new JobProcessingError("UNSAFE_PATH", `Output path safety check failed: ${String(err)}`);
+    }
+
+    // 6. Build execution plan
+    const plan: ConversionPlan = {
+      jobId,
+      engineId: engine.id,
+      operation: job.operation,
+      inputPath,
+      outputPath,
+      outputFormat,
+      options: job.options_json ? JSON.parse(job.options_json) : {},
+      args: [],
+      env: {},
+      timeoutMs: CONFIG.media.limits.conversionTimeoutSeconds * 1000,
+      estimatedSizeBytes: null,
+    };
+
+    // 7. Execute the engine with progress and cancellation support
+    const onProgress = (progress: number, stage: string) => {
+      // Clamp progress to 5–90 range (validation occupies 90–100)
+      const clampedProgress = Math.min(Math.max(progress, 5), 90);
+      jobManager.updateJob(jobId, {
+        progress: clampedProgress,
+        stage,
+      });
+    };
+
+    let result: ExecutionResult;
+    try {
+      result = await engine.execute(plan, onProgress);
+    } catch (err) {
+      throw new JobProcessingError("ENGINE_EXECUTE_FAILED", `Engine execution failed: ${redact(String(err))}`);
+    }
+
+    if (!result.success) {
+      throw new JobProcessingError("ENGINE_EXECUTE_FAILED", `Engine execution failed: ${redact(result.error ?? "unknown error")}`);
+    }
+
+    log.push(`[universal-job] Execution completed in ${result.durationMs}ms, output size: ${result.outputSizeBytes} bytes`);
+
+    // 8. Validate the output artifact
+    jobManager.updateJob(jobId, {
+      status: "verifying",
+      stage: "Verificando archivo de salida",
+      progress: 95,
+    });
+
+    const validation = await engine.validate(outputPath, plan);
+    if (!validation.valid) {
+      const failedChecks = validation.checks
+        .filter((c) => !c.passed)
+        .map((c) => `${c.name}: ${c.detail ?? "failed"}`)
+        .join("; ");
+      throw new JobProcessingError(
+        "VALIDATION_FAILED",
+        `Output validation failed: ${failedChecks}`
+      );
+    }
+
+    // Additional deep validation: check magic bytes, MIME, size
+    const deepValidation = validateOutputArtifact(outputPath, outputFormat);
+    if (!deepValidation.valid) {
+      throw new JobProcessingError(
+        "VALIDATION_FAILED",
+        `Deep validation failed: ${deepValidation.error ?? "unknown"}`
+      );
+    }
+
+    log.push(`[universal-job] Validation passed`);
+
+    // 9. Persist metadata
+    const outputMime = getOutputMimeType(outputFormat);
+    const inputFormat = job.input_format ?? path.extname(inputPath).replace(".", "").toLowerCase() ?? "unknown";
+    const inputMimeType = job.input_mime_type ?? "application/octet-stream";
+
+    // Determine loss profile from capability
+    const lossProfile = await resolveLossProfile(conversionId, job.operation, inputPath, engineId);
+
+    // Determine category from format catalog
+    const category = (FORMAT_BY_EXTENSION.get(outputFormat)?.category ?? "unknown") as FileCategory;
+
+    // 10. Create download token
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    // Compute safe relative path
+    const relOutputPath = path.relative(CONFIG.media.tempDir, outputPath);
+
+    // Build output file name from input title or fallback
+    const currentJob = jobManager.getJob(jobId);
+    const titleBase = currentJob?.input_title
+      ? sanitizeFilename(currentJob.input_title)
+      : `output_${jobId.substring(0, 8)}`;
+    const finalFileName = `${titleBase}${outputExt}`;
+
+    // 11. Update job to completed — ONLY after validation
+    jobManager.updateJob(jobId, {
+      status: "completed",
+      stage: "Completado",
+      progress: 100,
+      file_size_bytes: result.outputSizeBytes,
+      mime_type: outputMime,
+      download_token_hash: tokenHash,
+      output_file_name: finalFileName,
+      output_relative_path: relOutputPath,
+      completed_at: new Date().toISOString(),
+      // Universal fields
+      category,
+      engine_id: engineId,
+      engine_version: probeResult.version ?? null,
+      conversion_id: conversionId,
+      input_mime_type: inputMimeType,
+      input_format: inputFormat,
+      output_mime_type: outputMime,
+      loss_profile: lossProfile,
+      validation_json: JSON.stringify({
+        engineValidation: validation.checks,
+        deepValidation: deepValidation.checks,
+      }),
+      warnings_json: result.warnings.length > 0 ? JSON.stringify(result.warnings) : null,
+    });
+
+    log.push(`[universal-job] Job ${jobId} completed successfully`);
+
+    // 12. Log redacted messages
+    for (const msg of log) {
+      console.log(redact(msg));
+    }
+  } catch (error: unknown) {
+    const code = error instanceof JobProcessingError ? error.code : "INTERNAL_ERROR";
+    const message = error instanceof Error ? error.message : "Error interno del procesador.";
+
+    jobManager.updateJob(jobId, {
+      status: "failed",
+      error_code: code,
+      error_message: redact(message),
+      stage: "Error",
+    });
+
+    log.push(`[universal-job] Job ${jobId} failed: ${redact(message)}`);
+    for (const msg of log) {
+      console.log(redact(msg));
+    }
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function resolveInputPath(inputReference: string, inputKind: string): string {
+  if (inputKind === "local-file" || inputKind === "universal-file") {
+    // inputReference is a relative path under the temp dir
+    return path.resolve(CONFIG.media.tempDir, inputReference);
+  }
+  // For remote URLs, inputReference is the URL itself — but universal jobs
+  // should always have a local file. If not, this will fail at the exists check.
+  return inputReference;
+}
+
+/**
+ * Extract engine ID from a conversion capability ID.
+ * Convention: the capability ID starts with the engine's ID prefix.
+ * e.g. "sharp-image-xxx-jpeg" → "sharp-image"
+ *      "data-ts-xxx-json-yaml" → "data-ts"
+ *      "qpdf-xxx-linearize" → "qpdf"
+ *      "sevenzip-xxx-repack-zip" → "sevenzip"
+ *      "pandoc-xxx-markdown-html" → "pandoc"
+ *      "libreoffice-xxx-docx-pdf" → "libreoffice"
+ */
+function extractEngineIdFromConversionId(conversionId: string): string {
+  // Known engine prefixes (ordered longest-first to avoid partial matches)
+  const ENGINE_PREFIXES = [
+    "sharp-image",
+    "libreoffice",
+    "sevenzip",
+    "data-ts",
+    "pandoc",
+    "qpdf",
+  ];
+
+  for (const prefix of ENGINE_PREFIXES) {
+    if (conversionId.startsWith(prefix + "-") || conversionId === prefix) {
+      return prefix;
+    }
+  }
+
+  // Fallback: return everything before the first dash that matches a known engine
+  const knownEngines = new Set(ENGINE_PREFIXES);
+  const parts = conversionId.split("-");
+  for (let i = 1; i <= parts.length; i++) {
+    const candidate = parts.slice(0, i).join("-");
+    if (knownEngines.has(candidate)) return candidate;
+  }
+
+  // Last resort: return first part
+  return conversionId.split("-")[0] ?? conversionId;
+}
+
+/**
+ * Deep output validation beyond engine checks:
+ * - File exists
+ * - Size > 0
+ * - Magic bytes match expected MIME (where applicable)
+ */
+function validateOutputArtifact(
+  outputPath: string,
+  expectedFormat: string
+): { valid: boolean; checks: Array<{ name: string; passed: boolean; detail?: string }>; error?: string } {
+  const checks: Array<{ name: string; passed: boolean; detail?: string }> = [];
+
+  // File exists
+  const exists = fs.existsSync(outputPath);
+  checks.push({ name: "file-exists", passed: exists });
+  if (!exists) {
+    return { valid: false, checks, error: "Output file does not exist" };
+  }
+
+  // Size > 0
+  const stat = fs.statSync(outputPath);
+  checks.push({ name: "size-nonzero", passed: stat.size > 0, detail: `${stat.size} bytes` });
+  if (stat.size === 0) {
+    return { valid: false, checks, error: "Output file is empty (0 bytes)" };
+  }
+
+  // Magic bytes check for known binary formats
+  const detectedMime = detectOutputMime(outputPath);
+  const expectedMime = getOutputMimeType(expectedFormat);
+
+  if (detectedMime) {
+    // For formats with clear magic signatures, verify match
+    const mimeMatch = detectedMime === expectedMime ||
+      // Allow MIME subtypes (e.g., application/zip matches for DOCX/XLSX containers)
+      detectedMime === "application/zip" && (
+        expectedMime.includes("openxmlformats") ||
+        expectedMime.includes("oasis") ||
+        expectedMime.includes("epub")
+      );
+
+    checks.push({
+      name: "magic-bytes",
+      passed: mimeMatch,
+      detail: `detected=${detectedMime} expected=${expectedMime}`,
+    });
+  } else {
+    // Text-based formats won't have magic bytes — that's fine
+    checks.push({
+      name: "magic-bytes",
+      passed: true,
+      detail: "no magic signature for text-based format",
+    });
+  }
+
+  const allPassed = checks.every((c) => c.passed);
+  return {
+    valid: allPassed,
+    checks,
+    error: allPassed ? undefined : "Output artifact validation failed",
+  };
+}
+
+/**
+ * Resolve the loss profile for the conversion.
+ * Looks up the capability from the engine registry and returns its loss profile.
+ */
+async function resolveLossProfile(
+  conversionId: string,
+  operation: string,
+  inputPath: string,
+  engineId: string
+): Promise<LossProfile> {
+  try {
+    const ext = path.extname(inputPath).replace(".", "").toLowerCase();
+    const formatDef = FORMAT_BY_EXTENSION.get(ext);
+    if (!formatDef) return "lossy";
+
+    const category = formatDef.category;
+    const engine = getEngine(engineId);
+    if (!engine) return "lossy";
+
+    // Build a minimal descriptor for capability lookup
+    const descriptor = {
+      id: "loss-lookup",
+      category,
+      originalName: `input.${ext}`,
+      extension: ext,
+      detectedMimeType: formatDef.mimeTypes[0] ?? null,
+      detectedFormat: ext,
+      sizeBytes: 0,
+      sha256: null,
+      source: { kind: "local-upload" as const, originalName: `input.${ext}`, storedRelativePath: `input.${ext}` },
+      attributes: { kind: "unknown" as const },
+      warnings: [],
+      analyzedBy: [],
+      analyzedAt: new Date().toISOString(),
+    };
+
+    const probeResult = await engine.probe();
+    const caps = engine.getCapabilities(descriptor, probeResult);
+    const matchingCap = caps.find((c) => c.id === conversionId);
+
+    if (matchingCap) {
+      // Map domain engines LossProfile to descriptors LossProfile
+      const lp = matchingCap.lossProfile;
+      if (lp === "lossless" || lp === "lossy" || lp === "metadata-risk" || lp === "structure-risk" || lp === "none") {
+        return lp;
+      }
+      return "lossy";
+    }
+
+    return "lossy";
+  } catch {
+    return "lossy";
+  }
+}
+
+// Exported for testing
+export { extractEngineIdFromConversionId, validateOutputArtifact, getOutputMimeType, detectOutputMime };
