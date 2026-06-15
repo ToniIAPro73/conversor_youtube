@@ -26,8 +26,10 @@ OUT_SHA="$SCRIPTS_DIR/Link2Media-Windows-x64.zip.sha256"
 
 # ── Versiones (sobreescribibles por env) ─────────────────────────────────────
 NODE_WINDOWS_VERSION="${NODE_WINDOWS_VERSION:-}"
+NODE_MODULES_ABI="${NODE_MODULES_ABI:-}"
 YTDLP_WINDOWS_VERSION="${YTDLP_WINDOWS_VERSION:-}"
 FFMPEG_WINDOWS_VERSION="${FFMPEG_WINDOWS_VERSION:-}"
+SQLITE3_WINDOWS_VERSION="${SQLITE3_WINDOWS_VERSION:-}"
 
 BUILD_DATE_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 APP_VERSION="0.1.0"
@@ -119,6 +121,20 @@ if [[ -z "$NODE_WINDOWS_VERSION" ]]; then
   info "Resolviendo versión LTS de Node.js..."
   NODE_WINDOWS_VERSION="$(resolve_node_version)"
   info "Versión Node.js resuelta: $NODE_WINDOWS_VERSION"
+fi
+
+# Derivar el ABI de Node.js para seleccionar el binario nativo correcto de better-sqlite3
+if [[ -z "$NODE_MODULES_ABI" ]]; then
+  NODE_MAJOR="${NODE_WINDOWS_VERSION#v}"
+  NODE_MAJOR="${NODE_MAJOR%%.*}"
+  case "$NODE_MAJOR" in
+    20) NODE_MODULES_ABI="115" ;;
+    22) NODE_MODULES_ABI="127" ;;
+    23) NODE_MODULES_ABI="131" ;;
+    24) NODE_MODULES_ABI="137" ;;
+    *) NODE_MODULES_ABI="127" ; warn "ABI desconocido para Node.js $NODE_MAJOR, usando 127" ;;
+  esac
+  info "Node.js module ABI: $NODE_MODULES_ABI"
 fi
 
 NODE_ZIP="node-${NODE_WINDOWS_VERSION}-win-x64.zip"
@@ -353,9 +369,10 @@ cat > "$STAGING_DIR/VERSION.txt" << EOF
 Link2Media $APP_VERSION
 Plataforma: Windows x64
 Fecha de build: $BUILD_DATE_UTC
-Node.js: $NODE_WINDOWS_VERSION
+Node.js: $NODE_WINDOWS_VERSION (ABI v${NODE_MODULES_ABI})
 yt-dlp: $YTDLP_WINDOWS_VERSION
 FFmpeg: BtbN GPL ($FFMPEG_WINDOWS_VERSION)
+better-sqlite3: $SQLITE3_WINDOWS_VERSION
 EOF
 ok "VERSION.txt generado"
 
@@ -382,6 +399,12 @@ cat > "$STAGING_DIR/manifest.json" << EOF
       "version": "$FFMPEG_WINDOWS_VERSION",
       "provider": "BtbN FFmpeg-Builds (GPL)",
       "sha256": "$FFMPEG_SHA256"
+    },
+    "betterSqlite3": {
+      "version": "$SQLITE3_WINDOWS_VERSION",
+      "nodeModulesAbi": "$NODE_MODULES_ABI",
+      "platform": "win32-x64",
+      "sha256": "$SQLITE3_SHA256"
     }
   }
 }
@@ -450,7 +473,17 @@ aplicación (Link2Media) también debe estar disponible. El código
 fuente se encuentra en el repositorio del proyecto.
 
 ───────────────────────────────────────────────────────────────────
-6. Otras dependencias npm (ver app/node_modules)
+6. better-sqlite3 $SQLITE3_WINDOWS_VERSION
+───────────────────────────────────────────────────────────────────
+Sitio:    https://github.com/WiseLibs/better-sqlite3
+Licencia: MIT License
+Uso:      Persistencia de trabajos y tokens en SQLite (WAL mode).
+          El binario nativo precompilado para Windows se descarga
+          desde los releases oficiales del proyecto.
+SHA256:   $SQLITE3_SHA256
+
+───────────────────────────────────────────────────────────────────
+7. Otras dependencias npm (ver app/node_modules)
 ───────────────────────────────────────────────────────────────────
 Todas las dependencias npm incluidas son de código abierto.
 Consulta sus licencias individuales en app/node_modules/*/LICENSE
@@ -471,22 +504,69 @@ if [[ -n "$LINUX_BINS" ]]; then
   # - @next/swc-*: solo para build/dev, no para producción standalone
   # - @img/sharp-linux-*: solo necesario si Next.js optimiza imágenes;
   #   con images: { unoptimized: true } no se usa en runtime
-  CRITICAL_BINS="$(echo "$LINUX_BINS" | grep -v "@next/swc" | grep -v "@img/sharp" || true)"
+  # Excluir binarios gestionados explícitamente:
+  #   @next/swc / @img/sharp → solo build-time, se eliminan
+  #   better_sqlite3 → se reemplaza con el prebuilt Windows en el paso siguiente
+  CRITICAL_BINS="$(echo "$LINUX_BINS" | grep -v "@next/swc" | grep -v "@img/sharp" | grep -v "better_sqlite3" || true)"
   if [[ -n "$CRITICAL_BINS" ]]; then
     error "Binarios nativos potencialmente requeridos en runtime:"
     echo "$CRITICAL_BINS"
     die "Elimina manualmente los binarios Linux o adapta la dependencia antes de continuar."
   else
-    warn "Solo binarios build-only (@next/swc, @img/sharp). Eliminando del paquete..."
+    warn "Binarios Linux build-only o gestionados explícitamente. Eliminando los innecesarios..."
     find "$STAGING_DIR/app" -path "*/@next/swc-*" -name "*.node" -delete 2>/dev/null || true
     find "$STAGING_DIR/app" -path "*/@img/sharp-*" -name "*.node" -delete 2>/dev/null || true
-    # Eliminar también directorios vacíos resultantes
     find "$STAGING_DIR/app/node_modules" -type d -name "sharp-linux-*" -empty -delete 2>/dev/null || true
+    # Eliminar el binario Linux de better-sqlite3 — será reemplazado con la versión Windows
+    find "$STAGING_DIR/app" -name "better_sqlite3.node" -delete 2>/dev/null || true
     ok "Binarios Linux no necesarios en runtime eliminados del paquete"
   fi
 else
   ok "No se encontraron binarios Linux en app/"
 fi
+
+# ── 19b. Descargar e instalar better-sqlite3 Windows nativo ──────────────────
+info "Preparando better-sqlite3 nativo para Windows x64..."
+
+if [[ -z "$SQLITE3_WINDOWS_VERSION" ]]; then
+  SQLITE3_WINDOWS_VERSION="$(node -e "const p=require('./node_modules/better-sqlite3/package.json');console.log(p.version);" 2>/dev/null \
+    || python3 -c "
+import json, re, pathlib
+txt = pathlib.Path('package.json').read_text()
+data = json.loads(txt)
+ver = data.get('dependencies', {}).get('better-sqlite3', '12.10.1')
+print(re.sub(r'^[\^~]', '', ver))
+")"
+  info "Versión better-sqlite3: $SQLITE3_WINDOWS_VERSION"
+fi
+
+SQLITE3_ASSET="better-sqlite3-v${SQLITE3_WINDOWS_VERSION}-node-v${NODE_MODULES_ABI}-win32-x64.tar.gz"
+SQLITE3_URL="https://github.com/WiseLibs/better-sqlite3/releases/download/v${SQLITE3_WINDOWS_VERSION}/${SQLITE3_ASSET}"
+SQLITE3_CACHE="$CACHE_DIR/$SQLITE3_ASSET"
+
+if [[ ! -f "$SQLITE3_CACHE" ]]; then
+  info "Descargando $SQLITE3_ASSET ..."
+  curl --fail --location --retry 3 --progress-bar -o "$SQLITE3_CACHE" "$SQLITE3_URL" \
+    || die "No se pudo descargar better-sqlite3 Windows binary desde $SQLITE3_URL"
+fi
+
+SQLITE3_SHA256="$(sha256sum "$SQLITE3_CACHE" | awk '{print $1}')"
+
+SQLITE3_TARGET="$STAGING_DIR/app/node_modules/better-sqlite3/build/Release"
+mkdir -p "$SQLITE3_TARGET"
+
+TMP_SQLITE3="$CACHE_DIR/.tmp_sqlite3"
+rm -rf "$TMP_SQLITE3"
+mkdir -p "$TMP_SQLITE3"
+tar -xzf "$SQLITE3_CACHE" -C "$TMP_SQLITE3" \
+  || die "No se pudo descomprimir $SQLITE3_ASSET"
+
+SQLITE3_NODE="$(find "$TMP_SQLITE3" -name "better_sqlite3.node" | head -1)"
+[[ -n "$SQLITE3_NODE" ]] || die "better_sqlite3.node no encontrado en el tarball"
+cp "$SQLITE3_NODE" "$SQLITE3_TARGET/better_sqlite3.node"
+rm -rf "$TMP_SQLITE3"
+
+ok "better_sqlite3.node instalado (Windows x64, node-v${NODE_MODULES_ABI}, SHA256: ${SQLITE3_SHA256:0:16}...)"
 
 # ── 20. Materializar symlinks de pnpm para ZIP/Windows ───────────────────────
 info "Materializando enlaces simbólicos de node_modules para Windows..."
@@ -645,11 +725,12 @@ echo ""
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}  ✓ BUILD COMPLETADO${NC}"
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
-echo -e "  Ruta:    $OUT_ZIP"
-echo -e "  Tamaño:  $ZIP_SIZE"
-echo -e "  SHA256:  $ZIP_SHA256"
-echo -e "  Node:    $NODE_WINDOWS_VERSION"
-echo -e "  yt-dlp:  $YTDLP_WINDOWS_VERSION"
-echo -e "  FFmpeg:  BtbN GPL $FFMPEG_WINDOWS_VERSION"
+echo -e "  Ruta:       $OUT_ZIP"
+echo -e "  Tamaño:     $ZIP_SIZE"
+echo -e "  SHA256:     $ZIP_SHA256"
+echo -e "  Node:       $NODE_WINDOWS_VERSION (ABI v${NODE_MODULES_ABI})"
+echo -e "  yt-dlp:     $YTDLP_WINDOWS_VERSION"
+echo -e "  FFmpeg:     BtbN GPL $FFMPEG_WINDOWS_VERSION"
+echo -e "  sqlite3:    better-sqlite3 v${SQLITE3_WINDOWS_VERSION} (win32-x64)"
 echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
 echo ""

@@ -80,6 +80,7 @@ REQUIRED_FILES=(
   "internal/start-link2media.ps1"
   "internal/stop-link2media.ps1"
   "internal/update-ytdlp.ps1"
+  "app/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
 )
 
 for f in "${REQUIRED_FILES[@]}"; do
@@ -119,6 +120,23 @@ if [[ -n "$LINUX_BINS" ]]; then
   echo "$LINUX_BINS"
 else
   ok "  Sin binarios .so/.dylib en app/"
+fi
+
+# ── 7b. better_sqlite3.node es Windows PE (no ELF Linux) ─────────────────────
+info "Verificando que better_sqlite3.node es un binario Windows PE..."
+SQLITE3_NODE="$EXTRACTED/app/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+if [[ -f "$SQLITE3_NODE" ]]; then
+  # Los 2 primeros bytes de un PE son 'MZ'; los ELF empiezan con 0x7fELF
+  MAGIC="$(xxd -l 4 "$SQLITE3_NODE" 2>/dev/null | awk '{print $2$3}' | head -1 || true)"
+  if [[ "${MAGIC:0:4}" == "4d5a" ]]; then
+    ok "  better_sqlite3.node es Windows PE (MZ header)"
+  elif [[ "${MAGIC:0:8}" == "7f454c46" ]]; then
+    fail "  better_sqlite3.node es un binario Linux ELF — no funcionará en Windows"
+  else
+    warn "  No se pudo determinar el tipo de binario (magic: $MAGIC)"
+  fi
+else
+  fail "  better_sqlite3.node no encontrado (ya comprobado en paso 4)"
 fi
 
 # ── 8. No contiene store .pnpm ni rutas internas largas ──────────────────────
