@@ -1,0 +1,12 @@
+{
+  "node": { "version": "22.16.0", "source": "https://nodejs.org/dist/v22.16.0/node-v22.16.0-win-x64.zip", "license": "MIT" },
+  "ytdlp": { "version": "2025.06.15", "source": "https://github.com/yt-dlp/yt-dlp/releases/download/2025.06.15/yt-dlp.exe", "license": "Unlicense" },
+  "ffmpeg": { "version": "7.0.2", "source": "https://www.gyan.dev/ffmpeg/builds/", "license": "LGPL-2.1" },
+  "qpdf": { "version": "11.10.0", "source": "https://github.com/qpdf/qpdf/releases", "license": "Apache-2.0" },
+  "sevenzip": { "version": "24.09", "source": "https://www.7-zip.org/download.html", "license": "LGPL-2.1" },
+  "pandoc": { "version": "3.6.4", "source": "https://github.com/jgm/pandoc/releases", "license": "GPL-2.0" },
+  "libreoffice": { "version": "24.8.5", "source": "https://www.libreoffice.org/download/", "license": "MPL-2.0" },
+  "calibre": { "version": "7.26.0", "source": "https://calibre-ebook.com/download_windows", "license": "GPL-3.0" },
+  "tesseract": { "version": "5.5.0", "source": "https://github.com/UB-Mannheim/tesseract/releases", "license": "Apache-2.0" },
+  "poppler": { "version": "24.08.0", "source": "https://github.com/oschwartz10612/poppler-windows", "license": "GPL-2.0" }
+}

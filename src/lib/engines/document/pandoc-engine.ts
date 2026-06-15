@@ -9,10 +9,15 @@ import type { ConversionEngine, EngineId, EngineProbeResult, ConversionCapabilit
 import type { UniversalFileDescriptor } from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
+import { CONFIG } from "../../config";
 
 const ENGINE_ID: EngineId = "pandoc";
 
 function findPandocBinary(): string {
+  // 1. Prefer LINK2MEDIA_PANDOC_PATH env var (portable distribution)
+  const envPath = CONFIG.media.binaries.pandoc;
+  if (envPath && envPath !== "pandoc") return envPath;
+  // 2. Portable path relative to cwd
   const portablePaths = [
     path.resolve(process.cwd(), "tools", "pandoc", "pandoc.exe"),
     path.resolve(process.cwd(), "tools", "pandoc", "pandoc"),
@@ -20,6 +25,7 @@ function findPandocBinary(): string {
   for (const p of portablePaths) {
     if (fs.existsSync(p)) return p;
   }
+  // 3. Fall back to PATH
   return "pandoc";
 }
 

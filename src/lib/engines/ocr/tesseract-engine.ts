@@ -10,6 +10,7 @@ import type { ConversionEngine, EngineId, EngineProbeResult, ConversionCapabilit
 import type { UniversalFileDescriptor } from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
+import { CONFIG } from "../../config";
 
 const ENGINE_ID: EngineId = "tesseract";
 
@@ -81,6 +82,10 @@ const OCR_CAPABILITIES: OcrCapabilityDef[] = [
 // ── Binary discovery ─────────────────────────────────────────────────────────
 
 function findTesseractBinary(): string {
+  // 1. Prefer LINK2MEDIA_TESSERACT_PATH env var (portable distribution)
+  const envPath = CONFIG.media.binaries.tesseract;
+  if (envPath && envPath !== "tesseract") return envPath;
+  // 2. Portable path relative to cwd
   const portablePaths = [
     path.resolve(process.cwd(), "tools", "tesseract", "tesseract.exe"),
     path.resolve(process.cwd(), "tools", "tesseract", "tesseract"),
@@ -88,10 +93,20 @@ function findTesseractBinary(): string {
   for (const p of portablePaths) {
     if (fs.existsSync(p)) return p;
   }
+  // 3. Fall back to PATH
   return "tesseract";
 }
 
 function findPdftoppmBinary(): string {
+  // 1. Prefer LINK2MEDIA_POPPLER_PATH env var (portable distribution)
+  const popplerDir = CONFIG.media.binaries.poppler;
+  if (popplerDir) {
+    const popplerPath = path.join(popplerDir, "pdftoppm.exe");
+    if (fs.existsSync(popplerPath)) return popplerPath;
+    const popplerPathUnix = path.join(popplerDir, "pdftoppm");
+    if (fs.existsSync(popplerPathUnix)) return popplerPathUnix;
+  }
+  // 2. Portable path relative to cwd
   const portablePaths = [
     path.resolve(process.cwd(), "tools", "poppler", "pdftoppm.exe"),
     path.resolve(process.cwd(), "tools", "poppler", "pdftoppm"),
@@ -99,6 +114,7 @@ function findPdftoppmBinary(): string {
   for (const p of portablePaths) {
     if (fs.existsSync(p)) return p;
   }
+  // 3. Fall back to PATH
   return "pdftoppm";
 }
 

@@ -9,6 +9,7 @@ import type { ConversionEngine, EngineId, EngineProbeResult, ConversionCapabilit
 import type { UniversalFileDescriptor } from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
+import { CONFIG } from "../../config";
 
 const ENGINE_ID: EngineId = "calibre";
 
@@ -131,6 +132,10 @@ function buildCapability(
 // ── Binary discovery ─────────────────────────────────────────────────────────
 
 function findEbookConvertBinary(): string {
+  // 1. Prefer LINK2MEDIA_CALIBRE_PATH env var (portable distribution)
+  const envPath = CONFIG.media.binaries.calibre;
+  if (envPath && envPath !== "ebook-convert") return envPath;
+  // 2. Portable path relative to cwd
   const portablePaths = [
     path.resolve(process.cwd(), "tools", "calibre", "ebook-convert.exe"),
     path.resolve(process.cwd(), "tools", "calibre", "ebook-convert"),
@@ -138,6 +143,7 @@ function findEbookConvertBinary(): string {
   for (const p of portablePaths) {
     if (fs.existsSync(p)) return p;
   }
+  // 3. Fall back to PATH
   return "ebook-convert";
 }
 

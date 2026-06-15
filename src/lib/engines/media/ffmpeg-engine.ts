@@ -11,6 +11,7 @@ import type { ConversionEngine, EngineId, EngineProbeResult, ConversionCapabilit
 import type { UniversalFileDescriptor, MediaAttributes, LossProfile } from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
+import { CONFIG } from "../../config";
 
 const ENGINE_ID: EngineId = "ffmpeg-media";
 
@@ -546,24 +547,36 @@ function mapMp3Quality(quality: string): string {
 // ── Binary discovery ─────────────────────────────────────────────────────────
 
 function findFfmpegBinary(): string {
+  // 1. Prefer LINK2MEDIA_FFMPEG_PATH env var (portable distribution)
+  const envPath = CONFIG.media.binaries.ffmpeg;
+  if (envPath && envPath !== "ffmpeg") return envPath;
+  // 2. Portable path relative to cwd
   const portablePaths = [
+    path.resolve(process.cwd(), "tools", "ffmpeg", "bin", "ffmpeg.exe"),
     path.resolve(process.cwd(), "tools", "ffmpeg", "ffmpeg.exe"),
     path.resolve(process.cwd(), "tools", "ffmpeg", "ffmpeg"),
   ];
   for (const p of portablePaths) {
     if (fs.existsSync(p)) return p;
   }
+  // 3. Fall back to PATH
   return "ffmpeg";
 }
 
 function findFfprobeBinary(): string {
+  // 1. Prefer LINK2MEDIA_FFPROBE_PATH env var (portable distribution)
+  const envPath = CONFIG.media.binaries.ffprobe;
+  if (envPath && envPath !== "ffprobe") return envPath;
+  // 2. Portable path relative to cwd
   const portablePaths = [
+    path.resolve(process.cwd(), "tools", "ffmpeg", "bin", "ffprobe.exe"),
     path.resolve(process.cwd(), "tools", "ffmpeg", "ffprobe.exe"),
     path.resolve(process.cwd(), "tools", "ffmpeg", "ffprobe"),
   ];
   for (const p of portablePaths) {
     if (fs.existsSync(p)) return p;
   }
+  // 3. Fall back to PATH
   return "ffprobe";
 }
 

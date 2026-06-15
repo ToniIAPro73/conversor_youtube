@@ -10,6 +10,7 @@ import type { ConversionEngine, EngineId, EngineProbeResult, ConversionCapabilit
 import type { UniversalFileDescriptor, ArchiveAttributes } from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
+import { CONFIG } from "../../config";
 
 const ENGINE_ID: EngineId = "sevenzip";
 
@@ -18,15 +19,19 @@ const MAX_ENTRIES = 10_000;
 const MAX_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
 
 function findSevenZipBinary(): string {
-  // Windows portable path
+  // 1. Prefer LINK2MEDIA_7ZIP_PATH env var (portable distribution)
+  const envPath = CONFIG.media.binaries.sevenzip;
+  if (envPath && envPath !== "7z") return envPath;
+  // 2. Windows portable path
   const portablePaths = [
+    path.resolve(process.cwd(), "tools", "sevenzip", "7z.exe"),
     path.resolve(process.cwd(), "tools", "7-zip", "7z.exe"),
     path.resolve(process.cwd(), "tools", "7zip", "7z.exe"),
   ];
   for (const p of portablePaths) {
     if (fs.existsSync(p)) return p;
   }
-  // Unix
+  // 3. Fall back to PATH
   return "7z";
 }
 

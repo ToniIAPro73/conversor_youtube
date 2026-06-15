@@ -9,11 +9,14 @@ import type { ConversionEngine, EngineId, EngineProbeResult, ConversionCapabilit
 import type { UniversalFileDescriptor, PdfAttributes } from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
+import { CONFIG } from "../../config";
 
 const ENGINE_ID: EngineId = "qpdf";
 
-// Look for qpdf in PATH or in the portable tools directory next to the app
+// Look for qpdf: prefer LINK2MEDIA_QPDF_PATH env var, then portable path, then PATH
 function findQpdfBinary(): string {
+  const envPath = CONFIG.media.binaries.qpdf;
+  if (envPath && envPath !== "qpdf") return envPath;
   const portablePath = path.resolve(process.cwd(), "tools", "qpdf", "bin", "qpdf.exe");
   if (fs.existsSync(portablePath)) return portablePath;
   return "qpdf";

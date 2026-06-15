@@ -12,6 +12,7 @@ import type { ConversionEngine, EngineId, EngineProbeResult, ConversionCapabilit
 import type { UniversalFileDescriptor, FileCategory } from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
+import { CONFIG } from "../../config";
 
 const ENGINE_ID: EngineId = "libreoffice";
 
@@ -19,6 +20,10 @@ const ENGINE_ID: EngineId = "libreoffice";
 let _runner: ProcessRunner | null = null;
 
 function findLibreofficeBinary(): string {
+  // 1. Prefer LINK2MEDIA_LIBREOFFICE_PATH env var (portable distribution)
+  const envPath = CONFIG.media.binaries.libreoffice;
+  if (envPath && envPath !== "libreoffice") return envPath;
+  // 2. Portable path relative to cwd
   const candidates = [
     path.resolve(process.cwd(), "tools", "libreoffice", "program", "soffice.exe"),
     path.resolve(process.cwd(), "tools", "LibreOffice", "program", "soffice.exe"),
