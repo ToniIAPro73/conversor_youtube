@@ -151,7 +151,7 @@ async function handleMediaFile(storedPath: string, originalName: string, uploadI
   });
 }
 
-async function handleUniversalFile(storedPath: string, originalName: string, uploadId: string, sizeBytes: number, ext: string): Promise<NextResponse> {
+async function handleUniversalFile(storedPath: string, originalName: string, uploadId: string, sizeBytes: number, _ext: string): Promise<NextResponse> {
   try {
     const relPath = path.relative(CONFIG.media.tempDir, storedPath);
     const universalDescriptor = await buildDescriptor(
@@ -204,6 +204,7 @@ function persistInputMetadata(
   storedRelativePath: string
 ): void {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { getDb } = require("@/lib/infrastructure/db/database") as { getDb: () => import("better-sqlite3").Database };
     const db = getDb();
     const ttlMinutes = CONFIG.media.limits.jobTtlMinutes;
