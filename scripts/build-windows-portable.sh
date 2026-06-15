@@ -37,6 +37,7 @@ SQLITE3_WINDOWS_VERSION="${SQLITE3_WINDOWS_VERSION:-}"
 # Universales
 PANDOC_VERSION="${PANDOC_VERSION:-3.6.4}"
 SEVENZIP_VERSION="${SEVENZIP_VERSION:-2601}"
+SEVENZIP_TAG="${SEVENZIP_TAG:-26.01}"
 QPDF_VERSION="${QPDF_VERSION:-11.10.0}"
 TESSERACT_VERSION="${TESSERACT_VERSION:-5.4.0.20240606}"
 POPPLER_VERSION="${POPPLER_VERSION:-24.08.0-0}"
@@ -282,7 +283,7 @@ info "Preparando 7-Zip standalone..."
 
 SEVENZIP_CACHE="$CACHE_DIR/7z${SEVENZIP_VERSION}-extra.7z"
 # Primero intentar GitHub (ip7z/7zip), luego 7-zip.org, luego SourceForge
-SEVENZIP_URL_GITHUB="https://github.com/ip7z/7zip/releases/download/${SEVENZIP_VERSION}/7z${SEVENZIP_VERSION}-extra.7z"
+SEVENZIP_URL_GITHUB="https://github.com/ip7z/7zip/releases/download/${SEVENZIP_TAG}/7z${SEVENZIP_VERSION}-extra.7z"
 SEVENZIP_URL_OFFICIAL="https://www.7-zip.org/a/7z${SEVENZIP_VERSION}-extra.7z"
 SEVENZIP_URL_SF="https://downloads.sourceforge.net/project/sevenzip/7-Zip/24.09/7z2409-extra.7z"
 
