@@ -238,8 +238,8 @@ export default function Home() {
 
       <div className="relative mx-auto max-w-3xl px-4 pb-8 sm:px-6">
         <header className="pt-6 pb-5 flex flex-col items-center text-center">
-          {/* Logo + wordmark inline */}
-          <div className="mb-4 flex items-center gap-3">
+          {/* Logo centrado */}
+          <div className="mb-4 flex items-center justify-center">
             <div className="relative flex h-11 w-11 items-center justify-center rounded-[14px] border border-teal-300/30 bg-linear-to-br from-teal-400/22 to-teal-600/10 shadow-[0_0_28px_rgba(20,184,166,0.24),0_12px_32px_rgba(0,0,0,0.36)]">
               <svg viewBox="0 0 24 24" className="h-5 w-5 text-teal-200 fill-current drop-shadow-[0_0_6px_rgba(45,212,191,0.55)]" aria-hidden="true">
                 <path d="M10 15.5v-7l6 3.5-6 3.5z" />
@@ -247,22 +247,14 @@ export default function Home() {
               </svg>
               <div className="absolute inset-0 rounded-[14px] ring-1 ring-inset ring-white/8 pointer-events-none" aria-hidden="true" />
             </div>
-            <div className="flex flex-col items-start gap-0.5">
-              <span className="text-lg font-bold tracking-tight text-white leading-none">Link2Media</span>
-              <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-teal-300/55">
-                <span className="h-px w-3 bg-teal-300/30" />
-                Portable local
-                <span className="h-px w-3 bg-teal-300/30" />
-              </span>
-            </div>
           </div>
 
           <h1 className="max-w-xl text-balance text-[2.4rem] font-black leading-[0.93] tracking-tight sm:text-5xl">
-            Conversor universal{" "}
-            <span className="bg-linear-to-r from-teal-300 to-teal-400 bg-clip-text text-transparent">local</span>
+            Anclora{" "}
+            <span className="bg-linear-to-r from-teal-300 to-teal-400 bg-clip-text text-transparent">FileStudio</span>
           </h1>
           <p className="mt-3 max-w-sm text-pretty text-sm leading-6 text-stone-400">
-            Pega un enlace o sube cualquier archivo. El sistema detecta lo que se puede hacer con él.
+            Tu centro de mando local para transformar, optimizar y automatizar cualquier formato de archivo al instante.
           </p>
         </header>
 
@@ -276,22 +268,22 @@ export default function Home() {
                 id: "convert" as Tab,
                 icon: <Layers className="h-4 w-4" />,
                 label: t("nav.convert"),
-                activeClass: "bg-teal-400/18 text-teal-200 shadow-[0_0_20px_rgba(45,212,191,0.15)] ring-1 ring-teal-300/25",
-                inactiveClass: "text-stone-500 hover:bg-white/5 hover:text-stone-300",
+                activeClass: "bg-teal-400/18 text-teal-200 shadow-[0_0_24px_rgba(45,212,191,0.18)] ring-1 ring-teal-300/25",
+                inactiveClass: "bg-teal-400/6 text-teal-300/60 ring-1 ring-teal-300/10 hover:scale-[1.03] hover:bg-teal-400/12 hover:text-teal-200 hover:shadow-[0_6px_20px_rgba(45,212,191,0.18)] hover:ring-teal-300/20",
               },
               {
                 id: "history" as Tab,
                 icon: <History className="h-4 w-4" />,
                 label: t("nav.history"),
-                activeClass: "bg-amber-400/15 text-amber-200 shadow-[0_0_20px_rgba(251,191,36,0.12)] ring-1 ring-amber-300/25",
-                inactiveClass: "text-stone-500 hover:bg-amber-400/6 hover:text-amber-200/70",
+                activeClass: "bg-amber-400/15 text-amber-200 shadow-[0_0_24px_rgba(251,191,36,0.16)] ring-1 ring-amber-300/25",
+                inactiveClass: "bg-amber-400/6 text-amber-300/60 ring-1 ring-amber-300/10 hover:scale-[1.03] hover:bg-amber-400/12 hover:text-amber-200 hover:shadow-[0_6px_20px_rgba(251,191,36,0.18)] hover:ring-amber-300/20",
               },
               {
                 id: "diagnostics" as Tab,
                 icon: <Stethoscope className="h-4 w-4" />,
                 label: t("nav.diagnostics"),
-                activeClass: "bg-violet-400/15 text-violet-200 shadow-[0_0_20px_rgba(167,139,250,0.12)] ring-1 ring-violet-300/25",
-                inactiveClass: "text-stone-500 hover:bg-violet-400/6 hover:text-violet-200/70",
+                activeClass: "bg-violet-400/15 text-violet-200 shadow-[0_0_24px_rgba(167,139,250,0.16)] ring-1 ring-violet-300/25",
+                inactiveClass: "bg-violet-400/6 text-violet-300/60 ring-1 ring-violet-300/10 hover:scale-[1.03] hover:bg-violet-400/12 hover:text-violet-200 hover:shadow-[0_6px_20px_rgba(167,139,250,0.18)] hover:ring-violet-300/20",
               },
             ] as const
           ).map(({ id, icon, label, activeClass, inactiveClass }) => (
