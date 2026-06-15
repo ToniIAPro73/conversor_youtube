@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { UrlForm } from "@/components/converter/url-form";
-import { MediaPreview } from "@/components/converter/media-preview";
-import { FormatSelector } from "@/components/converter/format-selector";
-import { QualitySelector } from "@/components/converter/quality-selector";
-import { ConversionProgress } from "@/components/converter/conversion-progress";
-import { DownloadCard } from "@/components/converter/download-card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { MetadataResponse } from "@/lib/youtube/schemas";
-import { toast, Toaster } from "sonner";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Toaster, toast } from "sonner";
+import { SourceSelector, type AnalysisResult } from "@/components/converter/source-selector";
+import { InputAnalysisCard } from "@/components/converter/input-analysis-card";
+import { CompatibilityPanel } from "@/components/converter/compatibility-panel";
+import { JobProgressCard } from "@/components/converter/job-progress-card";
+import { ArtifactResultCard } from "@/components/converter/artifact-result-card";
+import { JobHistory } from "@/components/history/job-history";
+import { ToolStatusPanel } from "@/components/diagnostics/tool-status-panel";
+import type { ConversionCapability, ConversionPreset } from "@/lib/media/supported-conversions";
+import { Layers, History, Stethoscope } from "lucide-react";
+
+type Tab = "convert" | "history" | "diagnostics";
 
 interface JobStatusData {
   jobId: string;
@@ -19,285 +20,348 @@ interface JobStatusData {
   stage: string;
   progress: number;
   error?: string;
+  outputFormat?: string;
   file?: {
     name: string;
     mimeType: string;
     sizeBytes: number;
     quality: string;
+    format: string;
   };
-  downloadToken?: string;
+  downloadAvailable?: boolean;
+}
+
+interface CapabilitiesData {
+  capabilities: ConversionCapability[];
+  recommended: { operation: string; format: string; preset: string | null } | null;
 }
 
 export default function Home() {
-  const [metadata, setMetadata] = useState<MetadataResponse | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
-  const [format, setFormat] = useState<"mp3" | "mp4">("mp3");
-  const [selectedQuality, setSelectedQuality] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("convert");
+
+  // Analysis state
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Capabilities state
+  const [capabilities, setCapabilities] = useState<CapabilitiesData | null>(null);
+  const [selectedCap, setSelectedCap] = useState<ConversionCapability | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<ConversionPreset | null>(null);
   const [rightsConfirmed, setRightsConfirmed] = useState(false);
-  
+
+  // Job state
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<JobStatusData | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [dependencyError, setDependencyError] = useState<string | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
 
-  // Derived quality if not manually selected
-  const quality = useMemo(() => {
-    if (selectedQuality) return selectedQuality;
-    if (format === "mp3") return "192";
-    if (metadata) {
-      return metadata.availableHeights.includes(720) ? "720" : metadata.availableHeights[0]?.toString() || "360";
-    }
-    return "192";
-  }, [selectedQuality, format, metadata]);
-
-  // Poll for job status
+  // Load capabilities when analysis is complete
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (jobId && isProcessing) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/jobs/${jobId}`);
-          if (!res.ok) throw new Error("Error al obtener el estado");
-          const data = await res.json() as JobStatusData;
-          setJobStatus(data);
-          
-          if (["completed", "failed", "cancelled"].includes(data.status)) {
-            setIsProcessing(false);
-            if (data.status === "failed") {
-              toast.error(data.error || "La conversión ha fallado");
-            }
-          }
-        } catch (error) {
-          console.error("Polling error:", error);
-        }
-      }, 2000);
-    }
-    return () => clearInterval(interval);
-  }, [jobId, isProcessing]);
+    if (!analysisResult) return;
+    const loadCaps = async () => {
+      try {
+        const res = await fetch("/api/capabilities", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ descriptor: analysisResult.descriptor }),
+        });
+        const data = await res.json();
+        setCapabilities(data as CapabilitiesData);
 
-  const handleAnalyze = async (inputUrl: string) => {
-    setIsAnalyzing(true);
-    setMetadata(null);
+        // Auto-select recommended
+        const rec = (data as CapabilitiesData).recommended;
+        if (rec) {
+          const recCap = (data as CapabilitiesData).capabilities.find(
+            (c) => c.operation === rec.operation && c.outputFormat === rec.format
+          );
+          if (recCap) {
+            setSelectedCap(recCap);
+            const preset = recCap.presets.find((p) => p.id === rec.preset) ?? recCap.presets[0];
+            setSelectedPreset(preset ?? null);
+          }
+        }
+      } catch {
+        // ignore — capabilities optional
+      }
+    };
+    void loadCaps();
+  }, [analysisResult]);
+
+  // Poll job status
+  useEffect(() => {
+    if (!jobId || !isConverting) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/jobs/${jobId}`);
+        const data = await res.json() as JobStatusData;
+        setJobStatus(data);
+        if (["completed", "failed", "cancelled"].includes(data.status)) {
+          setIsConverting(false);
+          if (data.status === "failed") toast.error(data.error ?? "La conversión ha fallado");
+        }
+      } catch {
+        // ignore polling error
+      }
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [jobId, isConverting]);
+
+  const handleReset = useCallback(() => {
+    setAnalysisResult(null);
+    setCapabilities(null);
+    setSelectedCap(null);
+    setSelectedPreset(null);
+    setRightsConfirmed(false);
     setJobId(null);
     setJobStatus(null);
-    setSelectedQuality(null);
-    setDependencyError(null);
-    
-    try {
-      const res = await fetch("/api/metadata", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: inputUrl }),
-      });
-      
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.code === "DEPENDENCY_MISSING") {
-          setDependencyError(data.error);
-        }
-        throw new Error(data.error || "Error al analizar");
-      }
-      
-      setMetadata(data);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Ocurrió un error inesperado al analizar el enlace.");
-      }
-    } finally {
-      setIsAnalyzing(false);
-    }
+    setIsConverting(false);
+  }, []);
+
+  const handleCapSelect = (cap: ConversionCapability, preset: ConversionPreset) => {
+    setSelectedCap(cap);
+    setSelectedPreset(preset);
   };
 
   const handleStartConversion = async () => {
-    if (!metadata || !rightsConfirmed) return;
-    
-    setIsProcessing(true);
-    setJobStatus({ 
-      jobId: "pending",
-      status: "queued", 
-      stage: "Iniciando...", 
-      progress: 0 
-    });
+    if (!analysisResult || !selectedCap || !selectedPreset) return;
+
+    setIsConverting(true);
+    setJobStatus({ jobId: "pending", status: "queued", stage: "Iniciando...", progress: 0 });
 
     try {
+      const body: Record<string, unknown> = {
+        format: selectedCap.outputFormat,
+        quality: selectedPreset.quality,
+        rightsConfirmed: true,
+        operation: selectedCap.operation,
+      };
+
+      if (analysisResult.kind === "remote-url") {
+        body.url = analysisResult.normalizedUrl;
+      } else {
+        body.localFilePath = analysisResult.storedRelativePath;
+      }
+
       const res = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          videoId: metadata.videoId,
-          format,
-          quality,
-          rightsConfirmed,
-        }),
+        body: JSON.stringify(body),
       });
-      
       const data = await res.json();
-      if (!res.ok) {
-        if (data.code === "DEPENDENCY_MISSING") {
-          setDependencyError(data.error);
-        }
-        throw new Error(data.error || "Error al iniciar");
-      }
-      
-      setJobId(data.jobId);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Ocurrió un error inesperado al iniciar la conversión.");
-      }
-      setIsProcessing(false);
+      if (!res.ok) throw new Error(data.error ?? "Error al iniciar");
+      setJobId(data.jobId as string);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al iniciar la conversión");
+      setIsConverting(false);
       setJobStatus(null);
     }
   };
 
-  const handleReset = () => {
-    setMetadata(null);
-    setJobId(null);
-    setJobStatus(null);
-    setIsProcessing(false);
-    setRightsConfirmed(false);
-    setSelectedQuality(null);
-    setDependencyError(null);
+  const handleCancel = async () => {
+    if (!jobId) return;
+    try {
+      await fetch(`/api/jobs/${jobId}`, { method: "DELETE" });
+      toast.info("Cancelando...");
+    } catch {
+      // ignore
+    }
   };
 
-  return (
-    <main className="min-h-screen bg-[#0a0a0c] text-white selection:bg-cyan-500/30">
-      <Toaster position="top-center" expand={false} richColors />
-      
-      {/* Radial Gradient Background */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(20,40,60,0.4)_0%,transparent_50%)] pointer-events-none" />
+  const selectedKey = selectedCap ? `${selectedCap.operation}-${selectedCap.outputFormat}` : null;
 
-      <div className="relative max-w-3xl mx-auto px-6 pt-16 pb-24">
+  const showWorkspace = analysisResult && !jobStatus;
+  const showProgress = !!jobStatus && jobStatus.status !== "completed";
+  const showResult = jobStatus?.status === "completed";
+
+  return (
+    <div lang="es" className="min-h-screen bg-[#0a0a0c] text-white">
+      <Toaster position="top-center" richColors />
+
+      {/* Radial gradient background */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background: "radial-gradient(circle at 50% 0%, rgba(20,40,60,0.35) 0%, transparent 55%)",
+        }}
+        aria-hidden="true"
+      />
+
+      {/* App shell */}
+      <div className="relative max-w-2xl mx-auto px-4 pb-24">
         {/* Header */}
-        <header className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 mb-4 group cursor-default">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
-              <svg viewBox="0 0 24 24" className="h-6 w-6 text-white fill-current">
+        <header className="text-center pt-12 pb-8">
+          <div className="inline-flex items-center gap-2.5 mb-5">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+              <svg viewBox="0 0 24 24" className="h-5 w-5 text-white fill-current" aria-hidden="true">
                 <path d="M10 15.5v-7l6 3.5-6 3.5z" />
                 <path fillRule="evenodd" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM5 12a7 7 0 1014 0 7 7 0 00-14 0z" />
               </svg>
             </div>
-            <span className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
-              Link2Media
-            </span>
+            <span className="text-xl font-bold tracking-tight">Link2Media</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold mb-4 tracking-tight">
-            Convierte contenido de <span className="text-cyan-400">YouTube</span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2">
+            Conversor <span className="text-cyan-400">multimedia local</span>
           </h1>
-          <p className="text-white/50 text-lg max-w-lg mx-auto">
-            Pega un enlace autorizado, selecciona el formato y descarga tu archivo en segundos.
+          <p className="text-white/40 text-sm max-w-sm mx-auto">
+            Pega un enlace o sube un archivo. El sistema detecta lo que se puede hacer con él.
           </p>
         </header>
 
-        <div className="space-y-8">
-          {/* URL Input Section */}
-          <section>
-            <UrlForm onAnalyze={handleAnalyze} isLoading={isAnalyzing} />
-            <p className="mt-3 text-[11px] text-white/30 text-center italic">
-              Aceptamos enlaces de youtube.com, youtu.be y music.youtube.com
-            </p>
-          </section>
+        {/* Navigation tabs */}
+        <nav
+          aria-label="Secciones de la aplicación"
+          className="flex rounded-2xl overflow-hidden border border-white/10 bg-white/[0.04] mb-6"
+        >
+          {(
+            [
+              { id: "convert" as Tab, icon: <Layers className="h-4 w-4" />, label: "Convertir" },
+              { id: "history" as Tab, icon: <History className="h-4 w-4" />, label: "Historial" },
+              { id: "diagnostics" as Tab, icon: <Stethoscope className="h-4 w-4" />, label: "Diagnóstico" },
+            ] as const
+          ).map(({ id, icon, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveTab(id)}
+              role="tab"
+              aria-selected={activeTab === id}
+              aria-controls={`panel-${id}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+                activeTab === id
+                  ? "bg-white/10 text-white"
+                  : "text-white/35 hover:text-white/60"
+              }`}
+            >
+              {icon}
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ))}
+        </nav>
 
-          {dependencyError && (
-            <div className="p-5 bg-red-500/5 border border-red-500/20 rounded-2xl text-red-400 text-sm animate-in zoom-in-95 duration-300">
-              <div className="flex items-center gap-2 mb-2 font-bold text-base">
-                <AlertTriangle className="h-5 w-5" />
-                Error de Configuración del Servidor
-              </div>
-              <p className="opacity-90 leading-relaxed mb-4">
-                {dependencyError}
-              </p>
-              <div className="p-3 bg-red-500/10 rounded-lg text-[13px] border border-red-500/10">
-                <p className="font-semibold mb-1">💡 Solución sugerida:</p>
-                Despliega esta aplicación en un servidor con soporte para binarios (Render, Railway, VPS) en lugar de Vercel. Consulta el <strong>README.md</strong> para más detalles.
-              </div>
-            </div>
-          )}
-
-          {metadata && !jobStatus && (
-            <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <MediaPreview metadata={metadata} onReset={handleReset} />
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <FormatSelector format={format} onFormatChange={(f) => { setFormat(f); setSelectedQuality(null); }} />
-                <QualitySelector 
-                  format={format} 
-                  quality={quality} 
-                  onQualityChange={setSelectedQuality}
-                  availableHeights={metadata.availableHeights}
+        {/* Convertir panel */}
+        <main id="panel-convert" role="tabpanel" aria-label="Panel de conversión" className={activeTab !== "convert" ? "hidden" : ""}>
+          <div className="space-y-5">
+            {/* Step 1: Source selector */}
+            {!analysisResult && !jobStatus && (
+              <section aria-labelledby="source-heading">
+                <h2 id="source-heading" className="sr-only">Selecciona la fuente</h2>
+                <SourceSelector
+                  onUrlAnalyzed={(r) => setAnalysisResult(r)}
+                  onFileAnalyzed={(r) => setAnalysisResult(r)}
+                  isLoading={isLoading}
+                  setLoading={setIsLoading}
                 />
-              </div>
+              </section>
+            )}
 
-              <div className="space-y-6 pt-4 border-t border-white/5">
-                <div className="flex items-start gap-3">
-                  <Checkbox 
-                    id="rights" 
-                    checked={rightsConfirmed} 
-                    onCheckedChange={(checked) => setRightsConfirmed(checked === true)}
-                    className="mt-1 border-white/20 data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
-                  />
-                  <div className="grid gap-1.5 leading-none">
-                    <label 
-                      htmlFor="rights" 
-                      className="text-sm text-white/70 cursor-pointer select-none"
+            {/* Step 2 + 3: Analysis card + compatibility */}
+            {showWorkspace && (
+              <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-400">
+                <InputAnalysisCard result={analysisResult} onReset={handleReset} />
+
+                {capabilities && capabilities.capabilities.length > 0 && (
+                  <section aria-labelledby="compat-heading">
+                    <h2 id="compat-heading" className="sr-only">Opciones de conversión</h2>
+                    <CompatibilityPanel
+                      capabilities={capabilities.capabilities}
+                      recommended={capabilities.recommended}
+                      onSelect={handleCapSelect}
+                      selectedKey={selectedKey}
+                    />
+                  </section>
+                )}
+
+                {selectedCap && (
+                  <div className="pt-2 space-y-3 border-t border-white/5">
+                    {/* Rights confirmation — only for remote URL */}
+                    {analysisResult.kind === "remote-url" && (
+                      <div className="flex items-start gap-3">
+                        <input
+                          id="rights-check"
+                          type="checkbox"
+                          checked={rightsConfirmed}
+                          onChange={(e) => setRightsConfirmed(e.target.checked)}
+                          className="mt-1 accent-cyan-500 h-4 w-4"
+                        />
+                        <label htmlFor="rights-check" className="text-xs text-white/50 cursor-pointer">
+                          Confirmo que soy titular del contenido o que dispongo de permiso para descargarlo y convertirlo. Soy responsable de respetar los derechos de autor.
+                        </label>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => void handleStartConversion()}
+                      disabled={
+                        isConverting ||
+                        !selectedPreset ||
+                        (analysisResult.kind === "remote-url" && !rightsConfirmed)
+                      }
+                      className="w-full h-13 py-3.5 rounded-xl bg-white text-black font-bold text-sm hover:bg-cyan-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      Confirmo que soy titular del contenido o que dispongo de permiso para descargarlo y convertirlo.
-                    </label>
-                    <p className="text-[10px] text-white/30">
-                      Eres responsable de respetar los derechos de autor y las licencias aplicables.
-                    </p>
+                      {isConverting
+                        ? "Procesando..."
+                        : `Convertir a ${selectedCap.outputFormat.toUpperCase()} — ${selectedPreset?.label ?? ""}`}
+                    </button>
                   </div>
-                </div>
-
-                <Button 
-                  onClick={handleStartConversion}
-                  disabled={!rightsConfirmed || isProcessing}
-                  className="w-full h-14 text-lg font-bold bg-white text-black hover:bg-cyan-400 transition-colors disabled:opacity-50"
-                >
-                  {isProcessing ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    `Convertir a ${format.toUpperCase()}`
-                  )}
-                </Button>
+                )}
               </div>
-            </section>
-          )}
+            )}
 
-          {/* Progress & Result Section */}
-          {jobStatus && (
-            <section className="animate-in fade-in duration-500">
-              {jobStatus.status === "completed" && jobStatus.file ? (
-                <DownloadCard 
-                  fileName={jobStatus.file.name}
-                  format={format}
-                  quality={jobStatus.file.quality}
-                  sizeBytes={jobStatus.file.sizeBytes}
-                  downloadUrl={`/api/download/${jobId}?token=${jobStatus.downloadToken}`}
-                  onReset={handleReset}
-                />
-              ) : (
-                <ConversionProgress 
+            {/* Step 4: Progress */}
+            {showProgress && jobStatus && (
+              <section
+                aria-live="polite"
+                aria-labelledby="progress-heading"
+                className="animate-in fade-in duration-300"
+              >
+                <h2 id="progress-heading" className="sr-only">Progreso de conversión</h2>
+                <JobProgressCard
+                  jobId={jobStatus.jobId}
                   status={jobStatus.status}
                   stage={jobStatus.stage}
                   progress={jobStatus.progress}
+                  error={jobStatus.error}
+                  onCancel={handleCancel}
                 />
-              )}
-            </section>
-          )}
+              </section>
+            )}
+
+            {/* Step 5: Result */}
+            {showResult && jobStatus?.file && (
+              <section aria-labelledby="result-heading" className="animate-in fade-in duration-300">
+                <h2 id="result-heading" className="sr-only">Resultado</h2>
+                <ArtifactResultCard
+                  jobId={jobStatus.jobId}
+                  fileName={jobStatus.file.name ?? "download"}
+                  format={jobStatus.file.format ?? jobStatus.outputFormat ?? ""}
+                  mimeType={jobStatus.file.mimeType}
+                  sizeBytes={jobStatus.file.sizeBytes}
+                  downloadTokenHash={!!jobStatus.downloadAvailable}
+                  onReset={handleReset}
+                  onViewHistory={() => setActiveTab("history")}
+                />
+              </section>
+            )}
+          </div>
+        </main>
+
+        {/* History panel */}
+        <div id="panel-history" role="tabpanel" aria-label="Panel de historial" className={activeTab !== "history" ? "hidden" : ""}>
+          <JobHistory />
+        </div>
+
+        {/* Diagnostics panel */}
+        <div id="panel-diagnostics" role="tabpanel" aria-label="Panel de diagnóstico" className={activeTab !== "diagnostics" ? "hidden" : ""}>
+          <ToolStatusPanel />
         </div>
 
         {/* Footer */}
-        <footer className="mt-24 pt-8 border-t border-white/5 text-center">
-          <p className="text-[10px] text-white/20 uppercase tracking-widest font-medium">
-            Link2Media MVP • Versión 0.1.0 • {new Date().getFullYear()}
+        <footer className="mt-20 pt-6 border-t border-white/5 text-center">
+          <p className="text-[10px] text-white/20 uppercase tracking-widest">
+            Link2Media · Procesamiento 100% local · {new Date().getFullYear()}
           </p>
         </footer>
       </div>
-    </main>
+    </div>
   );
 }

@@ -40,7 +40,7 @@ function runMigrations(db: Database.Database): void {
     if (!appliedSet.has(migration.version)) {
       db.transaction(() => {
         db.exec(migration.sql);
-        db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(
+        db.prepare("INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)").run(
           migration.version
         );
       })();

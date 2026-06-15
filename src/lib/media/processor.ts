@@ -46,7 +46,7 @@ export async function processJob(jobId: string) {
 
   try {
     if (job.input_kind === "remote-url") {
-      await processRemoteUrl(jobId, job.input_reference, outputFormat, job.quality, outputPath, isAudio);
+      await processRemoteUrl(jobId, job.input_reference, outputFormat, job.quality, outputPath);
     } else if (job.input_kind === "local-file") {
       const inputPath = path.join(CONFIG.media.tempDir, job.input_reference);
       if (isAudio) {
@@ -119,8 +119,7 @@ async function processRemoteUrl(
   inputReference: string,
   outputFormat: string,
   quality: string,
-  outputPath: string,
-  isAudio: boolean
+  outputPath: string
 ): Promise<void> {
   // inputReference is the full URL or videoId
   const url = inputReference.startsWith("http")
@@ -151,7 +150,7 @@ async function processRemoteUrl(
     ffmpegLocation: path.dirname(CONFIG.media.binaries.ffmpeg),
   });
 
-  await runProcess(CONFIG.media.binaries.ytdlp, args, jobId, isAudio);
+  await runProcess(CONFIG.media.binaries.ytdlp, args, jobId);
 }
 
 async function processLocalAudio(
@@ -168,7 +167,7 @@ async function processLocalAudio(
   });
 
   const args = buildFfmpegAudioArgs({ inputPath, outputPath, format, quality });
-  await runProcess(CONFIG.media.binaries.ffmpeg, args, jobId, true);
+  await runProcess(CONFIG.media.binaries.ffmpeg, args, jobId);
 }
 
 async function processLocalVideo(
@@ -185,14 +184,13 @@ async function processLocalVideo(
   });
 
   const args = buildFfmpegVideoArgs({ inputPath, outputPath, format, quality });
-  await runProcess(CONFIG.media.binaries.ffmpeg, args, jobId, false);
+  await runProcess(CONFIG.media.binaries.ffmpeg, args, jobId);
 }
 
 function runProcess(
   binary: string,
   args: string[],
-  jobId: string,
-  isAudio: boolean
+  jobId: string
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = spawn(binary, args, {
