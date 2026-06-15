@@ -43,6 +43,11 @@ next-env.d.ts
 # tmp
 .tmp/
 
+# SQLite database files (created at runtime; persisted locally, not in git)
+/data/*.sqlite
+/data/*.sqlite-shm
+/data/*.sqlite-wal
+
 # Windows portable distribution — build cache, staging, and output artifacts
 scripts/.cache/
 scripts/.staging/
