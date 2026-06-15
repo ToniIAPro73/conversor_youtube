@@ -5,17 +5,30 @@ import { normalizeYoutubeUrl } from "@/lib/youtube/normalize-url";
 import { CONFIG } from "@/lib/config";
 import { sanitizeFilename } from "@/lib/security/sanitize-filename";
 import { ensurePathSafety } from "@/lib/security/path-safety";
+import { buildDescriptor } from "@/lib/detection/file-detector";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
-const ALLOWED_EXTENSIONS = new Set([
-  "mp3", "m4a", "wav", "flac", "ogg", "aac",
-  "mp4", "webm", "mkv", "avi", "mov", "wmv", "ts",
-]);
 
-/** Analyze a remote YouTube URL */
+// Media types go through legacy ffprobe path; all others use universal detector
+const MEDIA_EXTENSIONS = new Set(["mp3", "m4a", "wav", "flac", "ogg", "aac", "mp4", "webm", "mkv", "avi", "mov", "wmv", "ts"]);
+const UNIVERSAL_EXTENSIONS = new Set([
+  // Images
+  "jpg", "jpeg", "png", "webp", "avif", "tiff", "tif", "gif",
+  // PDF
+  "pdf",
+  // Archives
+  "zip", "7z", "tar", "gz", "bz2", "xz",
+  // Structured data
+  "json", "yaml", "yml", "toml", "xml", "csv", "tsv",
+  // Plain text
+  "md", "txt", "html", "htm",
+]);
+const ALL_ALLOWED_EXTENSIONS = new Set([...MEDIA_EXTENSIONS, ...UNIVERSAL_EXTENSIONS]);
+
+/** Analyze a remote YouTube URL or an uploaded file */
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") ?? "";
@@ -24,7 +37,7 @@ export async function POST(req: NextRequest) {
       return handleFileUpload(req);
     }
 
-    // JSON body: URL analysis
+    // JSON body: URL analysis (YouTube only — legacy path)
     const body = await req.json();
     const rawUrl: unknown = body?.url;
     if (typeof rawUrl !== "string" || !rawUrl.trim()) {
@@ -88,14 +101,15 @@ async function handleFileUpload(req: NextRequest): Promise<NextResponse> {
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return NextResponse.json(
-      { error: `El archivo supera el límite de ${MAX_FILE_SIZE_BYTES / (1024 ** 3)} GB.`, code: "FILE_TOO_LARGE" },
+      { error: `El archivo supera el límite de ${MAX_FILE_SIZE_BYTES / 1024 ** 3} GB.`, code: "FILE_TOO_LARGE" },
       { status: 413 }
     );
   }
 
   const originalName = file.name;
   const ext = originalName.split(".").pop()?.toLowerCase() ?? "";
-  if (!ALLOWED_EXTENSIONS.has(ext)) {
+
+  if (!ALL_ALLOWED_EXTENSIONS.has(ext)) {
     return NextResponse.json(
       { error: `Formato no soportado: .${ext}`, code: "UNSUPPORTED_INPUT" },
       { status: 415 }
@@ -114,24 +128,53 @@ async function handleFileUpload(req: NextRequest): Promise<NextResponse> {
   const bytes = await file.arrayBuffer();
   fs.writeFileSync(storedPath, Buffer.from(bytes));
 
+  // Route to appropriate analyzer based on extension
+  if (MEDIA_EXTENSIONS.has(ext)) {
+    return handleMediaFile(storedPath, originalName, uploadId, file.size);
+  }
+  return handleUniversalFile(storedPath, originalName, uploadId, file.size);
+}
+
+async function handleMediaFile(storedPath: string, originalName: string, uploadId: string, sizeBytes: number): Promise<NextResponse> {
   const descriptor = await probeFile(storedPath);
   if (!descriptor) {
-    fs.rmSync(uploadDir, { recursive: true, force: true });
+    fs.rmSync(path.dirname(storedPath), { recursive: true, force: true });
     return NextResponse.json(
       { error: "No se pudo analizar el archivo. Puede estar corrupto o no ser un archivo multimedia válido.", code: "ANALYSIS_FAILED" },
       { status: 422 }
     );
   }
 
-  // Relative path for use in subsequent job creation
   const relPath = path.relative(CONFIG.media.tempDir, storedPath);
-
   return NextResponse.json({
     kind: "local-file",
     uploadId,
-    originalName: originalName,
+    originalName,
     storedRelativePath: relPath,
-    sizeBytes: file.size,
+    sizeBytes,
     descriptor,
   });
+}
+
+async function handleUniversalFile(storedPath: string, originalName: string, uploadId: string, sizeBytes: number): Promise<NextResponse> {
+  try {
+    const relPath = path.relative(CONFIG.media.tempDir, storedPath);
+    const universalDescriptor = await buildDescriptor(
+      storedPath,
+      { kind: "local-upload", originalName, storedRelativePath: relPath },
+      uploadId
+    );
+    return NextResponse.json({
+      kind: "universal-file",
+      uploadId,
+      originalName,
+      storedRelativePath: relPath,
+      sizeBytes,
+      universalDescriptor,
+    });
+  } catch (error: unknown) {
+    fs.rmSync(path.dirname(storedPath), { recursive: true, force: true });
+    const msg = error instanceof Error ? error.message : "Error al analizar el archivo.";
+    return NextResponse.json({ error: msg, code: "ANALYSIS_FAILED" }, { status: 422 });
+  }
 }
