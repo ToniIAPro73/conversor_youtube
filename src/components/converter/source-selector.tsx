@@ -201,7 +201,7 @@ export function SourceSelector({ onUrlAnalyzed, onFileAnalyzed, isLoading, setLo
             className={`relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
               isDragging
                 ? "border-cyan-500 bg-cyan-500/10"
-                : "border-white/15 hover:border-white/30 hover:bg-white/[0.03]"
+                : "border-white/15 hover:border-white/30 hover:bg-white/3"
             } ${isLoading ? "pointer-events-none opacity-50" : ""}`}
           >
             {isLoading ? (
