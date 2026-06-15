@@ -3,10 +3,8 @@
 // and calling the engine registry's getCapabilities function directly.
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { getCapabilities, getEngine, invalidateProbeCache } from "../../src/lib/engines/registry";
+import { getCapabilities, invalidateProbeCache } from "../../src/lib/engines/registry";
 import type { UniversalFileDescriptor } from "../../src/lib/domain/descriptors";
-import type { CapabilityInfo } from "../../src/lib/domain/unified-analysis";
-import type { ConversionCapability } from "../../src/lib/domain/engines";
 import crypto from "crypto";
 
 // ── Descriptor factories ───────────────────────────────────────────────────────

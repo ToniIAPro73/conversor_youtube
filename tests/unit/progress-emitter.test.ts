@@ -1,7 +1,7 @@
 // Unit tests for the ProgressEmitter.
 // Tests: event emission, subscription, unsubscription, cancellation, replay.
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { ProgressEmitter } from "../../src/lib/jobs/progress-emitter";
 import type { JobProgressEvent } from "../../src/lib/jobs/progress-types";
 

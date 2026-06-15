@@ -1,0 +1,262 @@
+
+[0;36m═══════════════════════════════════════════════════[0m
+[0;36m  Link2Media Portable Build v2                      [0m
+[0;36m  2026-06-15T08:20:30Z                                   [0m
+[0;36m═══════════════════════════════════════════════════[0m
+
+[0;36m[INFO][0m  Verificando directorio de trabajo...
+[0;32m[OK][0m    Directorio: /home/z/my-project/conversor_youtube
+[0;36m[INFO][0m  Verificando herramientas requeridas...
+[0;32m[OK][0m    Herramientas básicas disponibles
+[0;36m[INFO][0m  Ejecutando lint...
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+$ eslint .
+
+/home/z/my-project/conversor_youtube/src/app/api/batch/route.ts
+  65:7  warning  'GetBatchQuerySchema' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/app/api/inputs/analyze/route.ts
+  154:115  warning  '_ext' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/components/converter/format-selector.tsx
+  5:15  warning  'CapabilityInfo' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/components/converter/input-analysis-card.tsx
+  132:35  warning  'category' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/components/converter/source-selector.tsx
+  199:6  warning  React Hook useCallback has a missing dependency: 'handleFile'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/z/my-project/conversor_youtube/src/lib/domain/unified-analysis.ts
+  4:45  warning  'DescriptorWarning' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/engines/archive/sevenzip-engine.ts
+   19:7   warning  'MAX_UNCOMPRESSED_BYTES' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  261:38  warning  'plan' is defined but never used                             @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/engines/document/pandoc-engine.ts
+  219:38  warning  '_plan' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/engines/ocr/tesseract-engine.ts
+  261:13  warning  'fromLabel' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/engines/pdf/qpdf-engine.ts
+  145:38  warning  '_plan' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/jobs/batch-processor.ts
+  9:31  warning  'AppError' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/jobs/universal-job-processor.ts
+   8:48  warning  'ArtifactValidation' is defined but never used    @typescript-eslint/no-unused-vars
+   8:68  warning  'ConversionCapability' is defined but never used  @typescript-eslint/no-unused-vars
+  10:21  warning  'getCapabilities' is defined but never used       @typescript-eslint/no-unused-vars
+  15:31  warning  'MIME_TO_FORMAT' is defined but never used        @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/integration/capabilities-api.test.ts
+  6:27  warning  'getEngine' is defined but never used             @typescript-eslint/no-unused-vars
+  8:15  warning  'CapabilityInfo' is defined but never used        @typescript-eslint/no-unused-vars
+  9:15  warning  'ConversionCapability' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/integration/jobs-api.test.ts
+   68:10  warning  'imageDescriptor' is defined but never used  @typescript-eslint/no-unused-vars
+  168:11  warning  'desc' is assigned a value but never used    @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/unit/batch-processor.test.ts
+  7:8  warning  'path' is defined but never used  @typescript-eslint/no-unused-vars
+  8:8  warning  'fs' is defined but never used    @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/unit/coordinated-cleanup.test.ts
+  66:27  warning  '_opts' is defined but never used  @typescript-eslint/no-unused-vars
+  83:25  warning  '_opts' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/unit/progress-emitter.test.ts
+  4:32  warning  'vi' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/unit/universal-job-processor.test.ts
+  4:32  warning  'vi' is defined but never used          @typescript-eslint/no-unused-vars
+  4:36  warning  'beforeEach' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 28 problems (0 errors, 28 warnings)
+
+[0;32m[OK][0m    Lint OK
+[0;36m[INFO][0m  Ejecutando typecheck...
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+$ tsc --noEmit
+[0;32m[OK][0m    Typecheck OK
+[0;36m[INFO][0m  Ejecutando tests...
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+$ vitest run
+
+ RUN  v4.1.8 /home/z/my-project/conversor_youtube
+
+ ✓ tests/unit/ffmpeg-engine.test.ts (41 tests) 87ms
+ ✓ tests/integration/jobs-api.test.ts (14 tests) 68ms
+ ✓ tests/unit/engine-registry.test.ts (18 tests) 329ms
+ ✓ tests/integration/capabilities-api.test.ts (13 tests) 333ms
+stdout | tests/unit/coordinated-cleanup.test.ts > Coordinated Cleanup > returns zero metrics when there are no expired jobs
+[coordinated-cleanup] Done: 0 jobs expired, 0 artifacts deleted, 0 orphaned files deleted, 0 failures
+
+stdout | tests/unit/coordinated-cleanup.test.ts > Coordinated Cleanup > expires completed jobs past their TTL and deletes artifacts
+[coordinated-cleanup] Deleted artifact: /.../job-1/output.mp3
+[coordinated-cleanup] Deleted job dir: /.../test-media/job-1
+[coordinated-cleanup] Done: 1 jobs expired, 1 artifacts deleted, 0 orphaned files deleted, 0 failures
+
+stdout | tests/unit/coordinated-cleanup.test.ts > Coordinated Cleanup > does not delete artifacts outside the temp directory
+[coordinated-cleanup] Done: 1 jobs expired, 0 artifacts deleted, 0 orphaned files deleted, 0 failures
+
+stdout | tests/unit/coordinated-cleanup.test.ts > Coordinated Cleanup > handles multiple expired jobs
+[coordinated-cleanup] Deleted artifact: /.../job-a/output.pdf
+[coordinated-cleanup] Deleted job dir: /.../test-media/job-a
+[coordinated-cleanup] Deleted artifact: /.../job-b/output.png
+[coordinated-cleanup] Deleted job dir: /.../test-media/job-b
+[coordinated-cleanup] Done: 2 jobs expired, 2 artifacts deleted, 0 orphaned files deleted, 0 failures
+
+stdout | tests/unit/coordinated-cleanup.test.ts > Coordinated Cleanup > is idempotent — safe to run multiple times
+[coordinated-cleanup] Deleted artifact: /.../job-3/output.docx
+[coordinated-cleanup] Deleted job dir: /.../test-media/job-3
+[coordinated-cleanup] Done: 1 jobs expired, 1 artifacts deleted, 0 orphaned files deleted, 0 failures
+
+stdout | tests/unit/coordinated-cleanup.test.ts > Coordinated Cleanup > is idempotent — safe to run multiple times
+[coordinated-cleanup] Deleted artifact: /.../job-3/output.docx
+[coordinated-cleanup] Deleted job dir: /.../test-media/job-3
+[coordinated-cleanup] Done: 1 jobs expired, 1 artifacts deleted, 0 orphaned files deleted, 0 failures
+
+stdout | tests/unit/coordinated-cleanup.test.ts > Coordinated Cleanup > skips jobs with no output_relative_path
+[coordinated-cleanup] Done: 1 jobs expired, 0 artifacts deleted, 0 orphaned files deleted, 0 failures
+
+ ✓ tests/unit/coordinated-cleanup.test.ts (6 tests) 19ms
+ ✓ tests/unit/format-catalog.test.ts (21 tests) 22ms
+ ✓ tests/unit/data-engine.test.ts (13 tests) 48ms
+ ✓ tests/unit/batch-processor.test.ts (14 tests) 17ms
+ ✓ tests/unit/disk-space-check.test.ts (8 tests) 17ms
+ ✓ tests/integration/analyze-api.test.ts (21 tests) 12ms
+ ✓ tests/unit/progress-emitter.test.ts (13 tests) 8ms
+ ✓ tests/unit/tesseract-engine.test.ts (27 tests) 9ms
+ ✓ tests/unit/universal-job-processor.test.ts (29 tests) 10ms
+ ✓ tests/unit/calibre-engine.test.ts (27 tests) 8ms
+ ✓ tests/unit/sharp-engine.test.ts (15 tests) 7ms
+ ✓ tests/unit/libreoffice-engine.test.ts (19 tests) 8ms
+ ✓ tests/unit/error-codes.test.ts (34 tests) 8ms
+ ✓ tests/unit/pandoc-engine.test.ts (17 tests) 8ms
+ ✓ tests/unit/unified-analysis.test.ts (20 tests) 7ms
+ ✓ tests/unit/supported-conversions.test.ts (15 tests) 6ms
+ ✓ tests/unit/path-safety.test.ts (7 tests) 5ms
+ ✓ tests/youtube-normalize-url.test.ts (2 tests) 3ms
+
+ Test Files  22 passed (22)
+      Tests  394 passed (394)
+   Start at  08:20:37
+   Duration  1.78s (transform 640ms, setup 0ms, import 1.43s, tests 1.04s, environment 2ms)
+
+[0;32m[OK][0m    Tests OK
+[0;36m[INFO][0m  Ejecutando pnpm build (modo standalone)...
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+$ next build
+▲ Next.js 16.2.9 (Turbopack)
+- Experiments (use with caution):
+  ⨯ serverComponentsHmrCache
+
+  Creating an optimized production build ...
+Turbopack build encountered 1 warnings:
+./next.config.ts
+Encountered unexpected file in NFT list
+A file was traced that indicates that the whole project was traced unintentionally. Somewhere in the import trace below, there are:
+- filesystem operations (like path.join, path.resolve or fs.readFile), or
+- very dynamic requires (like require('./' + foo)).
+To resolve this, you can
+- remove them if possible, or
+- only use them in development, or
+- make sure they are statically scoped to some subfolder: path.join(process.cwd(), 'data', bar), or
+- add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
+
+Import trace:
+  App Route:
+    ./next.config.ts
+    ./src/lib/config.ts
+    ./src/app/api/health/route.ts
+
+
+✓ Compiled successfully in 3.9s
+  Running TypeScript ...
+  Finished TypeScript in 4.1s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/9) ...
+  Generating static pages using 3 workers (2/9) 
+  Generating static pages using 3 workers (4/9) 
+  Generating static pages using 3 workers (6/9) 
+✓ Generating static pages using 3 workers (9/9) in 151ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/batch
+├ ƒ /api/capabilities
+├ ƒ /api/download/[jobId]
+├ ƒ /api/health
+├ ƒ /api/history
+├ ƒ /api/inputs/analyze
+├ ƒ /api/jobs
+├ ƒ /api/jobs/[jobId]
+├ ƒ /api/jobs/[jobId]/token
+└ ƒ /api/metadata
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+[0;32m[OK][0m    Build Next.js standalone completado
+[0;36m[INFO][0m  Limpiando staging anterior...
+[0;32m[OK][0m    Staging limpio: /home/z/my-project/conversor_youtube/scripts/.staging/Link2Media-Windows-x64
+[0;36m[INFO][0m  Creando estructura de directorios...
+[0;32m[OK][0m    Estructura de directorios creada
+[0;36m[INFO][0m  Copiando aplicación Next.js standalone...
+[0;32m[OK][0m    server.js encontrado
+[0;32m[OK][0m    Aplicación copiada
+[0;36m[INFO][0m  Creando launcher scripts BAT...
+[0;32m[OK][0m    Launcher scripts BAT creados
+[0;36m[INFO][0m  Creando scripts internos PowerShell...
+[0;32m[OK][0m    Scripts internos PowerShell creados
+[0;36m[INFO][0m  Copiando scripts PowerShell actualizados al source...
+[0;32m[OK][0m    Scripts PowerShell copiados al source
+[0;36m[INFO][0m  Copiando launcher BAT actualizados al source...
+[0;32m[OK][0m    Launcher BAT copiados al source
+[0;36m[INFO][0m  Generando manifest.json...
+manifest.json generado con 11 componentes
+[0;32m[OK][0m    manifest.json generado
+[0;36m[INFO][0m  Generando VERSION.txt...
+[0;32m[OK][0m    VERSION.txt generado
+[0;36m[INFO][0m  Generando LEEME.txt...
+[0;32m[OK][0m    LEEME.txt generado
+[0;36m[INFO][0m  Generando THIRD_PARTY_NOTICES.txt...
+THIRD_PARTY_NOTICES.txt generado
+[0;32m[OK][0m    THIRD_PARTY_NOTICES.txt generado
+[0;36m[INFO][0m  Creando directorio licenses/...
+[0;32m[OK][0m    Directorio licenses/ creado
+[0;32m[OK][0m    LEEME.txt copiado desde template
+[0;36m[INFO][0m  Verificando directorio tools/...
+[1;33m[WARN][0m  Directorio tools/ vacio — los binarios se deben agregar en Windows
+[1;33m[WARN][0m  Las herramientas se pueden descargar con los URLs en scripts/tool-versions.json
+[0;36m[INFO][0m  Verificando runtime/node.exe...
+[1;33m[WARN][0m  runtime/node.exe no encontrado — debe agregarse manualmente
+[1;33m[WARN][0m  Descarga Node.js Windows x64 desde: https://nodejs.org/dist/
+[1;33m[WARN][0m  ZIP no creado — directorio tools/ vacio (requiere Windows para descargar binarios)
+[1;33m[WARN][0m  Para completar la distribucion en Windows:
+[1;33m[WARN][0m    1. Descarga los binarios con los URLs de scripts/tool-versions.json
+[1;33m[WARN][0m    2. Colocalos en el directorio tools/ correspondiente
+[1;33m[WARN][0m    3. Coloca node.exe en runtime/
+[1;33m[WARN][0m    4. Ejecuta de nuevo este script para crear el ZIP
+
+[0;36m═══════════════════════════════════════════════════[0m
+[0;32m  Build completado[0m
+
+  App version:   0.1.0
+  Build date:    2026-06-15T08:20:30Z
+  Staging:       /home/z/my-project/conversor_youtube/scripts/.staging/Link2Media-Windows-x64
+  Build log:     /home/z/my-project/conversor_youtube/scripts/build-reports/20260615-082030-portable-build.log
+
+  ZIP:           [1;33mPENDIENTE (tools/ vacio)[0m
+
+[0;36m═══════════════════════════════════════════════════[0m
+
+[0;36m[INFO][0m  Build log guardado en: /home/z/my-project/conversor_youtube/scripts/build-reports/20260615-082030-portable-build.log

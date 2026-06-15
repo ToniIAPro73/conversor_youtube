@@ -1,0 +1,83 @@
+
+[0;36m═══════════════════════════════════════════════════[0m
+[0;36m  Link2Media Portable Build v2                      [0m
+[0;36m  2026-06-15T08:19:15Z                                   [0m
+[0;36m═══════════════════════════════════════════════════[0m
+
+[0;36m[INFO][0m  Verificando directorio de trabajo...
+[0;32m[OK][0m    Directorio: /home/z/my-project/conversor_youtube
+[0;36m[INFO][0m  Verificando herramientas requeridas...
+[0;32m[OK][0m    Herramientas básicas disponibles
+[0;36m[INFO][0m  Ejecutando lint...
+[WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.onlyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+$ eslint .
+
+/home/z/my-project/conversor_youtube/src/app/api/batch/route.ts
+  65:7  warning  'GetBatchQuerySchema' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/app/api/inputs/analyze/route.ts
+  154:115  warning  'ext' is defined but never used          @typescript-eslint/no-unused-vars
+  207:23   error    A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/home/z/my-project/conversor_youtube/src/components/converter/format-selector.tsx
+  5:15  warning  'CapabilityInfo' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/components/converter/input-analysis-card.tsx
+  132:35  warning  'category' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/components/converter/source-selector.tsx
+  199:6  warning  React Hook useCallback has a missing dependency: 'handleFile'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/z/my-project/conversor_youtube/src/lib/domain/unified-analysis.ts
+  4:45  warning  'DescriptorWarning' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/engines/archive/sevenzip-engine.ts
+   19:7   warning  'MAX_UNCOMPRESSED_BYTES' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  261:38  warning  'plan' is defined but never used                             @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/engines/document/pandoc-engine.ts
+  219:38  warning  '_plan' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/engines/ocr/tesseract-engine.ts
+  261:13  warning  'fromLabel' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/engines/pdf/qpdf-engine.ts
+  145:38  warning  '_plan' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/jobs/batch-processor.ts
+  9:31  warning  'AppError' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/src/lib/jobs/universal-job-processor.ts
+   8:48  warning  'ArtifactValidation' is defined but never used    @typescript-eslint/no-unused-vars
+   8:68  warning  'ConversionCapability' is defined but never used  @typescript-eslint/no-unused-vars
+  10:21  warning  'getCapabilities' is defined but never used       @typescript-eslint/no-unused-vars
+  15:31  warning  'MIME_TO_FORMAT' is defined but never used        @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/integration/capabilities-api.test.ts
+  6:27  warning  'getEngine' is defined but never used             @typescript-eslint/no-unused-vars
+  8:15  warning  'CapabilityInfo' is defined but never used        @typescript-eslint/no-unused-vars
+  9:15  warning  'ConversionCapability' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/integration/jobs-api.test.ts
+   68:10  warning  'imageDescriptor' is defined but never used  @typescript-eslint/no-unused-vars
+  168:11  warning  'desc' is assigned a value but never used    @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/unit/batch-processor.test.ts
+  7:8  warning  'path' is defined but never used  @typescript-eslint/no-unused-vars
+  8:8  warning  'fs' is defined but never used    @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/unit/coordinated-cleanup.test.ts
+  66:27  warning  '_opts' is defined but never used  @typescript-eslint/no-unused-vars
+  83:25  warning  '_opts' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/unit/progress-emitter.test.ts
+  4:32  warning  'vi' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/z/my-project/conversor_youtube/tests/unit/universal-job-processor.test.ts
+  4:32  warning  'vi' is defined but never used          @typescript-eslint/no-unused-vars
+  4:36  warning  'beforeEach' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 29 problems (1 error, 28 warnings)
+
+[ELIFECYCLE] Command failed with exit code 1.
+[0;31m[ERROR][0m Lint falló — corrige los errores antes de construir

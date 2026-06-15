@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
 
 // ── GET: Get batch status ────────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const GetBatchQuerySchema = z.object({
   batchId: z.string().min(1),
   action: z.enum(["status", "cancel"]).optional().default("status"),

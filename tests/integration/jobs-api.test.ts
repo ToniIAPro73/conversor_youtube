@@ -65,7 +65,8 @@ function structuredDataDescriptor(fmt: string = "json"): UniversalFileDescriptor
   });
 }
 
-function imageDescriptor(): UniversalFileDescriptor {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _imageDescriptor(): UniversalFileDescriptor {
   return makeDescriptor("image", "png", {
     kind: "image",
     width: 800,
@@ -165,7 +166,8 @@ describe("Jobs API — invalid capability handling", () => {
 
   it("unavailable engine returns proper error indicators", async () => {
     // Create a descriptor whose engine may not be available (e.g., QPDF)
-    const desc = makeDescriptor("pdf", "pdf", {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _desc = makeDescriptor("pdf", "pdf", {
       kind: "pdf",
       pageCount: 5,
       isEncrypted: false,

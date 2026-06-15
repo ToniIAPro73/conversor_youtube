@@ -11,9 +11,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$YtdlpExe  = Join-Path $BaseDir 'tools\yt-dlp.exe'
+$YtdlpExe  = Join-Path $BaseDir 'tools\yt-dlp\yt-dlp.exe'
 $PidFile   = Join-Path $BaseDir 'data\link2media.pid'
-$TempDir   = Join-Path $BaseDir 'data\temp'
+$TempDir   = Join-Path $BaseDir 'temp'
 $YtdlpNew  = Join-Path $TempDir 'yt-dlp.new.exe'
 $YtdlpBack = Join-Path $TempDir 'yt-dlp.backup.exe'
 
@@ -40,8 +40,12 @@ if (Test-Path $PidFile) {
 # - Version actual ------------------------------
 $currentVersion = 'desconocida'
 try {
-    $currentVersion = (& $YtdlpExe --version 2>&1).Trim()
-    Write-Host "  Version actual: $currentVersion" -ForegroundColor DarkGray
+    if (Test-Path $YtdlpExe) {
+        $currentVersion = (& $YtdlpExe --version 2>&1).Trim()
+        Write-Host "  Version actual: $currentVersion" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  yt-dlp no encontrado en: $YtdlpExe" -ForegroundColor Yellow
+    }
 } catch {
     Write-Host "  No se pudo obtener la version actual." -ForegroundColor Yellow
 }
@@ -83,24 +87,38 @@ try {
 }
 
 # - Hacer backup y sustituir -------------------------
-try {
-    Copy-Item $YtdlpExe $YtdlpBack -Force
-    Copy-Item $YtdlpNew $YtdlpExe  -Force
-    Remove-Item $YtdlpNew -Force -ErrorAction SilentlyContinue
-    Write-Host "  [OK] yt-dlp actualizado: $currentVersion -> $newVersion" -ForegroundColor Green
-    # Eliminar backup tras exito
-    Remove-Item $YtdlpBack -Force -ErrorAction SilentlyContinue
-} catch {
-    Write-Host "  [ERROR] No se pudo sustituir yt-dlp: $_" -ForegroundColor Red
-    # Restaurar backup si existe
-    if (Test-Path $YtdlpBack) {
-        Copy-Item $YtdlpBack $YtdlpExe -Force -ErrorAction SilentlyContinue
-        Write-Host "  Restaurada version anterior." -ForegroundColor Yellow
+if (Test-Path $YtdlpExe) {
+    try {
+        Copy-Item $YtdlpExe $YtdlpBack -Force
+        Copy-Item $YtdlpNew $YtdlpExe  -Force
+        Remove-Item $YtdlpNew -Force -ErrorAction SilentlyContinue
+        Write-Host "  [OK] yt-dlp actualizado: $currentVersion -> $newVersion" -ForegroundColor Green
+        Remove-Item $YtdlpBack -Force -ErrorAction SilentlyContinue
+    } catch {
+        Write-Host "  [ERROR] No se pudo sustituir yt-dlp: $_" -ForegroundColor Red
+        if (Test-Path $YtdlpBack) {
+            Copy-Item $YtdlpBack $YtdlpExe -Force -ErrorAction SilentlyContinue
+            Write-Host "  Restaurada version anterior." -ForegroundColor Yellow
+        }
+        Remove-Item $YtdlpNew  -Force -ErrorAction SilentlyContinue
+        Remove-Item $YtdlpBack -Force -ErrorAction SilentlyContinue
+        Read-Host "  Pulsa Enter para cerrar"
+        exit 1
     }
-    Remove-Item $YtdlpNew  -Force -ErrorAction SilentlyContinue
-    Remove-Item $YtdlpBack -Force -ErrorAction SilentlyContinue
-    Read-Host "  Pulsa Enter para cerrar"
-    exit 1
+} else {
+    # First time: no existing exe, just move the new one
+    try {
+        $toolsDir = Split-Path -Parent $YtdlpExe
+        if (-not (Test-Path $toolsDir)) { New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null }
+        Copy-Item $YtdlpNew $YtdlpExe -Force
+        Remove-Item $YtdlpNew -Force -ErrorAction SilentlyContinue
+        Write-Host "  [OK] yt-dlp instalado: $newVersion" -ForegroundColor Green
+    } catch {
+        Write-Host "  [ERROR] No se pudo instalar yt-dlp: $_" -ForegroundColor Red
+        Remove-Item $YtdlpNew -Force -ErrorAction SilentlyContinue
+        Read-Host "  Pulsa Enter para cerrar"
+        exit 1
+    }
 }
 
 Write-Host ""

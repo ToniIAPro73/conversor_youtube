@@ -216,6 +216,7 @@ export class PandocEngine implements ConversionEngine {
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async validate(outputPath: string, _plan: ConversionPlan): Promise<ArtifactValidation> {
     const checks: ArtifactValidation["checks"] = [];
     const exists = fs.existsSync(outputPath);

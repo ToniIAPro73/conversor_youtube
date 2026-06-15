@@ -1,7 +1,7 @@
 // Unified Analysis Result — replaces the dual (local-file / universal-file) model
 // with a clean discriminated union that covers all three input kinds.
 
-import type { FileCategory, FileAttributes, DescriptorWarning } from "./descriptors";
+import type { FileCategory, FileAttributes } from "./descriptors";
 import type { MediaDescriptor } from "../media/probe";
 import type { EngineId, MobilePortability } from "./engines";
 

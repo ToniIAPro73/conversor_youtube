@@ -142,6 +142,7 @@ export class QpdfEngine implements ConversionEngine {
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async validate(outputPath: string, _plan: ConversionPlan): Promise<ArtifactValidation> {
     const checks: ArtifactValidation["checks"] = [];
 

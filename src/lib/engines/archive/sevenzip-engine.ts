@@ -16,6 +16,7 @@ const ENGINE_ID: EngineId = "sevenzip";
 
 const MAX_EXPANSION_RATIO = 100;
 const MAX_ENTRIES = 10_000;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const MAX_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
 
 function findSevenZipBinary(): string {
@@ -258,6 +259,7 @@ export class SevenZipEngine implements ConversionEngine {
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async validate(outputPath: string, plan: ConversionPlan): Promise<ArtifactValidation> {
     const checks: ArtifactValidation["checks"] = [];
     const exists = fs.existsSync(outputPath);

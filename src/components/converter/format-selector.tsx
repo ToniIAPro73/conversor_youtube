@@ -2,7 +2,7 @@
 
 import { Music, Video, FileText, Image as ImageIcon, FileArchive, Table2, FileType } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CapabilityInfo, CapabilityLossProfile } from "@/lib/domain/unified-analysis";
+import type { CapabilityLossProfile } from "@/lib/domain/unified-analysis";
 
 // Loss profile indicator colors
 const LOSS_PROFILE_DOT: Record<CapabilityLossProfile, string> = {

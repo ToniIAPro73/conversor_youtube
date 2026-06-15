@@ -196,6 +196,7 @@ export function SourceSelector({ onUrlAnalyzed, onFileAnalyzed, isLoading, setLo
         setTimeout(() => setDragState("idle"), 2000);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFileValid]);
 
   const dragBorderClass =

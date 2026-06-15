@@ -258,6 +258,7 @@ export class TesseractEngine implements ConversionEngine {
         warnings.push(`Máximo ${MAX_PAGES_PDF_OCR} páginas para OCR de PDF`);
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const fromLabel = capDef.fromCategory === "image" ? "Imagen" : "PDF";
 
       capabilities.push({

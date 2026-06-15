@@ -6,7 +6,7 @@ import crypto from "crypto";
 import { getDb } from "../infrastructure/db/database";
 import { jobManager } from "./job-manager";
 import { processUniversalJob } from "./universal-job-processor";
-import { createAppError, type AppError } from "../errors/error-codes";
+import { createAppError } from "../errors/error-codes";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

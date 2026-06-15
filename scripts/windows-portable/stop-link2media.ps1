@@ -52,16 +52,33 @@ if ($proc.Name -notmatch '^node') {
     exit 1
 }
 
-# Terminar unicamente ese proceso
-Stop-Process -Id $targetPid -Force -ErrorAction SilentlyContinue
+# Intentar cierre graceful primero
+Write-Host "  Enviando señal de cierre..." -ForegroundColor Cyan
+try {
+    $port = ''
+    if (Test-Path $PortFile) {
+        $port = (Get-Content $PortFile -Raw -ErrorAction SilentlyContinue).Trim()
+    }
+    if ($port) {
+        # Try to call a shutdown endpoint if available
+        Invoke-WebRequest -Uri "http://127.0.0.1:$port/api/shutdown" -UseBasicParsing -TimeoutSec 3 -ErrorAction SilentlyContinue | Out-Null
+    }
+} catch { <# no shutdown endpoint, force kill #> }
 
-# Esperar confirmacion
 Start-Sleep -Milliseconds 500
 $check = Get-Process -Id $targetPid -ErrorAction SilentlyContinue
 if ($null -ne $check) {
-    Write-Host "  Advertencia: el proceso tardo en cerrarse." -ForegroundColor Yellow
+    # Force kill if still running
+    Stop-Process -Id $targetPid -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 500
+    $check = Get-Process -Id $targetPid -ErrorAction SilentlyContinue
+    if ($null -ne $check) {
+        Write-Host "  Advertencia: el proceso tardo en cerrarse." -ForegroundColor Yellow
+    } else {
+        Write-Host "  [OK] Aplicacion cerrada (PID $targetPid)." -ForegroundColor Green
+    }
 } else {
-    Write-Host "  [OK] Aplicacion cerrada (PID $targetPid)." -ForegroundColor Green
+    Write-Host "  [OK] Aplicacion cerrada gracefulmente (PID $targetPid)." -ForegroundColor Green
 }
 
 Remove-Item $PidFile  -Force -ErrorAction SilentlyContinue

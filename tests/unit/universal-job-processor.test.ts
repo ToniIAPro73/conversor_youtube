@@ -1,7 +1,7 @@
 // Unit tests for the universal job processor.
 // Tests: engine ID extraction, output validation, MIME detection, job orchestration (mocked).
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   extractEngineIdFromConversionId,
   validateOutputArtifact,

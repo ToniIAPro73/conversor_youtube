@@ -13,7 +13,6 @@ title Link2Media - Iniciando...
 :: - Cambiar al directorio donde esta el .bat -----------------
 cd /d "%~dp0"
 set "BASE_DIR=%~dp0"
-:: Eliminar la barra final si existe
 if "%BASE_DIR:~-1%"=="\" set "BASE_DIR=%BASE_DIR:~0,-1%"
 
 echo.

@@ -151,6 +151,7 @@ async function handleMediaFile(storedPath: string, originalName: string, uploadI
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function handleUniversalFile(storedPath: string, originalName: string, uploadId: string, sizeBytes: number, _ext: string): Promise<NextResponse> {
   try {
     const relPath = path.relative(CONFIG.media.tempDir, storedPath);

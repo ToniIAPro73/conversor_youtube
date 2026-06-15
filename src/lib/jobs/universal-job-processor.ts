@@ -5,14 +5,14 @@
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import type { ConversionPlan, ExecutionResult, ArtifactValidation, ConversionCapability } from "../domain/engines";
+import type { ConversionPlan, ExecutionResult } from "../domain/engines";
 import type { FileCategory, LossProfile } from "../domain/descriptors";
-import { getEngine, getCapabilities } from "../engines/registry";
+import { getEngine } from "../engines/registry";
 import { jobManager } from "./job-manager";
 import { CONFIG } from "../config";
 import { ensurePathSafety } from "../security/path-safety";
 import { sanitizeFilename } from "../security/sanitize-filename";
-import { FORMAT_BY_EXTENSION, MIME_TO_FORMAT } from "../domain/format-catalog";
+import { FORMAT_BY_EXTENSION } from "../domain/format-catalog";
 import { createAppError, type AppError, type ErrorCode } from "../errors/error-codes";
 import { checkDiskSpace } from "./disk-space-check";
 import { coordinatedCleanup } from "./coordinated-cleanup";

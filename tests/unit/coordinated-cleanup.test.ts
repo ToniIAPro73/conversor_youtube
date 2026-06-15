@@ -63,6 +63,7 @@ vi.mock("fs", async (importOriginal) => {
       unlinkSync: (p: string) => {
         fsOps.push({ method: "unlinkSync", path: p });
       },
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       rmSync: (p: string, _opts?: { recursive?: boolean; force?: boolean }) => {
         fsOps.push({ method: "rmSync", path: p });
       },
@@ -80,6 +81,7 @@ vi.mock("fs", async (importOriginal) => {
     unlinkSync: (p: string) => {
       fsOps.push({ method: "unlinkSync", path: p });
     },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     rmSync: (p: string, _opts?: { recursive?: boolean; force?: boolean }) => {
       fsOps.push({ method: "rmSync", path: p });
     },

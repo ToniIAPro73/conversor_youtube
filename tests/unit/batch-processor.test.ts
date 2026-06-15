@@ -4,8 +4,6 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import Database from "better-sqlite3";
-import path from "path";
-import fs from "fs";
 
 // We test the batch processor's logic by directly calling the DB operations
 // and verifying the expected behavior.

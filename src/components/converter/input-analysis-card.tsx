@@ -129,7 +129,8 @@ function UniversalFileCard({ result, onReset }: { result: UniversalAnalysisResul
   );
 }
 
-function CategoryDetails({ attrs, category, detectedMime }: { attrs: FileAttributes; category: string; detectedMime: string | null }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function CategoryDetails({ attrs, category: _category, detectedMime }: { attrs: FileAttributes; category: string; detectedMime: string | null }) {
   const details: React.ReactNode[] = [];
 
   switch (attrs.kind) {

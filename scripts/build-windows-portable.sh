@@ -36,9 +36,9 @@ SQLITE3_WINDOWS_VERSION="${SQLITE3_WINDOWS_VERSION:-}"
 
 # Universales
 PANDOC_VERSION="${PANDOC_VERSION:-3.6.4}"
-SEVENZIP_VERSION="${SEVENZIP_VERSION:-2409}"
+SEVENZIP_VERSION="${SEVENZIP_VERSION:-2601}"
 QPDF_VERSION="${QPDF_VERSION:-11.10.0}"
-TESSERACT_VERSION="${TESSERACT_VERSION:-5.5.0.20241030}"
+TESSERACT_VERSION="${TESSERACT_VERSION:-5.4.0.20240606}"
 POPPLER_VERSION="${POPPLER_VERSION:-24.08.0-0}"
 
 # Calibre y LibreOffice son muy grandes (~100MB y ~400MB), por defecto se omiten
@@ -281,14 +281,21 @@ ok "ffmpeg.exe y ffprobe.exe extraídos"
 info "Preparando 7-Zip standalone..."
 
 SEVENZIP_CACHE="$CACHE_DIR/7z${SEVENZIP_VERSION}-extra.7z"
-SEVENZIP_URL="https://www.7-zip.org/a/7z${SEVENZIP_VERSION}-extra.7z"
+# Primero intentar GitHub (ip7z/7zip), luego 7-zip.org, luego SourceForge
+SEVENZIP_URL_GITHUB="https://github.com/ip7z/7zip/releases/download/${SEVENZIP_VERSION}/7z${SEVENZIP_VERSION}-extra.7z"
+SEVENZIP_URL_OFFICIAL="https://www.7-zip.org/a/7z${SEVENZIP_VERSION}-extra.7z"
+SEVENZIP_URL_SF="https://downloads.sourceforge.net/project/sevenzip/7-Zip/24.09/7z2409-extra.7z"
 
 if [[ ! -f "$SEVENZIP_CACHE" ]]; then
-  download_cached "$SEVENZIP_URL" "$SEVENZIP_CACHE" || {
-    warn "7-Zip extra no disponible, intentando versión alternativa..."
-    SEVENZIP_URL="https://www.7-zip.org/a/7z2408-extra.7z"
-    SEVENZIP_CACHE="$CACHE_DIR/7z2408-extra.7z"
-    download_cached "$SEVENZIP_URL" "$SEVENZIP_CACHE" || warn "7-Zip no se pudo descargar — se necesitará instalar manualmente"
+  download_cached "$SEVENZIP_URL_GITHUB" "$SEVENZIP_CACHE" || {
+    warn "GitHub download falló, intentando 7-zip.org..."
+    rm -f "$SEVENZIP_CACHE"
+    download_cached "$SEVENZIP_URL_OFFICIAL" "$SEVENZIP_CACHE" || {
+      warn "7-zip.org falló, intentando SourceForge..."
+      rm -f "$SEVENZIP_CACHE"
+      SEVENZIP_CACHE="$CACHE_DIR/7z2409-extra.7z"
+      download_cached "$SEVENZIP_URL_SF" "$SEVENZIP_CACHE" || warn "7-Zip no se pudo descargar — se necesitará instalar manualmente"
+    }
   }
 fi
 
@@ -299,19 +306,13 @@ if [[ -f "$SEVENZIP_CACHE" ]]; then
   # Usar 7z del sistema para extraer, o p7zip
   if command -v 7z >/dev/null 2>&1; then
     7z e -y -o"$TOOLS_DIR/sevenzip" "$SEVENZIP_CACHE" "7za.exe" "7za.dll" "7zxa.dll" 2>/dev/null || true
+    # También extraer 7zr.exe (reduced standalone) y 7z.dll si existen
+    7z e -y -o"$TOOLS_DIR/sevenzip" "$SEVENZIP_CACHE" "7zr.exe" "7z.dll" 2>/dev/null || true
   elif command -v 7za >/dev/null 2>&1; then
     7za e -y -o"$TOOLS_DIR/sevenzip" "$SEVENZIP_CACHE" "7za.exe" "7za.dll" "7zxa.dll" 2>/dev/null || true
+    7za e -y -o"$TOOLS_DIR/sevenzip" "$SEVENZIP_CACHE" "7zr.exe" "7z.dll" 2>/dev/null || true
   else
-    # Intentar con Python
-    python3 - << PYEOF
-import subprocess, sys, os, zipfile
-cache = os.environ.get("SEVENZIP_CACHE", "")
-outdir = os.environ.get("SEVENZIP_OUT", "")
-# p7zip no disponible, intentar extraer manualmente
-# .7z requiere librería especial, usar unrar o indicar instalación manual
-print("  Nota: se necesita 7z o p7zip para extraer .7z")
-PYEOF
-    warn "No se pudo extraer 7-Zip — se necesitará 7za.exe manual en tools/sevenzip/"
+    warn "Se necesita 7z o p7zip en el sistema para extraer .7z — se necesitará 7za.exe manual en tools/sevenzip/"
   fi
   ok "7-Zip procesado (SHA256: ${SEVENZIP_SHA256:0:16}...)"
 else
@@ -394,19 +395,15 @@ fi
 # ── 16. Descargar Tesseract OCR ─────────────────────────────────────────────
 info "Preparando Tesseract OCR ${TESSERACT_VERSION}..."
 
-# Tesseract se distribuye como instalador .exe — intentamos extraerlo
+# Tesseract se distribuye como instalador NSIS .exe — se puede extraer con 7z
 TESSERACT_CACHE="$CACHE_DIR/tesseract-ocr-w64-setup-${TESSERACT_VERSION}.exe"
-TESSERACT_URL="https://github.com/UB-Mannheim/tesseract/releases/download/v${TESSERACT_VERSION%%.*}.${TESSERACT_VERSION#*.*.*.}/tesseract-ocr-w64-setup-${TESSERACT_VERSION}.exe"
+# La URL de GitHub usa formato v5.4.0.20240606 en el tag
+TESSERACT_URL="https://github.com/UB-Mannheim/tesseract/releases/download/v${TESSERACT_VERSION}/tesseract-ocr-w64-setup-${TESSERACT_VERSION}.exe"
 
 mkdir -p "$TOOLS_DIR/tesseract"
 
-# Intentar con una versión portable si existe
-TESSERACT_PORTABLE_CACHE="$CACHE_DIR/tesseract-${TESSERACT_VERSION}-win64.zip"
-TESSERACT_PORTABLE_URL="https://github.com/UB-Mannheim/tesseract/releases/download/v5.5.0.20241030/tesseract-ocr-w64-setup-5.5.0.20241030.exe"
-
-if [[ ! -f "$TESSERACT_CACHE" ]] && [[ ! -f "$TESSERACT_PORTABLE_CACHE" ]]; then
-  # Intentar descargar — es un instalador NSIS, se puede extraer con 7z
-  download_cached "$TESSERACT_PORTABLE_URL" "$TESSERACT_CACHE" 2>/dev/null || {
+if [[ ! -f "$TESSERACT_CACHE" ]]; then
+  download_cached "$TESSERACT_URL" "$TESSERACT_CACHE" || {
     warn "Tesseract no se pudo descargar"
     TESSERACT_CACHE=""
   }
@@ -414,15 +411,17 @@ fi
 
 if [[ -n "$TESSERACT_CACHE" ]] && [[ -f "$TESSERACT_CACHE" ]]; then
   TESSERACT_SHA256="$(sha256sum "$TESSERACT_CACHE" | awk '{print $1}')"
-  info "Extrayendo tesseract.exe del instalador..."
+  info "Extrayendo tesseract.exe del instalador NSIS..."
   TMP_TESS="$CACHE_DIR/.tmp_tesseract"
   rm -rf "$TMP_TESS"
   mkdir -p "$TMP_TESS"
   # Instaladores NSIS se pueden extraer con 7z
   if command -v 7z >/dev/null 2>&1; then
-    7z e -y -o"$TMP_TESS" "$TESSERACT_CACHE" "tesseract.exe" 2>/dev/null || true
+    7z e -y -o"$TMP_TESS" "$TESSERACT_CACHE" 2>/dev/null || true
   elif command -v 7za >/dev/null 2>&1; then
-    7za e -y -o"$TMP_TESS" "$TESSERACT_CACHE" "tesseract.exe" 2>/dev/null || true
+    7za e -y -o"$TMP_TESS" "$TESSERACT_CACHE" 2>/dev/null || true
+  else
+    warn "Se necesita 7z/7za para extraer el instalador de Tesseract"
   fi
   TESS_EXE="$(find "$TMP_TESS" -name "tesseract.exe" | head -1)"
   if [[ -n "$TESS_EXE" ]]; then
@@ -431,7 +430,16 @@ if [[ -n "$TESSERACT_CACHE" ]] && [[ -f "$TESSERACT_CACHE" ]]; then
     find "$TMP_TESS" -name "*.dll" -exec cp {} "$TOOLS_DIR/tesseract/" \; 2>/dev/null || true
     ok "tesseract.exe extraído (SHA256: ${TESSERACT_SHA256:0:16}...)"
   else
-    warn "No se pudo extraer tesseract.exe — instálalo manualmente en tools/tesseract/"
+    # Si no encontramos tesseract.exe directamente, copiar todo el contenido
+    # NSIS installers often unpack to a different structure
+    warn "No se pudo extraer tesseract.exe directamente — copiando archivos del instalador..."
+    cp "$TMP_TESS/"*.exe "$TOOLS_DIR/tesseract/" 2>/dev/null || true
+    cp "$TMP_TESS/"*.dll "$TOOLS_DIR/tesseract/" 2>/dev/null || true
+    if [[ -f "$TOOLS_DIR/tesseract/tesseract.exe" ]]; then
+      ok "tesseract.exe extraído"
+    else
+      warn "No se pudo extraer tesseract.exe — instálalo manualmente en tools/tesseract/"
+    fi
   fi
   rm -rf "$TMP_TESS"
 else
