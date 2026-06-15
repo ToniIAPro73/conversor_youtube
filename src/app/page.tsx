@@ -236,40 +236,39 @@ export default function Home() {
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto max-w-3xl px-4 pb-24 sm:px-6">
-        <header className="pt-12 pb-10 sm:pt-16 flex flex-col items-center text-center">
-          {/* Logo badge */}
-          <div className="mb-6 flex flex-col items-center gap-3">
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-[20px] border border-teal-300/30 bg-linear-to-br from-teal-400/25 to-teal-600/10 shadow-[0_0_40px_rgba(20,184,166,0.28),0_20px_60px_rgba(0,0,0,0.4)]">
-              <svg viewBox="0 0 24 24" className="h-7 w-7 text-teal-200 fill-current drop-shadow-[0_0_8px_rgba(45,212,191,0.6)]" aria-hidden="true">
+      <div className="relative mx-auto max-w-3xl px-4 pb-8 sm:px-6">
+        <header className="pt-6 pb-5 flex flex-col items-center text-center">
+          {/* Logo + wordmark inline */}
+          <div className="mb-4 flex items-center gap-3">
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-[14px] border border-teal-300/30 bg-linear-to-br from-teal-400/22 to-teal-600/10 shadow-[0_0_28px_rgba(20,184,166,0.24),0_12px_32px_rgba(0,0,0,0.36)]">
+              <svg viewBox="0 0 24 24" className="h-5 w-5 text-teal-200 fill-current drop-shadow-[0_0_6px_rgba(45,212,191,0.55)]" aria-hidden="true">
                 <path d="M10 15.5v-7l6 3.5-6 3.5z" />
                 <path fillRule="evenodd" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM5 12a7 7 0 1014 0 7 7 0 00-14 0z" />
               </svg>
-              {/* glow ring */}
-              <div className="absolute inset-0 rounded-[20px] ring-1 ring-inset ring-white/8 pointer-events-none" aria-hidden="true" />
+              <div className="absolute inset-0 rounded-[14px] ring-1 ring-inset ring-white/8 pointer-events-none" aria-hidden="true" />
             </div>
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-2xl font-bold tracking-tight text-white">Link2Media</span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-teal-300/60">
-                <span className="h-px w-4 bg-teal-300/30" />
+            <div className="flex flex-col items-start gap-0.5">
+              <span className="text-lg font-bold tracking-tight text-white leading-none">Link2Media</span>
+              <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-teal-300/55">
+                <span className="h-px w-3 bg-teal-300/30" />
                 Portable local
-                <span className="h-px w-4 bg-teal-300/30" />
+                <span className="h-px w-3 bg-teal-300/30" />
               </span>
             </div>
           </div>
 
-          <h1 className="max-w-2xl text-balance text-4xl font-black leading-[0.95] tracking-tight sm:text-6xl">
+          <h1 className="max-w-xl text-balance text-[2.4rem] font-black leading-[0.93] tracking-tight sm:text-5xl">
             Conversor universal{" "}
             <span className="bg-linear-to-r from-teal-300 to-teal-400 bg-clip-text text-transparent">local</span>
           </h1>
-          <p className="mt-5 max-w-md text-pretty text-base leading-7 text-stone-400">
+          <p className="mt-3 max-w-sm text-pretty text-sm leading-6 text-stone-400">
             Pega un enlace o sube cualquier archivo. El sistema detecta lo que se puede hacer con él.
           </p>
         </header>
 
         <nav
           aria-label="Secciones de la aplicación"
-          className="mb-6 grid grid-cols-3 gap-1.5 rounded-[20px] border border-white/8 bg-[#13161b]/90 p-1.5 shadow-[0_24px_80px_rgba(0,0,0,0.40)] backdrop-blur-md"
+          className="mb-4 grid grid-cols-3 gap-1 rounded-[18px] border border-white/8 bg-[#13161b]/90 p-1 shadow-[0_24px_80px_rgba(0,0,0,0.40)] backdrop-blur-md"
         >
           {(
             [
@@ -303,7 +302,7 @@ export default function Home() {
               role="tab"
               aria-selected={activeTab === id}
               aria-controls={`panel-${id}`}
-              className={`flex min-h-[48px] items-center justify-center gap-2 rounded-[14px] px-3 py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/70 motion-reduce:transition-none ${
+              className={`flex min-h-12 items-center justify-center gap-2 rounded-[14px] px-3 py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/70 motion-reduce:transition-none ${
                 activeTab === id ? activeClass : inactiveClass
               }`}
             >
@@ -315,7 +314,7 @@ export default function Home() {
 
         {/* Convertir panel */}
         <main id="panel-convert" role="tabpanel" aria-label="Panel de conversión" className={activeTab !== "convert" ? "hidden" : ""}>
-          <div className="space-y-5">
+          <div className="space-y-3">
             {/* Step indicator — only show after source step */}
             {flowStep !== "source" && (
               <div className="flex items-center gap-1 overflow-x-auto pb-1 motion-reduce:transition-none" aria-label="Pasos de conversión">
@@ -326,9 +325,9 @@ export default function Home() {
                   if (step.key === "confirm" && !needsRights) return null;
 
                   return (
-                    <div key={step.key} className="flex items-center gap-1 flex-shrink-0">
+                    <div key={step.key} className="flex items-center gap-1 shrink-0">
                       {i > 0 && (step.key !== "confirm" || needsRights) && (
-                        <ArrowRight className="h-3 w-3 text-white/15 flex-shrink-0" aria-hidden="true" />
+                        <ArrowRight className="h-3 w-3 text-white/15 shrink-0" aria-hidden="true" />
                       )}
                       <div
                         className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors motion-reduce:transition-none ${
@@ -397,7 +396,7 @@ export default function Home() {
                             setRightsConfirmed(e.target.checked);
                             if (e.target.checked) setFlowStep("confirm");
                           }}
-                          className="mt-1 h-5 min-h-[20px] w-5 min-w-[20px] accent-teal-400"
+                          className="mt-1 h-5 min-h-5 w-5 min-w-5 accent-teal-400"
                         />
                         <label htmlFor="rights-check" className="cursor-pointer text-xs leading-relaxed text-stone-300/70">
                           {t("convert.rights")}. Soy responsable de respetar los derechos de autor.
@@ -412,7 +411,7 @@ export default function Home() {
                         isConverting ||
                         (needsRights && !rightsConfirmed)
                       }
-                      className="h-13 min-h-[44px] w-full rounded-xl bg-teal-300 px-4 py-3.5 text-sm font-black text-[#071112] shadow-[0_18px_45px_rgba(45,212,191,0.18)] transition-all hover:-translate-y-0.5 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+                      className="h-13 min-h-11 w-full rounded-xl bg-teal-300 px-4 py-3.5 text-sm font-black text-[#071112] shadow-[0_18px_45px_rgba(45,212,191,0.18)] transition-all hover:-translate-y-0.5 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
                     >
                       {isConverting
                         ? "Procesando..."
