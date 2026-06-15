@@ -146,18 +146,15 @@ export default function Home() {
         body.capabilityId = selectedCap.id;
         body.inputId = (analysisResult as UniversalAnalysisResult).inputId;
         body.format = selectedCap.outputFormat;
-        body.operation = selectedCap.outputFormat; // best effort
       } else if (analysisResult.kind === "remote-url") {
         // Legacy media: URL-based
         body.url = analysisResult.normalizedUrl;
         body.format = selectedCap.outputFormat;
-        body.operation = selectedCap.outputFormat;
         body.quality = "5";
       } else {
         // Legacy media: local file
         body.localFilePath = analysisResult.storedRelativePath;
         body.format = selectedCap.outputFormat;
-        body.operation = selectedCap.outputFormat;
         body.quality = "5";
       }
 

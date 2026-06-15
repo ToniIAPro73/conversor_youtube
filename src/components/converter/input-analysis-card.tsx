@@ -210,12 +210,12 @@ function CategoryDetails({ attrs, category, detectedMime }: { attrs: FileAttribu
   );
 }
 
-function MediaFileCard({ result, onReset }: { result: Extract<AnalysisResult, { kind: "remote-url" | "local-file" }>; onReset: () => void }) {
+function MediaFileCard({ result, onReset }: { result: Extract<AnalysisResult, { kind: "remote-url" | "local-media" }>; onReset: () => void }) {
   const d = result.descriptor;
   const title = result.kind === "remote-url" ? result.title : result.originalName;
   const subtitle = result.kind === "remote-url" ? result.channel : undefined;
   const thumbnailUrl = result.kind === "remote-url" ? result.thumbnailUrl : undefined;
-  const sizeBytes = result.kind === "local-file" ? result.sizeBytes : d.sizeBytes;
+  const sizeBytes = result.kind === "local-media" ? result.sizeBytes : d.sizeBytes;
 
   const maxHeight = d.videoStreams.reduce((acc, v) => Math.max(acc, v.height ?? 0), 0);
   const audioCount = d.audioStreams.length;
