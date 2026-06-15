@@ -9,6 +9,8 @@ import { sharpEngine } from "./image/sharp-engine";
 import { dataEngine } from "./data/data-engine";
 import { qpdfEngine } from "./pdf/qpdf-engine";
 import { sevenZipEngine } from "./archive/sevenzip-engine";
+import { pandocEngine } from "./document/pandoc-engine";
+import { libreOfficeEngine } from "./document/libreoffice-engine";
 
 // ── Registration ─────────────────────────────────────────────────────────────
 
@@ -35,6 +37,18 @@ const REGISTERED_ENGINES: EngineRegistration[] = [
     engine: sevenZipEngine,
     categories: ["archive"],
     requiredTools: ["7z"],
+    enabled: true,
+  },
+  {
+    engine: pandocEngine,
+    categories: ["plain-text", "document"],
+    requiredTools: ["pandoc"],
+    enabled: true,
+  },
+  {
+    engine: libreOfficeEngine,
+    categories: ["document", "spreadsheet", "presentation"],
+    requiredTools: ["libreoffice"],
     enabled: true,
   },
 ];

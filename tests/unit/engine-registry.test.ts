@@ -66,6 +66,23 @@ describe("Engine registry — routing", () => {
     const caps = await getCapabilities(makeDesc("unknown", "bin"));
     expect(caps).toHaveLength(0);
   });
+
+  it("returns pandoc capabilities for plain-text descriptor (markdown)", async () => {
+    const desc = makeDesc("plain-text", "md");
+    const caps = await getCapabilities(desc);
+    const pandocCaps = caps.filter((c) => c.engineId === "pandoc");
+    expect(pandocCaps.length).toBeGreaterThan(0);
+  });
+
+  it("returns libreoffice capabilities for document descriptor (docx)", async () => {
+    const docDesc: UniversalFileDescriptor = {
+      ...makeDesc("document", "docx"),
+      attributes: { kind: "document", pageCount: null, wordCount: null, hasMacros: false, hasEmbeddedMedia: false, encoding: null, language: null },
+    };
+    const caps = await getCapabilities(docDesc);
+    const loCaps = caps.filter((c) => c.engineId === "libreoffice");
+    expect(loCaps.length).toBeGreaterThan(0);
+  });
 });
 
 describe("Engine registry — getEngine", () => {
@@ -100,6 +117,8 @@ describe("Engine registry — diagnoseAllEngines", () => {
     expect(ids).toContain("data-ts");
     expect(ids).toContain("qpdf");
     expect(ids).toContain("sevenzip");
+    expect(ids).toContain("pandoc");
+    expect(ids).toContain("libreoffice");
   });
 
   it("each entry has required fields", async () => {
