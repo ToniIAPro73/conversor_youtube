@@ -216,13 +216,15 @@ export function SourceSelector({ onUrlAnalyzed, onFileAnalyzed, isLoading, setLo
   return (
     <div className="space-y-3 rounded-[22px] border border-white/10 bg-[#111419]/86 p-3 shadow-[0_24px_90px_rgba(0,0,0,0.34)] backdrop-blur">
       {/* Tab switcher */}
-      <div className="grid grid-cols-2 overflow-hidden rounded-[14px] border border-white/10 bg-black/20 p-1">
+      <div className="grid grid-cols-2 gap-2 rounded-[14px] border border-white/10 bg-black/20 p-1.5">
         <button
           type="button"
           onClick={() => setTab("url")}
           aria-label="Introducir un enlace URL"
-          className={`flex min-h-11 items-center justify-center gap-2 rounded-[10px] py-2.5 text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/70 motion-reduce:transition-none ${
-            tab === "url" ? "bg-stone-100 text-[#101316]" : "text-stone-500 hover:bg-white/5 hover:text-stone-200"
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-[10px] py-2.5 text-sm font-bold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/70 motion-reduce:transition-none ${
+            tab === "url"
+              ? "bg-stone-100 text-[#101316]"
+              : "text-stone-400 hover:scale-[1.03] hover:bg-white/10 hover:text-stone-100 hover:shadow-[0_8px_22px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.06)]"
           }`}
         >
           <Link2 className="h-4 w-4" />
@@ -232,8 +234,10 @@ export function SourceSelector({ onUrlAnalyzed, onFileAnalyzed, isLoading, setLo
           type="button"
           onClick={() => setTab("file")}
           aria-label="Subir un archivo local"
-          className={`flex min-h-11 items-center justify-center gap-2 rounded-[10px] py-2.5 text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/70 motion-reduce:transition-none ${
-            tab === "file" ? "bg-stone-100 text-[#101316]" : "text-stone-500 hover:bg-white/5 hover:text-stone-200"
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-[10px] py-2.5 text-sm font-bold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/70 motion-reduce:transition-none ${
+            tab === "file"
+              ? "bg-stone-100 text-[#101316]"
+              : "text-stone-400 hover:scale-[1.03] hover:bg-white/10 hover:text-stone-100 hover:shadow-[0_8px_22px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.06)]"
           }`}
         >
           <Upload className="h-4 w-4" />
@@ -263,7 +267,7 @@ export function SourceSelector({ onUrlAnalyzed, onFileAnalyzed, isLoading, setLo
           <button
             type="submit"
             disabled={!urlInput.trim() || isLoading}
-            className="flex h-11 min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal-300 text-sm font-black text-[#071112] shadow-[0_16px_36px_rgba(45,212,191,0.16)] transition-all hover:-translate-y-0.5 hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+            className="flex h-11 min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal-300 text-sm font-black text-[#071112] shadow-[0_12px_30px_rgba(45,212,191,0.18)] transition-all duration-200 hover:scale-[1.015] hover:shadow-[0_18px_45px_rgba(45,212,191,0.32)] hover:bg-teal-200 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
           >
             {isLoading ? (
               <>

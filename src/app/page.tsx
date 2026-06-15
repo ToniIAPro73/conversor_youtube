@@ -260,7 +260,7 @@ export default function Home() {
 
         <nav
           aria-label="Secciones de la aplicación"
-          className="mb-4 grid grid-cols-3 gap-1 rounded-[18px] border border-white/8 bg-[#13161b]/90 p-1 shadow-[0_24px_80px_rgba(0,0,0,0.40)] backdrop-blur-md"
+          className="mb-4 grid grid-cols-3 gap-2 rounded-[18px] border border-white/8 bg-[#13161b]/90 p-1.5 shadow-[0_24px_80px_rgba(0,0,0,0.40)] backdrop-blur-md"
         >
           {(
             [
@@ -269,21 +269,21 @@ export default function Home() {
                 icon: <Layers className="h-4 w-4" />,
                 label: t("nav.convert"),
                 activeClass: "bg-teal-400/18 text-teal-200 shadow-[0_0_24px_rgba(45,212,191,0.18)] ring-1 ring-teal-300/25",
-                inactiveClass: "bg-teal-400/6 text-teal-300/60 ring-1 ring-teal-300/10 hover:scale-[1.03] hover:bg-teal-400/12 hover:text-teal-200 hover:shadow-[0_6px_20px_rgba(45,212,191,0.18)] hover:ring-teal-300/20",
+                inactiveClass: "bg-teal-400/6 text-teal-300/60 ring-1 ring-teal-300/10 hover:scale-[1.03] hover:bg-teal-400/14 hover:text-teal-200 hover:ring-teal-300/22 hover:shadow-[0_8px_28px_rgba(45,212,191,0.22),inset_0_1px_0_rgba(45,212,191,0.08)]",
               },
               {
                 id: "history" as Tab,
                 icon: <History className="h-4 w-4" />,
                 label: t("nav.history"),
                 activeClass: "bg-amber-400/15 text-amber-200 shadow-[0_0_24px_rgba(251,191,36,0.16)] ring-1 ring-amber-300/25",
-                inactiveClass: "bg-amber-400/6 text-amber-300/60 ring-1 ring-amber-300/10 hover:scale-[1.03] hover:bg-amber-400/12 hover:text-amber-200 hover:shadow-[0_6px_20px_rgba(251,191,36,0.18)] hover:ring-amber-300/20",
+                inactiveClass: "bg-amber-400/6 text-amber-300/60 ring-1 ring-amber-300/10 hover:scale-[1.03] hover:bg-amber-400/14 hover:text-amber-200 hover:ring-amber-300/22 hover:shadow-[0_8px_28px_rgba(251,191,36,0.22),inset_0_1px_0_rgba(251,191,36,0.08)]",
               },
               {
                 id: "diagnostics" as Tab,
                 icon: <Stethoscope className="h-4 w-4" />,
                 label: t("nav.diagnostics"),
                 activeClass: "bg-violet-400/15 text-violet-200 shadow-[0_0_24px_rgba(167,139,250,0.16)] ring-1 ring-violet-300/25",
-                inactiveClass: "bg-violet-400/6 text-violet-300/60 ring-1 ring-violet-300/10 hover:scale-[1.03] hover:bg-violet-400/12 hover:text-violet-200 hover:shadow-[0_6px_20px_rgba(167,139,250,0.18)] hover:ring-violet-300/20",
+                inactiveClass: "bg-violet-400/6 text-violet-300/60 ring-1 ring-violet-300/10 hover:scale-[1.03] hover:bg-violet-400/14 hover:text-violet-200 hover:ring-violet-300/22 hover:shadow-[0_8px_28px_rgba(167,139,250,0.22),inset_0_1px_0_rgba(167,139,250,0.08)]",
               },
             ] as const
           ).map(({ id, icon, label, activeClass, inactiveClass }) => (
@@ -294,7 +294,7 @@ export default function Home() {
               role="tab"
               aria-selected={activeTab === id}
               aria-controls={`panel-${id}`}
-              className={`flex min-h-12 items-center justify-center gap-2 rounded-[14px] px-3 py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/70 motion-reduce:transition-none ${
+              className={`flex min-h-12 items-center justify-center gap-2 rounded-[14px] px-2 py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300/70 motion-reduce:transition-none ${
                 activeTab === id ? activeClass : inactiveClass
               }`}
             >
