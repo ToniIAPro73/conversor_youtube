@@ -1,6 +1,6 @@
-# Link2Media Universal E2E — Implementation Tasks
+# Anclora FileStudio Universal E2E — Implementation Tasks
 
-> **Branch**: `feat/zai-link2media-universal-e2e`
+> **Branch**: `feat/zai-anclora-filestudio-universal-e2e`
 > **Last updated**: 2026-03-04
 
 ---
@@ -189,8 +189,8 @@
 | Task ID | Description | Status | Evidence |
 |---|---|---|---|
 | L2M-P16-001 | Build script (build-windows-portable.sh) | done | `scripts/build-windows-portable.sh` |
-| L2M-P16-002 | Start/stop PowerShell scripts | done | `scripts/windows-portable/start-link2media.ps1`, `stop-link2media.ps1` |
-| L2M-P16-003 | BAT launcher scripts | done | `scripts/INICIAR_LINK2MEDIA.bat`, `CERRAR_LINK2MEDIA.bat` |
+| L2M-P16-002 | Start/stop PowerShell scripts | done | `scripts/windows-portable/start-anclora-filestudio.ps1`, `stop-anclora-filestudio.ps1` |
+| L2M-P16-003 | BAT launcher scripts | done | `scripts/INICIAR_ANCLORA_FILESTUDIO.bat`, `CERRAR_ANCLORA_FILESTUDIO.bat` |
 | L2M-P16-004 | yt-dlp update script | done | `scripts/ACTUALIZAR_YTDLP.bat`, `scripts/windows-portable/update-ytdlp.ps1` |
 | L2M-P16-005 | SHA-256 checksum generation | done | `scripts/build-windows-portable.sh` |
 | L2M-P16-006 | better-sqlite3 ABI mapping | done | `scripts/build-windows-portable.sh` |
@@ -218,6 +218,6 @@
 | L2M-P18-003 | User guide | done | `docs/user-guide.md` |
 | L2M-P18-004 | Format matrix | done | `docs/format-matrix.md` |
 | L2M-P18-005 | Third-party licenses | done | `docs/third-party-licenses.md` |
-| L2M-P18-006 | Final validation report | done | `docs/implementation/link2media-universal-e2e/final-validation.md` |
-| L2M-P18-007 | Implementation spec | done | `docs/implementation/link2media-universal-e2e/spec.md` |
-| L2M-P18-008 | Task list | done | `docs/implementation/link2media-universal-e2e/tasks.md` |
+| L2M-P18-006 | Final validation report | done | `docs/implementation/anclora-filestudio-universal-e2e/final-validation.md` |
+| L2M-P18-007 | Implementation spec | done | `docs/implementation/anclora-filestudio-universal-e2e/spec.md` |
+| L2M-P18-008 | Task list | done | `docs/implementation/anclora-filestudio-universal-e2e/tasks.md` |

@@ -1,4 +1,4 @@
-# Link2Media Smart Conversion — Baseline de Auditoría
+# Anclora FileStudio Smart Conversion — Baseline de Auditoría
 
 Fecha: 2026-06-15
 

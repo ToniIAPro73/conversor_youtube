@@ -547,7 +547,7 @@ function mapMp3Quality(quality: string): string {
 // ── Binary discovery ─────────────────────────────────────────────────────────
 
 function findFfmpegBinary(): string {
-  // 1. Prefer LINK2MEDIA_FFMPEG_PATH env var (portable distribution)
+  // 1. Prefer ANCLORA_FILESTUDIO_FFMPEG_PATH env var (portable distribution)
   const envPath = CONFIG.media.binaries.ffmpeg;
   if (envPath && envPath !== "ffmpeg") return envPath;
   // 2. Portable path relative to cwd
@@ -564,7 +564,7 @@ function findFfmpegBinary(): string {
 }
 
 function findFfprobeBinary(): string {
-  // 1. Prefer LINK2MEDIA_FFPROBE_PATH env var (portable distribution)
+  // 1. Prefer ANCLORA_FILESTUDIO_FFPROBE_PATH env var (portable distribution)
   const envPath = CONFIG.media.binaries.ffprobe;
   if (envPath && envPath !== "ffprobe") return envPath;
   // 2. Portable path relative to cwd

@@ -1,4 +1,4 @@
-# Prompt maestro end-to-end — Link2Media Universal Conversion Suite
+# Prompt maestro end-to-end — Anclora FileStudio Universal Conversion Suite
 
 > Implementación full-stack, mobile-first y empaquetado portable completo para Windows  
 > Repo de referencia: `toniiapro73/conversor_youtube`  
@@ -31,7 +31,7 @@ No declares una fase como `DONE` basándote solo en compilación, tipos o tests 
 
 ## 2. Objetivo principal
 
-Transformar Link2Media en un conversor universal local, coherente y realmente operativo, manteniendo:
+Transformar Anclora FileStudio en un conversor universal local, coherente y realmente operativo, manteniendo:
 
 1. La conversión desde enlaces de YouTube para contenido autorizado.
 2. La conversión de archivos multimedia locales.
@@ -55,7 +55,7 @@ Aplica este orden:
 
 1. Código real del repo y comportamiento comprobado.
 2. Este prompt.
-3. `Link2Media_Analisis_Completo.md`, si está disponible en el repo o contexto.
+3. `Anclora FileStudio_Analisis_Completo.md`, si está disponible en el repo o contexto.
 4. Documentación existente en `README.md`, `AGENTS.md`, `CLAUDE.md` y `docs/audits/`.
 5. Comentarios o memorias antiguas, solo si coinciden con el código actual.
 
@@ -138,7 +138,7 @@ git remote -v
 - Crear una rama nueva:
 
 ```text
-feat/<agente>-link2media-universal-e2e
+feat/<agente>-anclora-filestudio-universal-e2e
 ```
 
 - Sustituir `<agente>` por `codex`, `claude` u otro identificador real.
@@ -191,13 +191,13 @@ Al finalizar deben existir, como mínimo:
 8. ZIP portable completo:
 
 ```text
-scripts/Link2Media-Windows-x64.zip
+scripts/Anclora FileStudio-Windows-x64.zip
 ```
 
 9. Hash:
 
 ```text
-scripts/Link2Media-Windows-x64.zip.sha256
+scripts/Anclora FileStudio-Windows-x64.zip.sha256
 ```
 
 10. Manifiesto de componentes y versiones.
@@ -257,7 +257,7 @@ No corrijas aún fallos funcionales antes de registrar el baseline.
 Crea:
 
 ```text
-docs/implementation/link2media-universal-e2e/
+docs/implementation/anclora-filestudio-universal-e2e/
 ├── README.md
 ├── baseline.md
 ├── spec.md
@@ -958,9 +958,9 @@ El usuario final debe poder:
 
 1. Descargar un ZIP.
 2. Extraerlo en una carpeta local.
-3. Hacer doble clic en `INICIAR_LINK2MEDIA.bat`.
+3. Hacer doble clic en `INICIAR_ANCLORA_FILESTUDIO.bat`.
 4. Usar todas las conversiones incluidas.
-5. Cerrar con `CERRAR_LINK2MEDIA.bat`.
+5. Cerrar con `CERRAR_ANCLORA_FILESTUDIO.bat`.
 6. No instalar Node.js, Python, WSL, Docker ni herramientas externas.
 
 ### 15.2 Herramientas que debe incluir
@@ -1017,11 +1017,11 @@ licenses/
 ### 15.4 Estructura objetivo
 
 ```text
-Link2Media-Windows-x64/
-├── INICIAR_LINK2MEDIA.bat
-├── CERRAR_LINK2MEDIA.bat
+Anclora FileStudio-Windows-x64/
+├── INICIAR_ANCLORA_FILESTUDIO.bat
+├── CERRAR_ANCLORA_FILESTUDIO.bat
 ├── ACTUALIZAR_YTDLP.bat
-├── DIAGNOSTICO_LINK2MEDIA.bat
+├── DIAGNOSTICO_ANCLORA_FILESTUDIO.bat
 ├── LEEME.txt
 ├── VERSION.txt
 ├── THIRD_PARTY_NOTICES.txt
@@ -1050,9 +1050,9 @@ Link2Media-Windows-x64/
 ├── temp/
 ├── logs/
 └── internal/
-    ├── start-link2media.ps1
-    ├── stop-link2media.ps1
-    ├── diagnose-link2media.ps1
+    ├── start-anclora-filestudio.ps1
+    ├── stop-anclora-filestudio.ps1
+    ├── diagnose-anclora-filestudio.ps1
     ├── update-ytdlp.ps1
     └── portable-smoke-test.ps1
 ```
@@ -1064,19 +1064,19 @@ El launcher debe resolver todo desde `%~dp0` o `$BaseDir`.
 Debe establecer variables relativas para todos los binarios, por ejemplo:
 
 ```text
-LINK2MEDIA_FFMPEG_PATH
-LINK2MEDIA_FFPROBE_PATH
-LINK2MEDIA_YTDLP_PATH
-LINK2MEDIA_QPDF_PATH
-LINK2MEDIA_7ZIP_PATH
-LINK2MEDIA_PANDOC_PATH
-LINK2MEDIA_LIBREOFFICE_PATH
-LINK2MEDIA_CALIBRE_PATH
-LINK2MEDIA_TESSERACT_PATH
-LINK2MEDIA_TESSDATA_PREFIX
-LINK2MEDIA_POPPLER_PATH
-LINK2MEDIA_DATA_DIR
-LINK2MEDIA_TEMP_DIR
+ANCLORA_FILESTUDIO_FFMPEG_PATH
+ANCLORA_FILESTUDIO_FFPROBE_PATH
+ANCLORA_FILESTUDIO_YTDLP_PATH
+ANCLORA_FILESTUDIO_QPDF_PATH
+ANCLORA_FILESTUDIO_7ZIP_PATH
+ANCLORA_FILESTUDIO_PANDOC_PATH
+ANCLORA_FILESTUDIO_LIBREOFFICE_PATH
+ANCLORA_FILESTUDIO_CALIBRE_PATH
+ANCLORA_FILESTUDIO_TESSERACT_PATH
+ANCLORA_FILESTUDIO_TESSDATA_PREFIX
+ANCLORA_FILESTUDIO_POPPLER_PATH
+ANCLORA_FILESTUDIO_DATA_DIR
+ANCLORA_FILESTUDIO_TEMP_DIR
 ```
 
 La aplicación debe preferir estas rutas y después usar PATH como fallback en desarrollo.
@@ -1140,8 +1140,8 @@ Si `powershell.exe` y `cmd.exe` están disponibles desde WSL:
 Generar:
 
 ```text
-scripts/Link2Media-Windows-x64.zip
-scripts/Link2Media-Windows-x64.zip.sha256
+scripts/Anclora FileStudio-Windows-x64.zip
+scripts/Anclora FileStudio-Windows-x64.zip.sha256
 scripts/build-reports/<timestamp>-portable-build.md
 scripts/build-reports/<timestamp>-portable-build.log
 ```
@@ -1149,8 +1149,8 @@ scripts/build-reports/<timestamp>-portable-build.log
 Si se detecta una carpeta Downloads de Windows de forma segura, copiar además:
 
 ```text
-<Downloads>/Link2Media-Windows-x64.zip
-<Downloads>/Link2Media-Windows-x64.zip.sha256
+<Downloads>/Anclora FileStudio-Windows-x64.zip
+<Downloads>/Anclora FileStudio-Windows-x64.zip.sha256
 ```
 
 No hardcodear el nombre del usuario de Windows.
@@ -1214,7 +1214,7 @@ Usar el campo `mobilePortability`:
 Ejemplo:
 
 ```text
-docs: add Link2Media universal E2E implementation spec
+docs: add Anclora FileStudio universal E2E implementation spec
 refactor: centralize format catalog and analysis contracts
 feat: connect universal engines to jobs and UI
 feat: migrate media conversion to FFmpeg engine

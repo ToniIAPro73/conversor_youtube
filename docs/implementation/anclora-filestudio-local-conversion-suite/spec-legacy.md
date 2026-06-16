@@ -1,4 +1,4 @@
-# Link2Media Universal E2E — Implementation Specification
+# Anclora FileStudio Universal E2E — Implementation Specification
 
 > **Version**: 1.0
 > **Date**: 2026-03-04
@@ -8,7 +8,7 @@
 
 ## Architecture Overview
 
-Link2Media is a local-first universal file converter built on Next.js 16 with App Router. It follows a Clean Architecture Lite approach with clear boundaries between domain, infrastructure, and presentation layers.
+Anclora FileStudio is a local-first universal file converter built on Next.js 16 with App Router. It follows a Clean Architecture Lite approach with clear boundaries between domain, infrastructure, and presentation layers.
 
 ```
 ┌─────────────────────────────────────────────────────┐

@@ -1,16 +1,16 @@
-# Registro de instalación de motores en WSL para Link2Media
+# Registro de instalación de motores en WSL para Anclora FileStudio
 
 > Entorno: Ubuntu sobre WSL  
 > Equipo: `ES-L302590`  
 > Usuario WSL: `toni`  
 > Fecha del proceso: 15 de junio de 2026  
-> Objetivo: preparar los motores locales de conversión documental, ebooks y OCR para Link2Media.
+> Objetivo: preparar los motores locales de conversión documental, ebooks y OCR para Anclora FileStudio.
 
 ---
 
 ## 1. Resumen del estado
 
-| Componente | Uso en Link2Media | Método | Estado |
+| Componente | Uso en Anclora FileStudio | Método | Estado |
 | --- | --- | --- | --- |
 | Pandoc | Conversión entre Markdown, HTML, DOCX, ODT, RST, LaTeX y TXT | `apt` | Instalación indicada |
 | LibreOffice | Conversión Office/ODF y generación de PDF en modo headless | `apt` | Instalación indicada |
@@ -76,9 +76,9 @@ Las rutas habituales son:
 ### 2.3 Prueba de Pandoc
 
 ```bash
-mkdir -p /tmp/link2media-pandoc-test
+mkdir -p /tmp/anclora-filestudio-pandoc-test
 
-cat > /tmp/link2media-pandoc-test/prueba.md <<'DOC'
+cat > /tmp/anclora-filestudio-pandoc-test/prueba.md <<'DOC'
 # Documento de prueba
 
 Conversión realizada con Pandoc desde WSL.
@@ -88,17 +88,17 @@ Conversión realizada con Pandoc desde WSL.
 DOC
 
 pandoc \
-  /tmp/link2media-pandoc-test/prueba.md \
+  /tmp/anclora-filestudio-pandoc-test/prueba.md \
   --from markdown \
   --to docx \
-  --output /tmp/link2media-pandoc-test/prueba.docx
+  --output /tmp/anclora-filestudio-pandoc-test/prueba.docx
 ```
 
 Validación:
 
 ```bash
-file /tmp/link2media-pandoc-test/prueba.docx
-ls -lh /tmp/link2media-pandoc-test/prueba.docx
+file /tmp/anclora-filestudio-pandoc-test/prueba.docx
+ls -lh /tmp/anclora-filestudio-pandoc-test/prueba.docx
 ```
 
 ### 2.4 Prueba de LibreOffice headless
@@ -116,8 +116,8 @@ libreoffice \
   --norestore \
   "-env:UserInstallation=file://$PROFILE_DIR" \
   --convert-to pdf \
-  --outdir /tmp/link2media-pandoc-test \
-  /tmp/link2media-pandoc-test/prueba.docx
+  --outdir /tmp/anclora-filestudio-pandoc-test \
+  /tmp/anclora-filestudio-pandoc-test/prueba.docx
 
 rm -rf "$PROFILE_DIR"
 ```
@@ -125,8 +125,8 @@ rm -rf "$PROFILE_DIR"
 Validación:
 
 ```bash
-file /tmp/link2media-pandoc-test/prueba.pdf
-ls -lh /tmp/link2media-pandoc-test/prueba.pdf
+file /tmp/anclora-filestudio-pandoc-test/prueba.pdf
+ls -lh /tmp/anclora-filestudio-pandoc-test/prueba.pdf
 ```
 
 ---
@@ -304,7 +304,7 @@ El proceso creó correctamente los enlaces simbólicos en `/usr/bin`, incluyendo
 /usr/bin/ebook-viewer
 ```
 
-El ejecutable requerido por Link2Media quedó enlazado así:
+El ejecutable requerido por Anclora FileStudio quedó enlazado así:
 
 ```text
 /usr/bin/ebook-convert -> /opt/calibre/ebook-convert
@@ -330,7 +330,7 @@ No afecta a:
 
 - `ebook-convert`.
 - Conversión headless.
-- Uso desde Link2Media.
+- Uso desde Anclora FileStudio.
 - Ejecución mediante API o procesos Node.js.
 
 El instalador terminó creando también:
@@ -362,14 +362,14 @@ ebook-convert (calibre 9.9.0)
 ### 4.8 Prueba real de conversión
 
 ```bash
-mkdir -p /tmp/link2media-calibre-test
+mkdir -p /tmp/anclora-filestudio-calibre-test
 
-cat > /tmp/link2media-calibre-test/prueba.html <<'DOC'
+cat > /tmp/anclora-filestudio-calibre-test/prueba.html <<'DOC'
 <!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Prueba Link2Media</title>
+  <title>Prueba Anclora FileStudio</title>
 </head>
 <body>
   <h1>Calibre operativo</h1>
@@ -379,16 +379,16 @@ cat > /tmp/link2media-calibre-test/prueba.html <<'DOC'
 DOC
 
 ebook-convert \
-  /tmp/link2media-calibre-test/prueba.html \
-  /tmp/link2media-calibre-test/prueba.epub
+  /tmp/anclora-filestudio-calibre-test/prueba.html \
+  /tmp/anclora-filestudio-calibre-test/prueba.epub
 ```
 
 Validación:
 
 ```bash
-file /tmp/link2media-calibre-test/prueba.epub
-unzip -t /tmp/link2media-calibre-test/prueba.epub
-ls -lh /tmp/link2media-calibre-test/prueba.epub
+file /tmp/anclora-filestudio-calibre-test/prueba.epub
+unzip -t /tmp/anclora-filestudio-calibre-test/prueba.epub
+ls -lh /tmp/anclora-filestudio-calibre-test/prueba.epub
 ```
 
 El usuario confirmó que la instalación y la prueba funcionaron correctamente.
@@ -464,19 +464,19 @@ Resultado:
 Tesseract no debe recibir el PDF directamente. Primero se rasterizan sus páginas:
 
 ```bash
-mkdir -p /tmp/link2media-ocr-pages
+mkdir -p /tmp/anclora-filestudio-ocr-pages
 
 pdftoppm \
   -png \
   -r 300 \
   "/ruta/al/documento.pdf" \
-  "/tmp/link2media-ocr-pages/pagina"
+  "/tmp/anclora-filestudio-ocr-pages/pagina"
 ```
 
 Después se aplica OCR página por página:
 
 ```bash
-for image in /tmp/link2media-ocr-pages/pagina-*.png; do
+for image in /tmp/anclora-filestudio-ocr-pages/pagina-*.png; do
   output="${image%.png}"
 
   tesseract \
@@ -491,34 +491,34 @@ done
 Unión del texto:
 
 ```bash
-cat /tmp/link2media-ocr-pages/pagina-*.txt \
-  > /tmp/link2media-ocr-pages/documento-completo.txt
+cat /tmp/anclora-filestudio-ocr-pages/pagina-*.txt \
+  > /tmp/anclora-filestudio-ocr-pages/documento-completo.txt
 ```
 
 ---
 
-## 6. Variables recomendadas para Link2Media
+## 6. Variables recomendadas para Anclora FileStudio
 
 En `.env.local`:
 
 ```env
-LINK2MEDIA_PANDOC_PATH=/usr/bin/pandoc
-LINK2MEDIA_LIBREOFFICE_PATH=/usr/bin/libreoffice
-LINK2MEDIA_CALIBRE_PATH=/usr/bin/ebook-convert
-LINK2MEDIA_TESSERACT_PATH=/usr/bin/tesseract
-LINK2MEDIA_PDFTOPPM_PATH=/usr/bin/pdftoppm
-LINK2MEDIA_PDFINFO_PATH=/usr/bin/pdfinfo
+ANCLORA_FILESTUDIO_PANDOC_PATH=/usr/bin/pandoc
+ANCLORA_FILESTUDIO_LIBREOFFICE_PATH=/usr/bin/libreoffice
+ANCLORA_FILESTUDIO_CALIBRE_PATH=/usr/bin/ebook-convert
+ANCLORA_FILESTUDIO_TESSERACT_PATH=/usr/bin/tesseract
+ANCLORA_FILESTUDIO_PDFTOPPM_PATH=/usr/bin/pdftoppm
+ANCLORA_FILESTUDIO_PDFINFO_PATH=/usr/bin/pdfinfo
 ```
 
 Antes de guardarlas, conviene obtener las rutas reales:
 
 ```bash
-printf 'LINK2MEDIA_PANDOC_PATH=%s\n' "$(command -v pandoc)"
-printf 'LINK2MEDIA_LIBREOFFICE_PATH=%s\n' "$(command -v libreoffice)"
-printf 'LINK2MEDIA_CALIBRE_PATH=%s\n' "$(command -v ebook-convert)"
-printf 'LINK2MEDIA_TESSERACT_PATH=%s\n' "$(command -v tesseract)"
-printf 'LINK2MEDIA_PDFTOPPM_PATH=%s\n' "$(command -v pdftoppm)"
-printf 'LINK2MEDIA_PDFINFO_PATH=%s\n' "$(command -v pdfinfo)"
+printf 'ANCLORA_FILESTUDIO_PANDOC_PATH=%s\n' "$(command -v pandoc)"
+printf 'ANCLORA_FILESTUDIO_LIBREOFFICE_PATH=%s\n' "$(command -v libreoffice)"
+printf 'ANCLORA_FILESTUDIO_CALIBRE_PATH=%s\n' "$(command -v ebook-convert)"
+printf 'ANCLORA_FILESTUDIO_TESSERACT_PATH=%s\n' "$(command -v tesseract)"
+printf 'ANCLORA_FILESTUDIO_PDFTOPPM_PATH=%s\n' "$(command -v pdftoppm)"
+printf 'ANCLORA_FILESTUDIO_PDFINFO_PATH=%s\n' "$(command -v pdfinfo)"
 ```
 
 Para comprobar qué variables reconoce actualmente el repositorio:
@@ -601,7 +601,7 @@ pdftoppm -v 2>&1 | head -n 1 || true
 La instalación realizada en WSL sirve para desarrollo y validación local, pero estos binarios Linux no
 se deben copiar al ZIP portable de Windows.
 
-El empaquetado final de Link2Media para Windows deberá incluir versiones Windows x64 independientes de:
+El empaquetado final de Anclora FileStudio para Windows deberá incluir versiones Windows x64 independientes de:
 
 - Pandoc.
 - LibreOffice.

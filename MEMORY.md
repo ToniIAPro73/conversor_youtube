@@ -598,9 +598,9 @@ El usuario creó el cuaderno NotebookLM 'Cuaderno de Spec-Driven Development par
 
 *Failure records, bugs, and lessons learned from mistakes.*
 
-### In Link2Media Windows portable, yt-dlp failed on u...
+### In Anclora FileStudio Windows portable, yt-dlp failed on u...
 
-In Link2Media Windows portable, yt-dlp failed on user's Windows with SSL CERTIFICATE_VERIFY_FAILED unable to get local issuer certificate. Direct test showed yt-dlp succeeds with --no-check-certificates; add this flag to metadata and conversion yt-dlp invocations for portable reliability.
+In Anclora FileStudio Windows portable, yt-dlp failed on user's Windows with SSL CERTIFICATE_VERIFY_FAILED unable to get local issuer certificate. Direct test showed yt-dlp succeeds with --no-check-certificates; add this flag to metadata and conversion yt-dlp invocations for portable reliability.
 
 *Confidence: 1 | Status: active | Created: 2026-06-14T23:41:21*
 

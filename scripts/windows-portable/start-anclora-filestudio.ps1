@@ -1,7 +1,7 @@
 # =============================================================================
-# start-link2media.ps1 - Lanzador interno de Link2Media (Windows)
-# Invocado por INICIAR_LINK2MEDIA.bat
-# NO ejecutar directamente; usar INICIAR_LINK2MEDIA.bat
+# start-anclora-filestudio.ps1 - Lanzador interno de Anclora FileStudio (Windows)
+# Invocado por INICIAR_ANCLORA_FILESTUDIO.bat
+# NO ejecutar directamente; usar INICIAR_ANCLORA_FILESTUDIO.bat
 # =============================================================================
 [CmdletBinding()]
 param(
@@ -51,8 +51,8 @@ $PopplerDir   = Join-Path $BaseDir 'tools\poppler'
 $DataDir      = Join-Path $BaseDir 'data'
 $TempDir      = Join-Path $BaseDir 'temp'
 $LogDir       = Join-Path $BaseDir 'logs'
-$PidFile      = Join-Path $BaseDir 'data\link2media.pid'
-$PortFile     = Join-Path $BaseDir 'data\link2media.port'
+$PidFile      = Join-Path $BaseDir 'data\anclora-filestudio.pid'
+$PortFile     = Join-Path $BaseDir 'data\anclora-filestudio.port'
 $ServerLog    = Join-Path $LogDir  'server.log'
 $ErrorLog     = Join-Path $LogDir  'error.log'
 
@@ -72,7 +72,7 @@ function Write-Warn([string]$msg) {
 }
 
 Write-Host ""
-Write-Host "  Link2Media - Iniciando..." -ForegroundColor White
+Write-Host "  Anclora FileStudio - Iniciando..." -ForegroundColor White
 Write-Host ""
 
 # - Verificar archivos obligatorios ---------------------
@@ -186,20 +186,20 @@ $env:NEXT_TELEMETRY_DISABLED       = '1'
 $env:HOSTNAME                      = '127.0.0.1'
 $env:PORT                          = "$selectedPort"
 
-# LINK2MEDIA_* environment variables
-$env:LINK2MEDIA_FFMPEG_PATH        = $FfmpegExe
-$env:LINK2MEDIA_FFPROBE_PATH       = $FfprobeExe
-$env:LINK2MEDIA_YTDLP_PATH         = $YtdlpExe
-$env:LINK2MEDIA_QPDF_PATH          = $QpdfExe
-$env:LINK2MEDIA_7ZIP_PATH          = $SevenZipExe
-$env:LINK2MEDIA_PANDOC_PATH        = $PandocExe
-$env:LINK2MEDIA_LIBREOFFICE_PATH   = $LibreOfficeExe
-$env:LINK2MEDIA_CALIBRE_PATH       = $CalibreExe
-$env:LINK2MEDIA_TESSERACT_PATH     = $TesseractExe
-$env:LINK2MEDIA_TESSDATA_PREFIX    = $TessdataDir
-$env:LINK2MEDIA_POPPLER_PATH       = $PopplerDir
-$env:LINK2MEDIA_DATA_DIR           = $DataDir
-$env:LINK2MEDIA_TEMP_DIR           = $TempDir
+# ANCLORA_FILESTUDIO_* environment variables
+$env:ANCLORA_FILESTUDIO_FFMPEG_PATH        = $FfmpegExe
+$env:ANCLORA_FILESTUDIO_FFPROBE_PATH       = $FfprobeExe
+$env:ANCLORA_FILESTUDIO_YTDLP_PATH         = $YtdlpExe
+$env:ANCLORA_FILESTUDIO_QPDF_PATH          = $QpdfExe
+$env:ANCLORA_FILESTUDIO_7ZIP_PATH          = $SevenZipExe
+$env:ANCLORA_FILESTUDIO_PANDOC_PATH        = $PandocExe
+$env:ANCLORA_FILESTUDIO_LIBREOFFICE_PATH   = $LibreOfficeExe
+$env:ANCLORA_FILESTUDIO_CALIBRE_PATH       = $CalibreExe
+$env:ANCLORA_FILESTUDIO_TESSERACT_PATH     = $TesseractExe
+$env:ANCLORA_FILESTUDIO_TESSDATA_PREFIX    = $TessdataDir
+$env:ANCLORA_FILESTUDIO_POPPLER_PATH       = $PopplerDir
+$env:ANCLORA_FILESTUDIO_DATA_DIR           = $DataDir
+$env:ANCLORA_FILESTUDIO_TEMP_DIR           = $TempDir
 
 # Legacy env vars for backward compatibility
 $env:YTDLP_BINARY                  = $YtdlpExe
@@ -304,8 +304,8 @@ Write-Step "Abriendo navegador..."
 Start-Process "http://127.0.0.1:$selectedPort"
 
 Write-Host ""
-Write-Host "  Link2Media esta ejecutandose en http://127.0.0.1:$selectedPort" -ForegroundColor Green
-Write-Host "  Para cerrar la aplicacion: doble clic en CERRAR_LINK2MEDIA.bat" -ForegroundColor White
+Write-Host "  Anclora FileStudio esta ejecutandose en http://127.0.0.1:$selectedPort" -ForegroundColor Green
+Write-Host "  Para cerrar la aplicacion: doble clic en CERRAR_ANCLORA_FILESTUDIO.bat" -ForegroundColor White
 if ($missingTools.Count -gt 0) {
     Write-Host ""
     Write-Host "  Herramientas no disponibles: $($missingTools -join ', ')" -ForegroundColor Yellow

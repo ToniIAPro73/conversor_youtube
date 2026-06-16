@@ -1,6 +1,6 @@
-# Link2Media Third-Party Licenses
+# Anclora FileStudio Third-Party Licenses
 
-This document lists all third-party dependencies used by Link2Media, their licenses, and compatibility notes.
+This document lists all third-party dependencies used by Anclora FileStudio, their licenses, and compatibility notes.
 
 ---
 
@@ -59,7 +59,7 @@ This document lists all third-party dependencies used by Link2Media, their licen
 
 ## External Tools
 
-These are system-level tools that Link2Media optionally uses for conversion. They are **not bundled** with Link2Media (except in the Windows portable distribution where noted).
+These are system-level tools that Anclora FileStudio optionally uses for conversion. They are **not bundled** with Anclora FileStudio (except in the Windows portable distribution where noted).
 
 | Tool | License | Categories | Bundled in Portable |
 |---|---|---|---|
@@ -91,7 +91,7 @@ FFmpeg can be compiled with different configurations affecting its license:
 
 ## License Compatibility
 
-Link2Media is distributed under the **MIT License**, which is permissive and compatible with most other licenses. Here are the key compatibility considerations:
+Anclora FileStudio is distributed under the **MIT License**, which is permissive and compatible with most other licenses. Here are the key compatibility considerations:
 
 ### Permissive Licenses (Compatible with MIT)
 
@@ -102,15 +102,15 @@ Link2Media is distributed under the **MIT License**, which is permissive and com
 
 ### Copyleft Licenses (Not Bundled, Used as External Tools)
 
-- **GPL-2.0+** (Pandoc, Poppler): Copyleft; Link2Media invokes these as separate processes via `child_process.spawn`. No GPL code is linked or bundled.
+- **GPL-2.0+** (Pandoc, Poppler): Copyleft; Anclora FileStudio invokes these as separate processes via `child_process.spawn`. No GPL code is linked or bundled.
 - **GPL-3.0** (Calibre): Same as above — invoked as external process.
 - **MPL-2.0** (LibreOffice): Weak copyleft; invoked as external process.
 
 ### Key Distinction
 
-Link2Media **does not link against or bundle** GPL-licensed code. All GPL-licensed tools (Pandoc, LibreOffice, Calibre, Poppler) are invoked as separate processes via `child_process.spawn` with `shell: false`. This means:
+Anclora FileStudio **does not link against or bundle** GPL-licensed code. All GPL-licensed tools (Pandoc, LibreOffice, Calibre, Poppler) are invoked as separate processes via `child_process.spawn` with `shell: false`. This means:
 
-1. Link2Media's MIT license is not affected by the GPL licenses of external tools
+1. Anclora FileStudio's MIT license is not affected by the GPL licenses of external tools
 2. Users must separately install and agree to the licenses of external tools
 3. The Windows portable distribution includes FFmpeg (LGPL-2.1+) and yt-dlp (Unlicense), which are compatible
 

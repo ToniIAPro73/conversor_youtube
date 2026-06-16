@@ -8,7 +8,7 @@ setlocal EnableDelayedExpansion
 :: Ejecuta cuando las conversiones empiecen a fallar.
 :: ============================================================================
 
-title Link2Media - Actualizando yt-dlp...
+title Anclora FileStudio - Actualizando yt-dlp...
 
 cd /d "%~dp0"
 set "BASE_DIR=%~dp0"

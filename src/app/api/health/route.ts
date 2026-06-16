@@ -91,7 +91,7 @@ export async function GET() {
   return NextResponse.json(
     {
       ok: criticalOk,
-      app: "Link2Media",
+      app: "Anclora FileStudio",
       status: allOk ? "ready" : (criticalOk ? "degraded" : "degraded"),
       dependencies,
       summary: {

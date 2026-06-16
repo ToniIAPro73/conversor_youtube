@@ -132,7 +132,7 @@ function buildCapability(
 // ── Binary discovery ─────────────────────────────────────────────────────────
 
 function findEbookConvertBinary(): string {
-  // 1. Prefer LINK2MEDIA_CALIBRE_PATH env var (portable distribution)
+  // 1. Prefer ANCLORA_FILESTUDIO_CALIBRE_PATH env var (portable distribution)
   const envPath = CONFIG.media.binaries.calibre;
   if (envPath && envPath !== "ebook-convert") return envPath;
   // 2. Portable path relative to cwd

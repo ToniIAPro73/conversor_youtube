@@ -1,4 +1,4 @@
-// Unified error code system for Link2Media.
+// Unified error code system for Anclora FileStudio.
 // All subsystems (engines, job processor, download, cleanup) use these codes
 // so that error handling, logging, and client messages are consistent.
 

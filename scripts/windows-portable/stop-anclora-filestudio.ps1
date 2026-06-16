@@ -1,6 +1,6 @@
 # =============================================================================
-# stop-link2media.ps1 - Cierra Link2Media de forma segura (Windows)
-# Invocado por CERRAR_LINK2MEDIA.bat
+# stop-anclora-filestudio.ps1 - Cierra Anclora FileStudio de forma segura (Windows)
+# Invocado por CERRAR_ANCLORA_FILESTUDIO.bat
 # =============================================================================
 [CmdletBinding()]
 param(
@@ -11,11 +11,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$PidFile  = Join-Path $BaseDir 'data\link2media.pid'
-$PortFile = Join-Path $BaseDir 'data\link2media.port'
+$PidFile  = Join-Path $BaseDir 'data\anclora-filestudio.pid'
+$PortFile = Join-Path $BaseDir 'data\anclora-filestudio.port'
 
 Write-Host ""
-Write-Host "  Link2Media - Cerrando..." -ForegroundColor White
+Write-Host "  Anclora FileStudio - Cerrando..." -ForegroundColor White
 Write-Host ""
 
 if (-not (Test-Path $PidFile)) {

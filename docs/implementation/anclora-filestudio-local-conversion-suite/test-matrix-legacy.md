@@ -1,6 +1,6 @@
-# Link2Media Universal E2E — Test Matrix
+# Anclora FileStudio Universal E2E — Test Matrix
 
-This document defines the full test matrix for the Link2Media universal end-to-end conversion pipeline.
+This document defines the full test matrix for the Anclora FileStudio universal end-to-end conversion pipeline.
 
 ## Test Matrix
 

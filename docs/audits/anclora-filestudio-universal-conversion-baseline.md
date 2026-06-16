@@ -1,8 +1,8 @@
-# Link2Media — Universal Conversion Baseline Audit
+# Anclora FileStudio — Universal Conversion Baseline Audit
 
 **Date:** 2026-06-15  
-**Branch base:** feat/claude-link2media-smart-conversion (c2c4b9c)  
-**New branch:** feat/claude-link2media-universal-conversion-suite
+**Branch base:** feat/claude-anclora-filestudio-smart-conversion (c2c4b9c)  
+**New branch:** feat/claude-anclora-filestudio-universal-conversion-suite
 
 ---
 

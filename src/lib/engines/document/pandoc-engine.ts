@@ -14,7 +14,7 @@ import { CONFIG } from "../../config";
 const ENGINE_ID: EngineId = "pandoc";
 
 function findPandocBinary(): string {
-  // 1. Prefer LINK2MEDIA_PANDOC_PATH env var (portable distribution)
+  // 1. Prefer ANCLORA_FILESTUDIO_PANDOC_PATH env var (portable distribution)
   const envPath = CONFIG.media.binaries.pandoc;
   if (envPath && envPath !== "pandoc") return envPath;
   // 2. Portable path relative to cwd

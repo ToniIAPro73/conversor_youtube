@@ -1,8 +1,8 @@
-# Baseline — Link2Media Universal E2E
+# Baseline — Anclora FileStudio Universal E2E
 
 > Fecha: 2026-06-15
-> Rama base: `feat/claude-link2media-universal-conversion-suite` (commit `aa50271`)
-> Rama de trabajo: `feat/zai-link2media-universal-e2e`
+> Rama base: `feat/claude-anclora-filestudio-universal-conversion-suite` (commit `aa50271`)
+> Rama de trabajo: `feat/zai-anclora-filestudio-universal-e2e`
 
 ## Resultados del baseline
 

@@ -1,8 +1,8 @@
-# Link2Media — Estado Actual de la Tarea (14/06/2026)
+# Anclora FileStudio — Estado Actual de la Tarea (14/06/2026)
 
 ## Resumen ejecutivo
 
-Se está desarrollando la **distribución portable de Windows** para Link2Media.  
+Se está desarrollando la **distribución portable de Windows** para Anclora FileStudio.  
 El pipeline de build está listo y corregido. Falta ejecutarlo para generar el ZIP final.
 
 ---
@@ -34,12 +34,12 @@ Todos en `scripts/`:
 |---------|-------------|
 | `build-windows-portable.sh` | Pipeline completo: descarga Node.js/yt-dlp/FFmpeg para Windows, crea ZIP + SHA256 |
 | `verify-windows-portable.sh` | Verifica integridad del ZIP antes de distribuir |
-| `windows-portable/start-link2media.ps1` | Launcher PowerShell: port selection 3000–3010, health-check, abre browser |
-| `windows-portable/stop-link2media.ps1` | Cierre limpio leyendo PID file |
+| `windows-portable/start-anclora-filestudio.ps1` | Launcher PowerShell: port selection 3000–3010, health-check, abre browser |
+| `windows-portable/stop-anclora-filestudio.ps1` | Cierre limpio leyendo PID file |
 | `windows-portable/update-ytdlp.ps1` | Actualización atómica de yt-dlp.exe |
 | `windows-portable/LEEME.template.txt` | Guía usuario final |
-| `INICIAR_LINK2MEDIA.bat` | Launcher usuario → delega a PS1 |
-| `CERRAR_LINK2MEDIA.bat` | Cierre usuario → delega a PS1 |
+| `INICIAR_ANCLORA_FILESTUDIO.bat` | Launcher usuario → delega a PS1 |
+| `CERRAR_ANCLORA_FILESTUDIO.bat` | Cierre usuario → delega a PS1 |
 | `ACTUALIZAR_YTDLP.bat` | Actualización usuario → delega a PS1 |
 
 ### 7. Archivos auxiliares
@@ -78,8 +78,8 @@ Hay que volver a ejecutar `RUN_BUILD.bat`.
 3. Confirmar dialogo de seguridad → "Ejecutar"
 4. Esperar ~10–15 min (descarga de binarios ~150 MB: Node.js + yt-dlp + FFmpeg)
 5. Al finalizar, obtenemos:
-   - `scripts/Link2Media-Windows-x64.zip`
-   - `scripts/Link2Media-Windows-x64.zip.sha256`
+   - `scripts/Anclora FileStudio-Windows-x64.zip`
+   - `scripts/Anclora FileStudio-Windows-x64.zip.sha256`
    - Informe con tamaño y SHA256
 
 ### Pasos del pipeline (`run_build_pipeline.sh`)
@@ -102,9 +102,9 @@ Informe final: tamaño + SHA256
 ## Estructura del ZIP objetivo
 
 ```
-Link2Media-Windows-x64/
-├── INICIAR_LINK2MEDIA.bat
-├── CERRAR_LINK2MEDIA.bat
+Anclora FileStudio-Windows-x64/
+├── INICIAR_ANCLORA_FILESTUDIO.bat
+├── CERRAR_ANCLORA_FILESTUDIO.bat
 ├── ACTUALIZAR_YTDLP.bat
 ├── LEEME.txt
 ├── runtime/
@@ -120,8 +120,8 @@ Link2Media-Windows-x64/
 │           ├── ffmpeg.exe
 │           └── ffprobe.exe
 └── internal/
-    ├── start-link2media.ps1
-    ├── stop-link2media.ps1
+    ├── start-anclora-filestudio.ps1
+    ├── stop-anclora-filestudio.ps1
     └── update-ytdlp.ps1
 ```
 

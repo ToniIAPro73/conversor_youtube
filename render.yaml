@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: link2media
+    name: anclora-filestudio
     env: node
     plan: free
     buildCommand: pnpm install && pnpm build && python3 -m pip install yt-dlp
@@ -9,7 +9,7 @@ services:
       - key: NODE_VERSION
         value: 20
       - key: APP_NAME
-        value: Link2Media
+        value: Anclora FileStudio
       - key: MEDIA_TEMP_DIR
         value: .tmp/media
     # Note: On Render, you can use a custom build script to install ffmpeg

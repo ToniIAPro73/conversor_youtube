@@ -5,14 +5,14 @@
 # =============================================================================
 set -euo pipefail
 
-LOG_FILE="/tmp/link2media-portable-$(date +%Y%m%d-%H%M%S).log"
+LOG_FILE="/tmp/anclora-filestudio-portable-$(date +%Y%m%d-%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 REPO_DIR="/home/toni/projects/convertidor_youtube_mp3"
 cd "$REPO_DIR"
 
 echo "============================================================="
-echo "  Link2Media — Portable Build Only"
+echo "  Anclora FileStudio — Portable Build Only"
 echo "  $(date)"
 echo "  Log: $LOG_FILE"
 echo "============================================================="
@@ -60,11 +60,11 @@ Security: shell:false, windowsHide:true, 127.0.0.1 only" || echo "(nada que comm
 
 echo ""
 echo "=== Informe final ==="
-ZIP="$REPO_DIR/scripts/Link2Media-Windows-x64.zip"
+ZIP="$REPO_DIR/scripts/Anclora FileStudio-Windows-x64.zip"
 if [ -f "$ZIP" ]; then
   SIZE=$(du -sh "$ZIP" | cut -f1)
   SHA256=$(sha256sum "$ZIP" | awk '{print $1}')
-  echo "  ZIP generado: scripts/Link2Media-Windows-x64.zip"
+  echo "  ZIP generado: scripts/Anclora FileStudio-Windows-x64.zip"
   echo "  Tamaño:       $SIZE"
   echo "  SHA256:       $SHA256"
 else

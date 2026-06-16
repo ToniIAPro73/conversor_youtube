@@ -1,6 +1,6 @@
 # =============================================================================
-# diagnose-link2media.ps1 - Diagnostico completo de Link2Media (Windows)
-# Invocado por DIAGNOSTICO_LINK2MEDIA.bat
+# diagnose-anclora-filestudio.ps1 - Diagnostico completo de Anclora FileStudio (Windows)
+# Invocado por DIAGNOSTICO_ANCLORA_FILESTUDIO.bat
 # =============================================================================
 [CmdletBinding()]
 param(
@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Continue'
 
 Write-Host ""
 Write-Host "  ══════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "    Link2Media - Diagnostico completo" -ForegroundColor Cyan
+Write-Host "    Anclora FileStudio - Diagnostico completo" -ForegroundColor Cyan
 Write-Host "  ══════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
 
@@ -33,8 +33,8 @@ Write-Host "  [1] Archivos criticos" -ForegroundColor White
 $criticalFiles = @(
     @{ Name = 'node.exe'; Path = (Join-Path $BaseDir 'runtime\node.exe') },
     @{ Name = 'server.js'; Path = (Join-Path $BaseDir 'app\server.js') },
-    @{ Name = 'start-link2media.ps1'; Path = (Join-Path $BaseDir 'internal\start-link2media.ps1') },
-    @{ Name = 'stop-link2media.ps1'; Path = (Join-Path $BaseDir 'internal\stop-link2media.ps1') },
+    @{ Name = 'start-anclora-filestudio.ps1'; Path = (Join-Path $BaseDir 'internal\start-anclora-filestudio.ps1') },
+    @{ Name = 'stop-anclora-filestudio.ps1'; Path = (Join-Path $BaseDir 'internal\stop-anclora-filestudio.ps1') },
     @{ Name = 'manifest.json'; Path = (Join-Path $BaseDir 'manifest.json') },
     @{ Name = 'VERSION.txt'; Path = (Join-Path $BaseDir 'VERSION.txt') }
 )
@@ -51,16 +51,16 @@ foreach ($f in $criticalFiles) {
 Write-Host ""
 Write-Host "  [2] Herramientas de conversion" -ForegroundColor White
 $tools = @(
-    @{ Name = 'yt-dlp'; Path = (Join-Path $BaseDir 'tools\yt-dlp\yt-dlp.exe'); EnvVar = 'LINK2MEDIA_YTDLP_PATH' },
-    @{ Name = 'FFmpeg'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\ffmpeg\ffmpeg.exe'), (Join-Path $BaseDir 'tools\ffmpeg\bin\ffmpeg.exe'))); EnvVar = 'LINK2MEDIA_FFMPEG_PATH' },
-    @{ Name = 'FFprobe'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\ffmpeg\ffprobe.exe'), (Join-Path $BaseDir 'tools\ffmpeg\bin\ffprobe.exe'))); EnvVar = 'LINK2MEDIA_FFPROBE_PATH' },
-    @{ Name = 'QPDF'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\qpdf\qpdf.exe'), (Join-Path $BaseDir 'tools\qpdf\bin\qpdf.exe'))); EnvVar = 'LINK2MEDIA_QPDF_PATH' },
-    @{ Name = '7-Zip'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\sevenzip\7z.exe'), (Join-Path $BaseDir 'tools\sevenzip\7za.exe'), (Join-Path $BaseDir 'tools\sevenzip\7zr.exe'))); EnvVar = 'LINK2MEDIA_7ZIP_PATH' },
-    @{ Name = 'Pandoc'; Path = (Join-Path $BaseDir 'tools\pandoc\pandoc.exe'); EnvVar = 'LINK2MEDIA_PANDOC_PATH' },
-    @{ Name = 'LibreOffice'; Path = (Join-Path $BaseDir 'tools\libreoffice\program\soffice.exe'); EnvVar = 'LINK2MEDIA_LIBREOFFICE_PATH' },
-    @{ Name = 'Calibre'; Path = (Join-Path $BaseDir 'tools\calibre\ebook-convert.exe'); EnvVar = 'LINK2MEDIA_CALIBRE_PATH' },
-    @{ Name = 'Tesseract'; Path = (Join-Path $BaseDir 'tools\tesseract\tesseract.exe'); EnvVar = 'LINK2MEDIA_TESSERACT_PATH' },
-    @{ Name = 'Poppler'; Path = (Join-Path $BaseDir 'tools\poppler\pdftoppm.exe'); EnvVar = 'LINK2MEDIA_POPPLER_PATH' }
+    @{ Name = 'yt-dlp'; Path = (Join-Path $BaseDir 'tools\yt-dlp\yt-dlp.exe'); EnvVar = 'ANCLORA_FILESTUDIO_YTDLP_PATH' },
+    @{ Name = 'FFmpeg'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\ffmpeg\ffmpeg.exe'), (Join-Path $BaseDir 'tools\ffmpeg\bin\ffmpeg.exe'))); EnvVar = 'ANCLORA_FILESTUDIO_FFMPEG_PATH' },
+    @{ Name = 'FFprobe'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\ffmpeg\ffprobe.exe'), (Join-Path $BaseDir 'tools\ffmpeg\bin\ffprobe.exe'))); EnvVar = 'ANCLORA_FILESTUDIO_FFPROBE_PATH' },
+    @{ Name = 'QPDF'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\qpdf\qpdf.exe'), (Join-Path $BaseDir 'tools\qpdf\bin\qpdf.exe'))); EnvVar = 'ANCLORA_FILESTUDIO_QPDF_PATH' },
+    @{ Name = '7-Zip'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\sevenzip\7z.exe'), (Join-Path $BaseDir 'tools\sevenzip\7za.exe'), (Join-Path $BaseDir 'tools\sevenzip\7zr.exe'))); EnvVar = 'ANCLORA_FILESTUDIO_7ZIP_PATH' },
+    @{ Name = 'Pandoc'; Path = (Join-Path $BaseDir 'tools\pandoc\pandoc.exe'); EnvVar = 'ANCLORA_FILESTUDIO_PANDOC_PATH' },
+    @{ Name = 'LibreOffice'; Path = (Join-Path $BaseDir 'tools\libreoffice\program\soffice.exe'); EnvVar = 'ANCLORA_FILESTUDIO_LIBREOFFICE_PATH' },
+    @{ Name = 'Calibre'; Path = (Join-Path $BaseDir 'tools\calibre\ebook-convert.exe'); EnvVar = 'ANCLORA_FILESTUDIO_CALIBRE_PATH' },
+    @{ Name = 'Tesseract'; Path = (Join-Path $BaseDir 'tools\tesseract\tesseract.exe'); EnvVar = 'ANCLORA_FILESTUDIO_TESSERACT_PATH' },
+    @{ Name = 'Poppler'; Path = (Join-Path $BaseDir 'tools\poppler\pdftoppm.exe'); EnvVar = 'ANCLORA_FILESTUDIO_POPPLER_PATH' }
 )
 
 $availableCount = 0
@@ -118,8 +118,8 @@ if (Test-Path $tessdataDir) {
 # - 5. Servidor en ejecucion ----------------------------------
 Write-Host ""
 Write-Host "  [5] Estado del servidor" -ForegroundColor White
-$pidFile = Join-Path $BaseDir 'data\link2media.pid'
-$portFile = Join-Path $BaseDir 'data\link2media.port'
+$pidFile = Join-Path $BaseDir 'data\anclora-filestudio.pid'
+$portFile = Join-Path $BaseDir 'data\anclora-filestudio.port'
 
 if (Test-Path $pidFile) {
     $pidStr = (Get-Content $pidFile -Raw -ErrorAction SilentlyContinue).Trim()

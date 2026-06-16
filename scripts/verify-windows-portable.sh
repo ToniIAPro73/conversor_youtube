@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # verify-windows-portable.sh
-# Verifica la integridad y contenido del ZIP portable de Link2Media.
+# Verifica la integridad y contenido del ZIP portable de Anclora FileStudio.
 # Uso: bash scripts/verify-windows-portable.sh
 # =============================================================================
 
@@ -16,14 +16,14 @@ skip() { echo -e "${YELLOW}[SKIP]${NC}  $*"; }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPTS_DIR="$REPO_ROOT/scripts"
-ZIP_PATH="$SCRIPTS_DIR/Link2Media-Windows-x64.zip"
-SHA_PATH="$SCRIPTS_DIR/Link2Media-Windows-x64.zip.sha256"
+ZIP_PATH="$SCRIPTS_DIR/Anclora FileStudio-Windows-x64.zip"
+SHA_PATH="$SCRIPTS_DIR/Anclora FileStudio-Windows-x64.zip.sha256"
 VERIFY_STAGING="$SCRIPTS_DIR/.staging/.verify_tmp"
 FAILURES=0
 
 echo ""
 echo -e "${CYAN}═══════════════════════════════════════════════════${NC}"
-echo -e "${CYAN}  Verificación del paquete portable Link2Media      ${NC}"
+echo -e "${CYAN}  Verificación del paquete portable Anclora FileStudio      ${NC}"
 echo -e "${CYAN}═══════════════════════════════════════════════════${NC}"
 echo ""
 
@@ -55,16 +55,16 @@ info "Extrayendo ZIP en staging temporal..."
 rm -rf "$VERIFY_STAGING"
 mkdir -p "$VERIFY_STAGING"
 unzip -q "$ZIP_PATH" -d "$VERIFY_STAGING" || { fail "No se pudo descomprimir el ZIP"; exit 1; }
-EXTRACTED="$VERIFY_STAGING/Link2Media-Windows-x64"
-[[ -d "$EXTRACTED" ]] || { fail "Directorio raíz Link2Media-Windows-x64 no encontrado en el ZIP"; exit 1; }
+EXTRACTED="$VERIFY_STAGING/Anclora FileStudio-Windows-x64"
+[[ -d "$EXTRACTED" ]] || { fail "Directorio raíz Anclora FileStudio-Windows-x64 no encontrado en el ZIP"; exit 1; }
 ok "ZIP extraído"
 
 # ── 4. Archivos obligatorios ─────────────────────────────────────────────────
 info "Verificando archivos obligatorios..."
 
 REQUIRED_FILES=(
-  "INICIAR_LINK2MEDIA.bat"
-  "CERRAR_LINK2MEDIA.bat"
+  "INICIAR_ANCLORA_FILESTUDIO.bat"
+  "CERRAR_ANCLORA_FILESTUDIO.bat"
   "ACTUALIZAR_YTDLP.bat"
   "LEEME.txt"
   "VERSION.txt"
@@ -77,8 +77,8 @@ REQUIRED_FILES=(
   "app/server.js"
   "app/package.json"
   "app/.next/static"
-  "internal/start-link2media.ps1"
-  "internal/stop-link2media.ps1"
+  "internal/start-anclora-filestudio.ps1"
+  "internal/stop-anclora-filestudio.ps1"
   "internal/update-ytdlp.ps1"
   "app/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
 )
@@ -147,7 +147,7 @@ else
   ok "  Sin app/node_modules/.pnpm"
 fi
 
-MAX_PATH_INFO="$(cd "$VERIFY_STAGING" && find Link2Media-Windows-x64 -type f | awk '{ if (length($0) > max) { max=length($0); path=$0 } } END { print max " " path }')"
+MAX_PATH_INFO="$(cd "$VERIFY_STAGING" && find Anclora FileStudio-Windows-x64 -type f | awk '{ if (length($0) > max) { max=length($0); path=$0 } } END { print max " " path }')"
 MAX_PATH_LEN="${MAX_PATH_INFO%% *}"
 MAX_PATH_NAME="${MAX_PATH_INFO#* }"
 if [[ "${MAX_PATH_LEN:-0}" -gt 180 ]]; then
@@ -170,10 +170,10 @@ done
 
 # ── 10. .bat contiene %~dp0 (rutas relativas) ────────────────────────────────
 info "Verificando que el BAT usa %%~dp0 ..."
-if grep -q "%~dp0" "$EXTRACTED/INICIAR_LINK2MEDIA.bat" 2>/dev/null; then
-  ok "  INICIAR_LINK2MEDIA.bat usa %%~dp0"
+if grep -q "%~dp0" "$EXTRACTED/INICIAR_ANCLORA_FILESTUDIO.bat" 2>/dev/null; then
+  ok "  INICIAR_ANCLORA_FILESTUDIO.bat usa %%~dp0"
 else
-  fail "  INICIAR_LINK2MEDIA.bat no usa %%~dp0 — las rutas pueden ser absolutas del dev"
+  fail "  INICIAR_ANCLORA_FILESTUDIO.bat no usa %%~dp0 — las rutas pueden ser absolutas del dev"
 fi
 
 # ── 11. Verificación Windows (si cmd.exe está disponible) ────────────────────
@@ -194,13 +194,13 @@ if command -v cmd.exe >/dev/null 2>&1; then
     exit 0
   fi
   WIN_EXTRACT="${WIN_EXTRACT%\\}"
-  WIN_TEST_DIR="${WIN_EXTRACT}\\Link2Media-Test-$$"
+  WIN_TEST_DIR="${WIN_EXTRACT}\\Anclora FileStudio-Test-$$"
 
   info "  Copiando a carpeta Windows: $WIN_TEST_DIR"
 
   # Extraer en ruta Windows usando PowerShell
   WIN_DEST="$WIN_TEST_DIR"
-  WIN_ZIP_LOCAL="${WIN_EXTRACT}\\Link2Media-Windows-x64-$$.zip"
+  WIN_ZIP_LOCAL="${WIN_EXTRACT}\\Anclora FileStudio-Windows-x64-$$.zip"
   WIN_ZIP_LOCAL_WSL="$(wslpath -u "$WIN_ZIP_LOCAL")"
   cp "$ZIP_PATH" "$WIN_ZIP_LOCAL_WSL"
 
@@ -210,19 +210,19 @@ if command -v cmd.exe >/dev/null 2>&1; then
     ok "  ZIP extraído en Windows: $WIN_DEST"
 
     # Comprobar que node.exe ejecuta en Windows
-    WIN_NODE="$WIN_DEST\\Link2Media-Windows-x64\\runtime\\node.exe"
+    WIN_NODE="$WIN_DEST\\Anclora FileStudio-Windows-x64\\runtime\\node.exe"
     NODE_VER="$(powershell.exe -NoProfile -Command "& '$WIN_NODE' --version" 2>/dev/null | tr -d '\r')" && {
       ok "  node.exe responde: $NODE_VER"
     } || fail "  node.exe no responde en Windows"
 
     # Comprobar yt-dlp.exe
-    WIN_YTDLP="$WIN_DEST\\Link2Media-Windows-x64\\tools\\yt-dlp.exe"
+    WIN_YTDLP="$WIN_DEST\\Anclora FileStudio-Windows-x64\\tools\\yt-dlp.exe"
     YTDLP_VER="$(powershell.exe -NoProfile -Command "& '$WIN_YTDLP' --version" 2>/dev/null | tr -d '\r')" && {
       ok "  yt-dlp.exe responde: $YTDLP_VER"
     } || fail "  yt-dlp.exe no responde en Windows"
 
     # Comprobar ffmpeg.exe
-    WIN_FFMPEG="$WIN_DEST\\Link2Media-Windows-x64\\tools\\ffmpeg\\bin\\ffmpeg.exe"
+    WIN_FFMPEG="$WIN_DEST\\Anclora FileStudio-Windows-x64\\tools\\ffmpeg\\bin\\ffmpeg.exe"
     FFMPEG_VER="$(powershell.exe -NoProfile -Command "& '$WIN_FFMPEG' -version 2>&1" 2>/dev/null | head -1 | tr -d '\r')" && {
       ok "  ffmpeg.exe responde: $FFMPEG_VER"
     } || fail "  ffmpeg.exe no responde en Windows"

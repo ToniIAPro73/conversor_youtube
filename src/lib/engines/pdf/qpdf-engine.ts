@@ -13,7 +13,7 @@ import { CONFIG } from "../../config";
 
 const ENGINE_ID: EngineId = "qpdf";
 
-// Look for qpdf: prefer LINK2MEDIA_QPDF_PATH env var, then portable path, then PATH
+// Look for qpdf: prefer ANCLORA_FILESTUDIO_QPDF_PATH env var, then portable path, then PATH
 function findQpdfBinary(): string {
   const envPath = CONFIG.media.binaries.qpdf;
   if (envPath && envPath !== "qpdf") return envPath;

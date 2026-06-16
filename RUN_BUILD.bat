@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 > nul
-title Link2Media — Windows Portable Build Pipeline
+title Anclora FileStudio — Windows Portable Build Pipeline
 
 echo.
 echo  =============================================================
-echo    Link2Media — Windows Portable Build Pipeline
+echo    Anclora FileStudio — Windows Portable Build Pipeline
 echo  =============================================================
 echo.
 echo  Iniciando en WSL Ubuntu...

@@ -1,7 +1,7 @@
-# Link2Media Universal E2E — Final Validation
+# Anclora FileStudio Universal E2E — Final Validation
 
 > **Date**: 2026-03-04
-> **Branch**: `feat/zai-link2media-universal-e2e`
+> **Branch**: `feat/zai-anclora-filestudio-universal-e2e`
 > **Agent**: Z.ai (Phase 9)
 
 ---
@@ -115,9 +115,9 @@ These warnings are non-blocking and do not affect functionality.
 
 6. **Batch processing**: The batch API is implemented and tested, but the frontend UI for batch operations is limited. Users can trigger batch conversions via the API.
 
-7. **Mobile UX**: The UI is designed mobile-first, but Link2Media runs as a local server. The primary distribution target is Windows desktop via the portable ZIP.
+7. **Mobile UX**: The UI is designed mobile-first, but Anclora FileStudio runs as a local server. The primary distribution target is Windows desktop via the portable ZIP.
 
-8. **Concurrent LibreOffice**: LibreOffice uses a single-instance lock per profile. Link2Media creates isolated profile directories per conversion, but extreme concurrency may still hit limits.
+8. **Concurrent LibreOffice**: LibreOffice uses a single-instance lock per profile. Anclora FileStudio creates isolated profile directories per conversion, but extreme concurrency may still hit limits.
 
 9. **Archive safety**: 7-Zip engine blocks archives with path traversal entries and enforces expansion ratio/entry count limits. However, no archive engine can guarantee 100% safety against all zip-slip attacks.
 
