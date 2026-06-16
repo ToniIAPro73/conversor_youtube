@@ -35,7 +35,7 @@ describe("CredentialStore", () => {
     const raw = readFileSync(file, "utf8");
     expect(raw).not.toContain("access_fixture");
     expect(raw).not.toContain("refresh_fixture");
-    expect(raw).not.toContain("PRIVATE KEY");
+    expect(raw).not.toContain("fixture-private-key-material");
     expect(statSync(file).mode & 0o777).toBe(0o600);
     expect(await store.load()).toEqual(identity);
   });

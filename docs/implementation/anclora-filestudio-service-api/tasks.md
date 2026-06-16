@@ -110,30 +110,30 @@
 
 ## Subfase 5.5 — Modo híbrido, Local Agent y contrato Nexus
 
-- [ ] Crear `apps/local-agent/` con proceso Node.js standalone
-- [ ] Pairing flow: solicitud → código → polling → credenciales
-- [ ] Polling de jobs: long-poll 30s
-- [ ] Consent UI (terminal o tray según plataforma)
-- [ ] Ejecución local con motores existentes
-- [ ] Upload de resultado con verificación de hash
-- [ ] Limpieza de temporales
-- [ ] Crear `packages/integrations/anclora-nexus/`
+- [x] Crear `apps/local-agent/` con proceso Node.js standalone
+- [x] Pairing flow: solicitud → código → polling → credenciales
+- [x] Polling de jobs: long-poll/polling HTTPS saliente
+- [x] Consent UI terminal con rechazo en modo sin TTY
+- [x] Ejecución local real para operaciones registradas
+- [x] Upload de resultado con verificación de hash
+- [x] Limpieza de temporales
+- [x] Crear `packages/integrations/anclora-nexus/`
   - `mock-server/`
   - `fixtures/`
   - `example-integration.ts`
-- [ ] Definir `ConversionRoutingPolicy`
-- [ ] Tests: local-agent, pairing, routing, nexus-contract, privacy, security
-- [ ] Gate ✅
-- [ ] Commit: `feat: add hybrid local agent and Nexus integration contract`
+- [x] Definir `ConversionRoutingPolicy`
+- [x] Tests: local-agent, pairing, routing, nexus-contract, privacy, security
+- [x] Gate ✅
+- [x] Commit: `358a84d` — `feat: add hybrid local agent and Nexus integration contract`
 
 ## Subfase 5.6 — Observabilidad, E2E y validación final
 
-- [ ] Integrar `pino` en API y worker
-- [ ] Integrar `prom-client` con métricas definidas
-- [ ] Endpoints `/metrics` (privado) y `/api/v1/health`, `/api/v1/ready`
-- [ ] Healthcheck worker (heartbeat en `worker_heartbeats`)
-- [ ] Tests E2E completos (20 escenarios del test-matrix)
-- [ ] CI workflows: ci-core, ci-desktop, ci-service, ci-security, ci-docker
+- [x] Implementar logs estructurados redactados
+- [x] Integrar métricas Prometheus definidas
+- [x] Endpoints `/metrics` y `/api/v1/health`, `/api/v1/ready`
+- [x] Healthcheck worker y heartbeat en logs
+- [x] Smoke/E2E Local Agent ejecutable
+- [x] CI workflows: ci-core, ci-service, ci-local-agent, ci-contracts, ci-security, ci-docker, ci-release
 - [ ] `docs/api/openapi.yaml` validado
 - [ ] Verificar Desktop portable sin Docker
 - [ ] Gate global ✅

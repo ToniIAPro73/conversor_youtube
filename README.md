@@ -2,6 +2,16 @@
 
 Anclora FileStudio is a privacy-first, 100% local file converter that runs entirely in your browser. Upload any supported file and convert it to another format — no cloud, no uploads to external servers, no data leaving your machine.
 
+Anclora FileStudio es una plataforma local-first de conversión y procesamiento de archivos que puede ejecutarse en el equipo del usuario o como servicio privado dentro de infraestructura controlada.
+
+## Product Surfaces
+
+- **Anclora FileStudio Desktop**: local Next.js application, no Docker required.
+- **Anclora FileStudio Core**: shared domain contracts and conversion types.
+- **Anclora FileStudio Service**: private VPS/CI API with PostgreSQL, Redis and workers.
+- **Anclora FileStudio Local Agent**: optional outbound-only agent with revocable pairing and local consent.
+- **Anclora FileStudio SDK**: TypeScript client for Nexus and internal integrations.
+
 ## Features
 
 - **Universal conversion**: Convert between 50+ formats across 11 categories

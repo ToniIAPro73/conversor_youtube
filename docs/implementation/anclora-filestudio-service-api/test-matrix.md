@@ -29,6 +29,25 @@
 | `pnpm --filter @anclora/filestudio-api test -- tests/agent.test.ts tests/auth.test.ts` | OK |
 | `pnpm build:local-agent` | OK |
 
+### Subfase 5.6 ejecutada
+
+| Comando | Resultado |
+|---|---|
+| `pnpm install --frozen-lockfile` | OK |
+| `pnpm typecheck` | OK |
+| `pnpm test:api` | OK, 34 tests |
+| `pnpm test:contracts` | OK |
+| `pnpm test:service:e2e` | OK, smoke Local Agent |
+| `pnpm test:security` | OK, 16 tests |
+| `pnpm build:service` | OK |
+| `pnpm --filter @anclora/filestudio-worker build` | OK |
+| `pnpm build:local-agent` | OK |
+| `pnpm audit --prod` | OK |
+| `pnpm audit:licenses` | OK, 0 errores / 6 warnings |
+| `pnpm generate:sbom` | OK |
+| `docker compose -f deploy/vps/compose.yml config` | OK |
+| `docker compose -f deploy/vps/compose.yml build` | NO EJECUTADO: daemon Docker no disponible |
+
 ### `pnpm test:api`
 
 | Test | Archivo |

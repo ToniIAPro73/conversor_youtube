@@ -11,9 +11,9 @@ mkdir -p "${DEST}"
 
 echo "[backup] Starting backup to ${DEST}"
 
-# Load env
-# shellcheck disable=SC1091
-source "$(dirname "$0")/.env"
+ENV_FILE="$(dirname "$0")/.env"
+POSTGRES_PASSWORD="$(grep -E '^POSTGRES_PASSWORD=' "${ENV_FILE}" | cut -d= -f2-)"
+export PGPASSWORD="${POSTGRES_PASSWORD}"
 
 # PostgreSQL dump
 echo "[backup] Dumping PostgreSQL..."
@@ -33,5 +33,5 @@ echo "[backup] Done. Files:"
 ls -lh "${DEST}/"
 
 # Prune backups older than 30 days
-find "${BACKUP_DIR}" -maxdepth 1 -type d -mtime +30 -exec rm -rf {} + 2>/dev/null || true
+find "${BACKUP_DIR}" -maxdepth 1 -type d -mtime +30 -exec rm -rf {} +
 echo "[backup] Pruned backups older than 30 days."
