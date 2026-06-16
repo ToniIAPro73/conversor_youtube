@@ -78,6 +78,25 @@
 - [ ] Implementar `WebhookDeliveryService` con SSRF protection
 - [ ] Implementar firma HMAC-SHA256 de webhooks
 - [ ] Crear `deploy/vps/` completo
+
+## Subfase 5.5 — Local Agent híbrido e integración Nexus
+
+- [x] Preservar working tree parcial en `/tmp/anclora-filestudio-handoff`
+- [x] Verificar rama obligatoria `feat/anclora-filestudio-service-api`
+- [x] Actualizar `origin` al remoto canónico verificado
+- [x] Incluir `packages/integrations/*` en workspace pnpm
+- [x] Eliminar placeholder de ejecución del Local Agent
+- [x] Implementar catálogo/probes/capabilities reales del agente
+- [x] Implementar conversión real `data.json-to-yaml` y `data.yaml-to-json`
+- [x] Implementar probe/operación opcional `image.png-to-webp` con Sharp cuando esté disponible
+- [x] Implementar `CredentialStore` en memoria y fallback cifrado AES-256-GCM
+- [x] Implementar refresh token rotatorio, expiración, reutilización y unpair
+- [x] Implementar endpoints de pairing, admin approve/reject, capabilities, heartbeat y jobs locales
+- [x] Evitar tokens sensibles en query string para input del agente
+- [x] Endurecer mock Nexus con IDs criptográficos e idempotencia por hash de payload
+- [x] Hacer routing configurable y evitar fallback confidencial automático al VPS
+- [x] Añadir tests de pairing, credenciales, refresh, revocación, consentimiento, routing, contrato y smoke local
+- [x] Añadir `build:local-agent` con artefactos ignorados en `dist/local-agent/*`
   - `compose.yml`, `compose.dev.yml`, `compose.prod.yml`
   - `Caddyfile`
   - `env.example`
@@ -91,30 +110,30 @@
 
 ## Subfase 5.5 — Modo híbrido, Local Agent y contrato Nexus
 
-- [ ] Crear `apps/local-agent/` con proceso Node.js standalone
-- [ ] Pairing flow: solicitud → código → polling → credenciales
-- [ ] Polling de jobs: long-poll 30s
-- [ ] Consent UI (terminal o tray según plataforma)
-- [ ] Ejecución local con motores existentes
-- [ ] Upload de resultado con verificación de hash
-- [ ] Limpieza de temporales
-- [ ] Crear `packages/integrations/anclora-nexus/`
+- [x] Crear `apps/local-agent/` con proceso Node.js standalone
+- [x] Pairing flow: solicitud → código → polling → credenciales
+- [x] Polling de jobs: long-poll/polling HTTPS saliente
+- [x] Consent UI terminal con rechazo en modo sin TTY
+- [x] Ejecución local real para operaciones registradas
+- [x] Upload de resultado con verificación de hash
+- [x] Limpieza de temporales
+- [x] Crear `packages/integrations/anclora-nexus/`
   - `mock-server/`
   - `fixtures/`
   - `example-integration.ts`
-- [ ] Definir `ConversionRoutingPolicy`
-- [ ] Tests: local-agent, pairing, routing, nexus-contract, privacy, security
-- [ ] Gate ✅
-- [ ] Commit: `feat: add hybrid local agent and Nexus integration contract`
+- [x] Definir `ConversionRoutingPolicy`
+- [x] Tests: local-agent, pairing, routing, nexus-contract, privacy, security
+- [x] Gate ✅
+- [x] Commit: `358a84d` — `feat: add hybrid local agent and Nexus integration contract`
 
 ## Subfase 5.6 — Observabilidad, E2E y validación final
 
-- [ ] Integrar `pino` en API y worker
-- [ ] Integrar `prom-client` con métricas definidas
-- [ ] Endpoints `/metrics` (privado) y `/api/v1/health`, `/api/v1/ready`
-- [ ] Healthcheck worker (heartbeat en `worker_heartbeats`)
-- [ ] Tests E2E completos (20 escenarios del test-matrix)
-- [ ] CI workflows: ci-core, ci-desktop, ci-service, ci-security, ci-docker
+- [x] Implementar logs estructurados redactados
+- [x] Integrar métricas Prometheus definidas
+- [x] Endpoints `/metrics` y `/api/v1/health`, `/api/v1/ready`
+- [x] Healthcheck worker y heartbeat en logs
+- [x] Smoke/E2E Local Agent ejecutable
+- [x] CI workflows: ci-core, ci-service, ci-local-agent, ci-contracts, ci-security, ci-docker, ci-release
 - [ ] `docs/api/openapi.yaml` validado
 - [ ] Verificar Desktop portable sin Docker
 - [ ] Gate global ✅

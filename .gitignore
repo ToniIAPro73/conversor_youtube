@@ -3,6 +3,7 @@
 # dependencies
 /node_modules
 packages/*/node_modules
+packages/integrations/*/node_modules
 apps/*/node_modules
 /.pnp
 .pnp.*
@@ -21,6 +22,8 @@ apps/*/node_modules
 
 # production
 /build
+apps/*/dist/
+packages/*/dist/
 
 # misc
 .DS_Store
@@ -35,6 +38,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!deploy/vps/.env.example
 
 # vercel
 .vercel

@@ -1,0 +1,32 @@
+{
+    # Global options
+    email {$CADDY_ACME_EMAIL}
+    admin off
+}
+
+{$PUBLIC_DOMAIN} {
+    # TLS via Let's Encrypt (automatic)
+    tls {$CADDY_ACME_EMAIL}
+
+    # Only allow known paths — block everything else
+    @api path /api/v1/*
+    @health path /api/v1/health /api/v1/ready
+
+    # Rate limiting at edge (Caddy layer)
+    # Additional per-client rate limiting done in the API (Redis-backed)
+    route @api {
+        reverse_proxy api:8080 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            # No redirects — preserve for SSRF protection
+            transport http {
+                dial_timeout 10s
+                response_header_timeout 60s
+            }
+        }
+    }
+
+    # Block everything else with 404
+    respond 404
+}

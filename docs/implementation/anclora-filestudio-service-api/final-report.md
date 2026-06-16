@@ -48,17 +48,48 @@
 
 ## Subfase 5.5
 
-- Estado: ⏳ Pendiente
-- Commit: —
-- Push: —
-- Gates: —
+- Estado: completada y publicada
+- Commit: `feat: add hybrid local agent and Nexus integration contract`
+- SHA local/remoto: `358a84d8cb41841084d3a772d24d8109a5b29a82`
+- Push: OK
+- Gates ejecutados:
+  - `pnpm --filter @anclora/filestudio-local-agent typecheck` — OK
+  - `pnpm --filter @anclora/filestudio-api typecheck` — OK
+  - `pnpm --filter @anclora/filestudio-nexus typecheck` — OK
+  - `pnpm test:local-agent` — OK, 6 archivos / 24 tests
+  - `pnpm test:routing` — OK
+  - `pnpm test:nexus-contract` — OK
+  - `pnpm --filter @anclora/filestudio-api test -- tests/agent.test.ts tests/auth.test.ts` — OK
+  - `pnpm test:security` — OK, 16 tests
+  - `pnpm build` — OK
+  - `pnpm build:local-agent` — OK
+- Gate no aplicable a 5.5: `pnpm build:service` se ejecutó de forma anticipada y falló por configuración `rootDir` de `apps/api/tsconfig.build.json` al importar `packages/core`; se registra como corrección de subfase 5.6.
+- Smoke test: incluido en `apps/local-agent/tests/smoke.test.ts`; ejecuta conversión real `data.json-to-yaml` contra servidor HTTP local de test.
+- Limitaciones reales: keychain nativo Windows/Linux queda documentado como hardening posterior; fallback portable exige clave explícita y cifra con AES-256-GCM.
 
 ## Subfase 5.6
 
-- Estado: ⏳ Pendiente
-- Commit: —
-- Push: —
-- Gates: —
+- Estado: en validación previa a commit
+- Commit: pendiente
+- Push: pendiente
+- Gates ejecutados:
+  - `pnpm install --frozen-lockfile` — OK
+  - `pnpm typecheck` — OK
+  - `pnpm test:api` — OK, 4 archivos / 34 tests
+  - `pnpm test:contracts` — OK
+  - `pnpm test:service:e2e` — OK (smoke Local Agent)
+  - `pnpm test:security` — OK, 16 tests
+  - `pnpm build:service` — OK
+  - `pnpm --filter @anclora/filestudio-worker build` — OK
+  - `pnpm build:local-agent` — OK
+  - `pnpm audit --prod` — OK, sin vulnerabilidades conocidas tras override `postcss@8.5.10`
+  - `pnpm audit:licenses` — OK, 0 errores / 6 warnings de redistribución documentales
+  - `pnpm generate:sbom` — OK, 52 componentes
+  - `docker compose -f deploy/vps/compose.yml config` — OK
+- Docker: Dockerfiles corregidos para pnpm fijo, build real, Redis autenticado y runtime JS compilado. Smoke Docker local pendiente si Docker no está disponible.
+- Docker build/smoke: NO EJECUTADO; Docker CLI existe pero el daemon no está disponible (`/var/run/docker.sock` ausente).
+- Observabilidad: métricas Prometheus requeridas, logs estructurados redactados y endpoint `/api/v1/metrics`.
+- CI: workflow consolidado `.github/workflows/ci.yml`.
 
 ## Arquitectura final
 

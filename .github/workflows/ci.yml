@@ -1,0 +1,112 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+
+jobs:
+  ci-core:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - name: Install real engine binaries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg poppler-utils qpdf pandoc tesseract-ocr
+      - run: pnpm test
+
+  ci-service:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @anclora/filestudio-api typecheck
+      - run: pnpm --filter @anclora/filestudio-api test
+      - run: pnpm build:service
+
+  ci-local-agent:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:local-agent
+      - run: pnpm build:local-agent
+
+  ci-contracts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:routing
+      - run: pnpm test:nexus-contract
+
+  ci-security:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:security
+      - run: pnpm audit --prod
+      - run: pnpm audit:licenses
+      - run: pnpm generate:sbom
+
+  ci-docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: docker compose -f deploy/vps/compose.yml config
+      - run: docker compose -f deploy/vps/compose.yml build --no-cache
+
+  ci-release:
+    runs-on: ubuntu-24.04
+    needs: [ci-core, ci-service, ci-local-agent, ci-contracts, ci-security]
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Release packaging is manual; this job validates metadata only."

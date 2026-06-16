@@ -8,14 +8,14 @@ import { monotonicFactory } from "ulid";
 const ulid = monotonicFactory();
 
 export class BullMQConversionQueue implements ConversionQueue {
-  private readonly queues = new Map<string, Queue<QueueJobPayload>>();
+  private readonly queues = new Map<string, Queue<QueueJobPayload, unknown, string>>();
 
   constructor(private readonly connection: Redis) {
     for (const name of Object.values(QUEUE_NAMES)) {
       this.queues.set(
         name,
-        new Queue<QueueJobPayload>(name, {
-          connection,
+        new Queue<QueueJobPayload, unknown, string>(name, {
+          connection: connection as never,
           defaultJobOptions: {
             removeOnComplete: { age: 3600 }, // keep 1h for debugging
             removeOnFail: { age: 86400 },     // keep 1d for inspection
@@ -25,7 +25,7 @@ export class BullMQConversionQueue implements ConversionQueue {
     }
   }
 
-  private resolveQueue(queueName?: string): Queue<QueueJobPayload> {
+  private resolveQueue(queueName?: string): Queue<QueueJobPayload, unknown, string> {
     const name = queueName ?? QUEUE_NAMES.MEDIA;
     const q = this.queues.get(name);
     if (!q) throw new Error(`Unknown queue: ${name}`);

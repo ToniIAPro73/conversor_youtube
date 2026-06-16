@@ -68,7 +68,7 @@ export function createUploadsRouter(): Hono {
       return c.json({ type: "about:blank", title: "Service Unavailable", status: 503, code: "ENGINE_UNAVAILABLE" }, 503);
     }
 
-    const upload = await uploadService.getByIdAndClient(c.req.param("id"), auth.claims.client_id);
+    const upload = await uploadService.getByIdAndClient(c.req.param("id")!, auth.claims.client_id);
     if (!upload) {
       return c.json({ type: "about:blank", title: "Not Found", status: 404, code: "UPLOAD_NOT_FOUND" }, 404);
     }
@@ -92,7 +92,7 @@ export function createUploadsRouter(): Hono {
       return c.json({ type: "about:blank", title: "Service Unavailable", status: 503, code: "ENGINE_UNAVAILABLE" }, 503);
     }
 
-    const ok = await uploadService.deleteByIdAndClient(c.req.param("id"), auth.claims.client_id);
+    const ok = await uploadService.deleteByIdAndClient(c.req.param("id")!, auth.claims.client_id);
     if (!ok) {
       return c.json({ type: "about:blank", title: "Not Found", status: 404, code: "UPLOAD_NOT_FOUND" }, 404);
     }
