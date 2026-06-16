@@ -1,0 +1,34 @@
+openapi: 3.1.0
+info:
+  title: Anclora FileStudio Service API
+  version: 0.2.0
+paths:
+  /api/v1/health:
+    get:
+      responses:
+        "200":
+          description: Process is alive
+  /api/v1/ready:
+    get:
+      responses:
+        "200":
+          description: Dependencies are ready
+        "503":
+          description: Not ready
+  /api/v1/metrics:
+    get:
+      responses:
+        "200":
+          description: Prometheus metrics
+  /api/v1/agent-pairing-requests:
+    post:
+      responses:
+        "201":
+          description: Pairing code created
+  /api/v1/agent/jobs/available:
+    get:
+      responses:
+        "200":
+          description: Local Agent job
+        "204":
+          description: No job available

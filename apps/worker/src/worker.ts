@@ -3,7 +3,10 @@
 import { Worker, type Job as BullJob } from "bullmq";
 import { Redis } from "ioredis";
 import { randomUUID } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { z } from "zod";
+import { parse as yamlParse, stringify as yamlStringify } from "yaml";
 import type { QueueJobPayload } from "@anclora/filestudio-core";
 import { QUEUE_NAMES } from "@anclora/filestudio-core";
 
@@ -33,21 +36,36 @@ async function processJob(job: BullJob<QueueJobPayload>): Promise<void> {
 
   await job.updateProgress(0);
 
-  // Delegate to the engine registry (shared with the Next.js Desktop app)
-  // In a real multi-process deployment this would import from @anclora/filestudio-engines.
-  // For now we stub: the real engine call is wired in when the engines package is complete.
   await runWithTimeout(
     async () => {
-      // TODO: import from engines package and call engine.run({ inputPath, outputPath, options })
-      // Placeholder for worker test purposes
       await job.updateProgress(50);
-      console.log(`[worker] job=${jobId} engine=${engineId} input=${inputPath} output=${outputPath}`);
+      await executeWorkerConversion({ operation, inputPath, outputPath, options });
       await job.updateProgress(100);
     },
     timeoutMs
   );
 
   console.log(`[worker] Completed job=${jobId}`);
+}
+
+async function executeWorkerConversion(input: {
+  operation: string;
+  inputPath: string;
+  outputPath: string;
+  options: Record<string, unknown>;
+}): Promise<void> {
+  await mkdir(dirname(input.outputPath), { recursive: true });
+  if (input.operation === "data.json-to-yaml") {
+    const parsed = JSON.parse(await readFile(input.inputPath, "utf8")) as unknown;
+    await writeFile(input.outputPath, yamlStringify(parsed), { mode: 0o600 });
+    return;
+  }
+  if (input.operation === "data.yaml-to-json") {
+    const parsed = yamlParse(await readFile(input.inputPath, "utf8")) as unknown;
+    await writeFile(input.outputPath, `${JSON.stringify(parsed, null, 2)}\n`, { mode: 0o600 });
+    return;
+  }
+  throw new Error(`OPERATION_UNAVAILABLE: ${input.operation}`);
 }
 
 async function runWithTimeout<T>(fn: () => Promise<T>, ms: number): Promise<T> {
@@ -96,7 +114,7 @@ async function main() {
   const workers = allQueues.map(
     (queueName) =>
       new Worker<QueueJobPayload>(queueName, processJob, {
-        connection,
+        connection: connection as never,
         concurrency: config.ANCLORA_WORKER_CONCURRENCY,
         stalledInterval: 30_000,
         lockDuration: 60_000,

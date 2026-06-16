@@ -6,7 +6,7 @@ import { EncryptedFileCredentialStore, MemoryCredentialStore } from "../src/cred
 import type { StoredAgentIdentity } from "../src/types.js";
 
 const identity: StoredAgentIdentity = {
-  privateKeyPem: "-----BEGIN PRIVATE KEY-----\nsecret\n-----END PRIVATE KEY-----",
+  privateKeyPem: "fixture-private-key-material",
   credentials: {
     deviceId: "dev_test",
     accessToken: "access_secret",
@@ -35,7 +35,7 @@ describe("CredentialStore", () => {
     const raw = readFileSync(file, "utf8");
     expect(raw).not.toContain("access_secret");
     expect(raw).not.toContain("refresh_secret");
-    expect(raw).not.toContain("PRIVATE KEY");
+    expect(raw).not.toContain("fixture-private-key-material");
     expect(statSync(file).mode & 0o777).toBe(0o600);
     expect(await store.load()).toEqual(identity);
   });

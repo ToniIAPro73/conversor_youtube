@@ -29,7 +29,7 @@ services:
       ANCLORA_FILESTUDIO_ENV: production
       ANCLORA_FILESTUDIO_PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
       ANCLORA_FILESTUDIO_DATABASE_URL: ${DATABASE_URL}
-      ANCLORA_FILESTUDIO_REDIS_URL: redis://redis:6379
+      ANCLORA_FILESTUDIO_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       ANCLORA_FILESTUDIO_JWT_ISSUER: ${JWT_ISSUER}
       ANCLORA_FILESTUDIO_JWT_AUDIENCE: anclora-filestudio-service
       ANCLORA_FILESTUDIO_JWT_PUBLIC_KEYS_PATH: /run/secrets/jwt_keys
@@ -53,6 +53,11 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=256m
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   worker:
     build:
@@ -60,7 +65,7 @@ services:
       dockerfile: deploy/vps/Dockerfile.worker
     restart: unless-stopped
     environment:
-      ANCLORA_WORKER_REDIS_URL: redis://redis:6379
+      ANCLORA_WORKER_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       ANCLORA_WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
       ANCLORA_WORKER_HEARTBEAT_INTERVAL_MS: 30000
     volumes:
@@ -76,6 +81,11 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=512m
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   postgres:
     image: postgres:16-alpine

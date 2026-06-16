@@ -14,8 +14,9 @@ if [[ ! -d "${BACKUP}" ]]; then
   exit 1
 fi
 
-# shellcheck disable=SC1091
-source "$(dirname "$0")/.env"
+ENV_FILE="$(dirname "$0")/.env"
+POSTGRES_PASSWORD="$(grep -E '^POSTGRES_PASSWORD=' "${ENV_FILE}" | cut -d= -f2-)"
+export PGPASSWORD="${POSTGRES_PASSWORD}"
 
 echo "[restore] WARNING: This will STOP the API and OVERWRITE production data."
 read -r -p "Type 'yes' to continue: " CONFIRM

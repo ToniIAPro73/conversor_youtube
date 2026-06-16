@@ -48,9 +48,10 @@
 
 ## Subfase 5.5
 
-- Estado: En validación previa a commit
-- Commit: pendiente
-- Push: pendiente
+- Estado: completada y publicada
+- Commit: `feat: add hybrid local agent and Nexus integration contract`
+- SHA local/remoto: `358a84d8cb41841084d3a772d24d8109a5b29a82`
+- Push: OK
 - Gates ejecutados:
   - `pnpm --filter @anclora/filestudio-local-agent typecheck` — OK
   - `pnpm --filter @anclora/filestudio-api typecheck` — OK
@@ -68,10 +69,27 @@
 
 ## Subfase 5.6
 
-- Estado: ⏳ Pendiente
-- Commit: —
-- Push: —
-- Gates: —
+- Estado: en validación previa a commit
+- Commit: pendiente
+- Push: pendiente
+- Gates ejecutados:
+  - `pnpm install --frozen-lockfile` — OK
+  - `pnpm typecheck` — OK
+  - `pnpm test:api` — OK, 4 archivos / 34 tests
+  - `pnpm test:contracts` — OK
+  - `pnpm test:service:e2e` — OK (smoke Local Agent)
+  - `pnpm test:security` — OK, 16 tests
+  - `pnpm build:service` — OK
+  - `pnpm --filter @anclora/filestudio-worker build` — OK
+  - `pnpm build:local-agent` — OK
+  - `pnpm audit --prod` — OK, sin vulnerabilidades conocidas tras override `postcss@8.5.10`
+  - `pnpm audit:licenses` — OK, 0 errores / 6 warnings de redistribución documentales
+  - `pnpm generate:sbom` — OK, 52 componentes
+  - `docker compose -f deploy/vps/compose.yml config` — OK
+- Docker: Dockerfiles corregidos para pnpm fijo, build real, Redis autenticado y runtime JS compilado. Smoke Docker local pendiente si Docker no está disponible.
+- Docker build/smoke: NO EJECUTADO; Docker CLI existe pero el daemon no está disponible (`/var/run/docker.sock` ausente).
+- Observabilidad: métricas Prometheus requeridas, logs estructurados redactados y endpoint `/api/v1/metrics`.
+- CI: workflow consolidado `.github/workflows/ci.yml`.
 
 ## Arquitectura final
 
