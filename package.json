@@ -21,6 +21,8 @@
     "test:background-removal": "vitest run --config vitest.background-removal.config.ts",
     "test:alpha-channel": "vitest run --config vitest.alpha-channel.config.ts",
     "test:vision-pack": "vitest run --config vitest.vision-pack.config.ts",
+    "test:core": "vitest run --config vitest.core.config.ts",
+    "test:sdk": "vitest run --config vitest.sdk.config.ts",
     "test:e2e": "playwright test",
     "build:portable:windows": "bash scripts/build-windows-portable.sh",
     "build:portable:linux": "bash scripts/build-linux-portable.sh",

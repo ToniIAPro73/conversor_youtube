@@ -214,7 +214,7 @@ export function SourceSelector({ onUrlAnalyzed, onFileAnalyzed, isLoading, setLo
         : "";
 
   return (
-    <div className="space-y-3 rounded-[22px] border border-white/10 bg-[#111419]/86 p-3 shadow-[0_24px_90px_rgba(0,0,0,0.34)] backdrop-blur">
+    <div className="space-y-3 rounded-[22px] border border-white/10 bg-[#1a1e25] p-3 shadow-[0_24px_90px_rgba(0,0,0,0.34)] backdrop-blur">
       {/* Tab switcher */}
       <div className="grid grid-cols-2 gap-2 rounded-[14px] border border-white/10 bg-black/20 p-1.5">
         <button

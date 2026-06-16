@@ -17,7 +17,7 @@ export function ConversionProgress({ status, stage, progress, onCancel }: Conver
   if (!isPending && status !== "failed") return null;
 
   return (
-    <div className="space-y-4 p-4 bg-white/5 border border-white/10 rounded-lg">
+    <div className="space-y-4 p-4 bg-[#1a1e25] border border-white/10 rounded-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-white/80">
           {status !== "failed" && <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />}

@@ -23,7 +23,7 @@ export function DownloadCard({ fileName, format, quality, sizeBytes, downloadUrl
   };
 
   return (
-    <Card className="bg-emerald-500/5 border-emerald-500/20 overflow-hidden">
+    <Card className="bg-[#1a1e25] border-emerald-500/20 overflow-hidden">
       <CardContent className="p-6">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
