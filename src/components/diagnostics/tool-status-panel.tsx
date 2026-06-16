@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, XCircle, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 
 interface HealthDependency {
-  name: string;
+  id: string;
+  displayName: string;
   available: boolean;
   version: string | null;
   path: string | null;
@@ -34,7 +35,7 @@ function ToolRow({ dep }: { dep: HealthDependency }) {
           <XCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" aria-hidden="true" />
         )}
         <div className="min-w-0">
-          <span className="text-sm font-semibold text-stone-100">{dep.name}</span>
+          <span className="text-sm font-semibold text-stone-100">{dep.displayName}</span>
           {!dep.available && dep.recommendedAction && (
             <p className="mt-0.5 text-[10px] leading-tight text-amber-200/80">
               {dep.recommendedAction}
@@ -82,7 +83,7 @@ export function ToolStatusPanel() {
           onClick={() => refresh()}
           disabled={loading}
           aria-label="Actualizar diagnóstico"
-          className="flex min-h-[44px] items-center gap-1 text-xs font-semibold text-stone-500 hover:text-stone-100 disabled:opacity-50 motion-reduce:transition-none"
+          className="flex min-h-11 items-center gap-1 text-xs font-semibold text-stone-500 hover:text-stone-100 disabled:opacity-50 motion-reduce:transition-none"
         >
           <RefreshCw className={`h-3.5 w-3.5 motion-reduce:animate-none ${loading ? "animate-spin" : ""}`} />
           Verificar
@@ -127,7 +128,7 @@ export function ToolStatusPanel() {
             {/* Tool list */}
             <div>
               {data.dependencies.map((dep) => (
-                <ToolRow key={dep.name} dep={dep} />
+                <ToolRow key={dep.id} dep={dep} />
               ))}
             </div>
           </div>
@@ -140,7 +141,7 @@ export function ToolStatusPanel() {
                 {data.dependencies
                   .filter((d) => !d.available && d.recommendedAction)
                   .map((d) => (
-                    <li key={d.name}>• <strong>{d.name}:</strong> {d.recommendedAction}</li>
+                    <li key={d.id}>• <strong>{d.displayName}:</strong> {d.recommendedAction}</li>
                   ))}
               </ul>
             </div>
