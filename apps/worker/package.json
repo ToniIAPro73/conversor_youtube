@@ -1,0 +1,28 @@
+{
+  "name": "@anclora/filestudio-worker",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/worker.ts",
+  "scripts": {
+    "dev": "tsx watch src/worker.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/worker.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anclora/filestudio-core": "workspace:*",
+    "bullmq": "^5.54.2",
+    "ioredis": "^5.4.2",
+    "postgres": "^3.4.7",
+    "ulid": "^2.3.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5",
+    "tsx": "^4.19.4",
+    "vitest": "^4.1.8"
+  }
+}
