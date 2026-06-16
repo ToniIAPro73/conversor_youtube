@@ -30,7 +30,7 @@ for (const platform of platforms) {
     "ANCLORA_AGENT_MAX_FILE_BYTES=104857600",
     "ANCLORA_AGENT_MAX_CONCURRENT=1",
     "ANCLORA_AGENT_APPROVED_OPS=data.json-to-yaml",
-    "ANCLORA_AGENT_STORE_KEY=replace-with-a-long-random-secret",
+    "ANCLORA_AGENT_STORE_KEY=",
     "",
   ].join("\n"));
   writeFileSync(join(target, "README.txt"), [

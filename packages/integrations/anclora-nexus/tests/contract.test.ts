@@ -9,10 +9,10 @@ let serverUrl: string;
 let closeServer: () => Promise<void>;
 let state: MockServerState;
 
-const AUTH_HEADER = { Authorization: "Bearer mock-nexus-token" };
+const AUTH_HEADER = { Authorization: "Bearer test-token" };
 
 beforeAll(async () => {
-  const mock = createMockFileStudioServer();
+  const mock = createMockFileStudioServer({ acceptedBearerToken: "test-token" });
   state = mock.state;
   const srv = await mock.start();
   serverUrl = srv.url;

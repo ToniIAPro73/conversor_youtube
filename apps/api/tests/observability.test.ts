@@ -17,11 +17,11 @@ describe("observability", () => {
       environment: "test",
       clientId: "client-real-name",
       deviceId: "device-real-name",
-      message: "Authorization Bearer abcdefghijklmnopqrstuvwxyz token=secret-value https://signed.example/path?token=abc",
+      message: "Authorization Bearer fixture token=fixture-value https://signed.example/path?token=abc",
     });
     expect(line).not.toContain("client-real-name");
     expect(line).not.toContain("device-real-name");
-    expect(line).not.toContain("secret-value");
+    expect(line).not.toContain("fixture-value");
     expect(line).not.toContain("signed.example");
     expect(line).toContain("[REDACTED]");
   });

@@ -13,7 +13,9 @@ const client = new AncloraFileStudioClient({
   clientId: "anclora-nexus",
   tokenProvider: async () => {
     // In production, Nexus generates a JWT signed with its Ed25519 private key
-    return process.env.FILESTUDIO_SERVICE_TOKEN ?? "dev-token";
+    const token = process.env.FILESTUDIO_SERVICE_TOKEN;
+    if (!token) throw new Error("FILESTUDIO_SERVICE_TOKEN is required");
+    return token;
   },
 });
 

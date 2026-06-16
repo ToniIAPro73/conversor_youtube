@@ -32,7 +32,7 @@ describe("Local Agent smoke", () => {
 
     const server = createServer(async (req, res) => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
-      if (req.headers.authorization !== "Bearer access-token") {
+      if (req.headers.authorization !== "Bearer test-token") {
         res.writeHead(401).end();
         return;
       }
@@ -79,8 +79,8 @@ describe("Local Agent smoke", () => {
 
     const credentials: AgentCredentials = {
       deviceId: "dev_smoke",
-      accessToken: "access-token",
-      refreshToken: "refresh-token",
+      accessToken: "test-token",
+      refreshToken: "local-agent-refresh-fixture",
       accessTokenExpiresAt: Date.now() + 600_000,
       refreshTokenExpiresAt: Date.now() + 86_400_000,
       serverBaseUrl: baseUrl,
@@ -109,7 +109,7 @@ describe("Local Agent smoke", () => {
         maxConcurrent: 1,
       }, { prompt: async () => false }),
       capabilities,
-      { getValidToken: async () => "access-token" },
+      { getValidToken: async () => "test-token" },
       new LocalOperationRegistry(),
       () => {}
     );
