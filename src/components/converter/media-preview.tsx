@@ -12,7 +12,7 @@ interface MediaPreviewProps {
 
 export function MediaPreview({ metadata, onReset }: MediaPreviewProps) {
   return (
-    <Card className="bg-white/5 border-white/10 overflow-hidden">
+    <Card className="bg-[#1a1e25] border-white/10 overflow-hidden">
       <CardContent className="p-0 sm:flex">
         <div className="relative w-full sm:w-48 aspect-video sm:aspect-square flex-shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}

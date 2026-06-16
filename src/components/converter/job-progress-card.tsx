@@ -28,7 +28,7 @@ export function JobProgressCard({ status, stage, progress, error, onCancel }: Jo
   const isFailed = status === "failed";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 space-y-4">
+    <div className="rounded-2xl border border-white/10 bg-[#1a1e25] p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           {isActive && <Loader2 className="h-4 w-4 text-cyan-400 animate-spin motion-reduce:animate-none" aria-hidden="true" />}

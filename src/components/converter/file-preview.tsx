@@ -161,7 +161,7 @@ export function FilePreview({ content, extension, mimeType, objectUrl }: FilePre
   // Image preview
   if (kind === "image" && objectUrl) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden">
+      <div className="rounded-xl border border-white/10 bg-[#1a1e25] backdrop-blur-sm overflow-hidden">
         <div className="px-3 py-2 flex items-center gap-2 border-b border-white/5">
           <Eye className="h-3.5 w-3.5 text-white/40" aria-hidden="true" />
           <span className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">
@@ -186,7 +186,7 @@ export function FilePreview({ content, extension, mimeType, objectUrl }: FilePre
     const iframeSrc = `data:text/html;charset=utf-8,${encodeURIComponent(sanitized)}`;
 
     return (
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden">
+      <div className="rounded-xl border border-white/10 bg-[#1a1e25] backdrop-blur-sm overflow-hidden">
         <div className="px-3 py-2 flex items-center gap-2 border-b border-white/5">
           <Eye className="h-3.5 w-3.5 text-white/40" aria-hidden="true" />
           <span className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">
@@ -214,7 +214,7 @@ export function FilePreview({ content, extension, mimeType, objectUrl }: FilePre
     const rendered = renderMarkdown(previewContent);
 
     return (
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden">
+      <div className="rounded-xl border border-white/10 bg-[#1a1e25] backdrop-blur-sm overflow-hidden">
         <div className="px-3 py-2 flex items-center gap-2 border-b border-white/5">
           <Eye className="h-3.5 w-3.5 text-white/40" aria-hidden="true" />
           <span className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">
@@ -242,7 +242,7 @@ export function FilePreview({ content, extension, mimeType, objectUrl }: FilePre
     const highlighted = highlightData(escaped, kind);
 
     return (
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden">
+      <div className="rounded-xl border border-white/10 bg-[#1a1e25] backdrop-blur-sm overflow-hidden">
         <div className="px-3 py-2 flex items-center gap-2 border-b border-white/5">
           <Eye className="h-3.5 w-3.5 text-white/40" aria-hidden="true" />
           <span className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">
@@ -269,7 +269,7 @@ export function FilePreview({ content, extension, mimeType, objectUrl }: FilePre
   // Plain text (fallback) or binary
   if (kind === "text" && previewContent) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden">
+      <div className="rounded-xl border border-white/10 bg-[#1a1e25] backdrop-blur-sm overflow-hidden">
         <div className="px-3 py-2 flex items-center gap-2 border-b border-white/5">
           <Eye className="h-3.5 w-3.5 text-white/40" aria-hidden="true" />
           <span className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">
@@ -295,7 +295,7 @@ export function FilePreview({ content, extension, mimeType, objectUrl }: FilePre
 
   // Binary / no preview available
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden">
+    <div className="rounded-xl border border-white/10 bg-[#1a1e25] backdrop-blur-sm overflow-hidden">
       <div className="px-3 py-2 flex items-center gap-2 border-b border-white/5">
         <Eye className="h-3.5 w-3.5 text-white/40" aria-hidden="true" />
         <span className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">

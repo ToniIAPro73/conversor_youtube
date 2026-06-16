@@ -103,10 +103,10 @@ function CapabilityCard({
     <div
       className={`rounded-xl border transition-all ${
         isSelected
-          ? "border-teal-300/55 bg-teal-300/10 shadow-[0_18px_50px_rgba(20,184,166,0.10)]"
+          ? "border-teal-300/55 bg-[#1a1e25] shadow-[0_18px_50px_rgba(20,184,166,0.10)]"
           : isAvailable
-            ? "border-white/10 bg-[#141820] hover:border-teal-200/28 hover:bg-[#191f27]"
-            : "border-white/5 bg-white/[0.025] opacity-55"
+            ? "border-white/10 bg-[#1a1e25] hover:border-teal-200/28 hover:bg-[#1f242c]"
+            : "border-white/5 bg-[#1a1e25] opacity-55"
       }`}
     >
       <button

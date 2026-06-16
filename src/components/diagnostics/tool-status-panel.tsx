@@ -100,7 +100,7 @@ export function ToolStatusPanel() {
         </div>
       ) : (
         <>
-          <div className="rounded-[18px] border border-white/10 bg-[#111419]/88 p-4 shadow-[0_22px_70px_rgba(0,0,0,0.28)]">
+          <div className="rounded-[18px] border border-white/10 bg-[#1a1e25] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.28)]">
             {/* Overall status */}
             <div
               className={`rounded-lg px-3 py-2 mb-4 text-sm flex items-center gap-2 ${

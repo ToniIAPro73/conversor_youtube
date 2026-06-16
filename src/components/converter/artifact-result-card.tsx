@@ -49,7 +49,7 @@ export function ArtifactResultCard({ jobId, fileName, format, sizeBytes, downloa
   };
 
   return (
-    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-400 motion-reduce:animate-none">
+    <div className="rounded-2xl border border-emerald-500/30 bg-[#1a1e25] p-5 space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-400 motion-reduce:animate-none">
       <div className="flex items-start gap-3">
         <div className="h-10 w-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
           <Download className="h-5 w-5 text-emerald-400" aria-hidden="true" />

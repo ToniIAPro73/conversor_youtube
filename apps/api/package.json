@@ -11,8 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "migrate:up": "node-pg-migrate up -m migrations",
-    "migrate:down": "node-pg-migrate down -m migrations"
+    "migrate:up": "tsx src/db/migrate.ts"
   },
   "dependencies": {
     "@anclora/filestudio-core": "workspace:*",
@@ -31,7 +30,6 @@
     "@types/node": "^20",
     "typescript": "^5",
     "tsx": "^4.19.4",
-    "vitest": "^4.1.8",
-    "node-pg-migrate": "^7.10.0"
+    "vitest": "^4.1.8"
   }
 }
