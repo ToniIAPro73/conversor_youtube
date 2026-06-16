@@ -1,16 +1,16 @@
 @echo off
 chcp 65001 > nul
-title Anclora FileStudio — Windows Portable Build Pipeline
+title Anclora FileStudio — Windows Portable Build
 
 echo.
 echo  =============================================================
-echo    Anclora FileStudio — Windows Portable Build Pipeline
+echo    Anclora FileStudio — Windows Portable Build
 echo  =============================================================
 echo.
-echo  Iniciando en WSL Ubuntu...
+echo  Iniciando en WSL...
 echo.
 
-wsl bash -l -c "bash /home/toni/projects/convertidor_youtube_mp3/run_portable_only.sh"
+wsl bash -l -c "cd \"$(wsl wslpath -u '%~dp0')\"; bash scripts/build-portables.sh --windows"
 
 set EXIT_CODE=%errorlevel%
 
