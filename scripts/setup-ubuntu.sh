@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# setup-ubuntu.sh - Link2Media Environment Setup
+# setup-ubuntu.sh - Anclora FileStudio Environment Setup
 
 set -e
 
-echo "--- Link2Media Setup ---"
+echo "--- Anclora FileStudio Setup ---"
 
 # Check if running on Linux
 if [[ "$OSTYPE" != "linux-gnu"* ]]; then

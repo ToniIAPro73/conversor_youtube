@@ -20,7 +20,7 @@ const ENGINE_ID: EngineId = "libreoffice";
 let _runner: ProcessRunner | null = null;
 
 function findLibreofficeBinary(): string {
-  // 1. Prefer LINK2MEDIA_LIBREOFFICE_PATH env var (portable distribution)
+  // 1. Prefer ANCLORA_FILESTUDIO_LIBREOFFICE_PATH env var (portable distribution)
   const envPath = CONFIG.media.binaries.libreoffice;
   if (envPath && envPath !== "libreoffice") return envPath;
   // 2. Portable path relative to cwd

@@ -1,5 +1,5 @@
 ╔══════════════════════════════════════════════════════════════╗
-║                  Link2Media  — Guía rápida                   ║
+║                  Anclora FileStudio  — Guía rápida                   ║
 ╚══════════════════════════════════════════════════════════════╝
 
 CÓMO EMPEZAR
@@ -7,13 +7,13 @@ CÓMO EMPEZAR
 1. Extrae TODO el contenido del ZIP en una carpeta de tu ordenador.
    (Importante: no ejecutes nada directamente desde el ZIP.)
 2. Abre la carpeta extraída.
-3. Haz doble clic en INICIAR_LINK2MEDIA.bat
+3. Haz doble clic en INICIAR_ANCLORA_FILESTUDIO.bat
 4. Espera a que se abra el navegador automáticamente.
 5. Pega el enlace de YouTube y convierte tu contenido autorizado.
 
 CÓMO CERRAR
 ───────────
-Haz doble clic en CERRAR_LINK2MEDIA.bat
+Haz doble clic en CERRAR_ANCLORA_FILESTUDIO.bat
 o cierra la ventana negra que se abrió al iniciar.
 
 REQUISITOS
@@ -48,7 +48,7 @@ PROBLEMAS FRECUENTES
 · La ventana indica que faltan archivos:
   Extrae primero TODO el ZIP en una carpeta local de tu ordenador
   (no en una carpeta de red, no desde dentro del ZIP).
-  Vuelve a ejecutar INICIAR_LINK2MEDIA.bat desde la carpeta extraída.
+  Vuelve a ejecutar INICIAR_ANCLORA_FILESTUDIO.bat desde la carpeta extraída.
 
 · El navegador no se abre automáticamente:
   Abre manualmente tu navegador y ve a: http://127.0.0.1:3000
@@ -67,7 +67,7 @@ PROBLEMAS FRECUENTES
 VERIFICACIÓN DE INTEGRIDAD
 ───────────────────────────
 Puedes comprobar la integridad del ZIP comparando su SHA256 con el
-archivo Link2Media-Windows-x64.zip.sha256 disponible en el repositorio
+archivo Anclora FileStudio-Windows-x64.zip.sha256 disponible en el repositorio
 del proyecto.
 
 RENDIMIENTO

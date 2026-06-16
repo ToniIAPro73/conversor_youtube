@@ -82,7 +82,7 @@ const OCR_CAPABILITIES: OcrCapabilityDef[] = [
 // ── Binary discovery ─────────────────────────────────────────────────────────
 
 function findTesseractBinary(): string {
-  // 1. Prefer LINK2MEDIA_TESSERACT_PATH env var (portable distribution)
+  // 1. Prefer ANCLORA_FILESTUDIO_TESSERACT_PATH env var (portable distribution)
   const envPath = CONFIG.media.binaries.tesseract;
   if (envPath && envPath !== "tesseract") return envPath;
   // 2. Portable path relative to cwd
@@ -98,7 +98,7 @@ function findTesseractBinary(): string {
 }
 
 function findPdftoppmBinary(): string {
-  // 1. Prefer LINK2MEDIA_POPPLER_PATH env var (portable distribution)
+  // 1. Prefer ANCLORA_FILESTUDIO_POPPLER_PATH env var (portable distribution)
   const popplerDir = CONFIG.media.binaries.poppler;
   if (popplerDir) {
     const popplerPath = path.join(popplerDir, "pdftoppm.exe");

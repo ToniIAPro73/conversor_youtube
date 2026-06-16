@@ -9,7 +9,7 @@ function getDbPath(): string {
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
-  return path.join(dataDir, "link2media.sqlite");
+  return path.join(dataDir, "anclora-filestudio.sqlite");
 }
 
 export function getDb(): Database.Database {

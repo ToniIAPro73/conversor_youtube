@@ -53,3 +53,9 @@ scripts/.cache/
 scripts/.staging/
 scripts/Link2Media-Windows-x64.zip
 scripts/Link2Media-Windows-x64.zip.sha256
+
+# Distribution artifacts (large binaries — do not commit)
+dist/
+SBOM.cdx.json
+
+MEMORY.md

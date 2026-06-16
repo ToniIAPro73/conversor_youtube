@@ -1,4 +1,4 @@
-# Link2Media Format Matrix
+# Anclora FileStudio Format Matrix
 
 Complete reference of all supported conversions, organized by engine.
 

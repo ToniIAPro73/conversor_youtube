@@ -1,5 +1,5 @@
 {
-  "name": "Link2Media Test",
+  "name": "Anclora FileStudio Test",
   "version": "0.1.0",
   "features": ["convert", "analyze", "batch"],
   "metadata": {

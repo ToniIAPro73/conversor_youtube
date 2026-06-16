@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
 # verify-windows-portable-v2.sh
-# Verifica la integridad y contenido de la distribución portable de Link2Media.
-# Versión actualizada: verifica LINK2MEDIA_* env vars, manifest.json, VERSION.txt,
+# Verifica la integridad y contenido de la distribución portable de Anclora FileStudio.
+# Versión actualizada: verifica ANCLORA_FILESTUDIO_* env vars, manifest.json, VERSION.txt,
 # THIRD_PARTY_NOTICES.txt, y la nueva estructura de directorios con subdirectorios.
 # Uso: bash scripts/verify-windows-portable-v2.sh [staging-dir]
 # =============================================================================
@@ -25,14 +25,14 @@ SCRIPTS_DIR="$REPO_ROOT/scripts"
 
 # Allow passing a staging directory directly, or extract from ZIP
 STAGING_ARG="${1:-}"
-ZIP_PATH="$SCRIPTS_DIR/Link2Media-Windows-x64.zip"
-SHA_PATH="$SCRIPTS_DIR/Link2Media-Windows-x64.zip.sha256"
+ZIP_PATH="$SCRIPTS_DIR/Anclora FileStudio-Windows-x64.zip"
+SHA_PATH="$SCRIPTS_DIR/Anclora FileStudio-Windows-x64.zip.sha256"
 VERIFY_STAGING="$SCRIPTS_DIR/.staging/.verify_tmp"
 FAILURES=0
 
 echo ""
 echo -e "${CYAN}═══════════════════════════════════════════════════${NC}"
-echo -e "${CYAN}  Verificación del paquete portable Link2Media v2   ${NC}"
+echo -e "${CYAN}  Verificación del paquete portable Anclora FileStudio v2   ${NC}"
 echo -e "${CYAN}═══════════════════════════════════════════════════${NC}"
 echo ""
 
@@ -64,12 +64,12 @@ elif [[ -f "$ZIP_PATH" ]]; then
   rm -rf "$VERIFY_STAGING"
   mkdir -p "$VERIFY_STAGING"
   unzip -q "$ZIP_PATH" -d "$VERIFY_STAGING" || { fail "No se pudo descomprimir el ZIP"; exit 1; }
-  EXTRACTED="$VERIFY_STAGING/Link2Media-Windows-x64"
-  [[ -d "$EXTRACTED" ]] || { fail "Directorio raíz Link2Media-Windows-x64 no encontrado en el ZIP"; exit 1; }
+  EXTRACTED="$VERIFY_STAGING/Anclora FileStudio-Windows-x64"
+  [[ -d "$EXTRACTED" ]] || { fail "Directorio raíz Anclora FileStudio-Windows-x64 no encontrado en el ZIP"; exit 1; }
   ok "ZIP extraído"
 else
   # Check if staging directory exists from build
-  STAGING_DIR="$SCRIPTS_DIR/.staging/Link2Media-Windows-x64"
+  STAGING_DIR="$SCRIPTS_DIR/.staging/Anclora FileStudio-Windows-x64"
   if [[ -d "$STAGING_DIR" ]]; then
     EXTRACTED="$STAGING_DIR"
     info "Using existing staging directory: $EXTRACTED"
@@ -118,20 +118,20 @@ done
 info "Verificando archivos obligatorios..."
 
 REQUIRED_FILES=(
-  "INICIAR_LINK2MEDIA.bat"
-  "CERRAR_LINK2MEDIA.bat"
+  "INICIAR_ANCLORA_FILESTUDIO.bat"
+  "CERRAR_ANCLORA_FILESTUDIO.bat"
   "ACTUALIZAR_YTDLP.bat"
-  "DIAGNOSTICO_LINK2MEDIA.bat"
+  "DIAGNOSTICO_ANCLORA_FILESTUDIO.bat"
   "LEEME.txt"
   "VERSION.txt"
   "THIRD_PARTY_NOTICES.txt"
   "manifest.json"
   "app/server.js"
   "app/package.json"
-  "internal/start-link2media.ps1"
-  "internal/stop-link2media.ps1"
+  "internal/start-anclora-filestudio.ps1"
+  "internal/stop-anclora-filestudio.ps1"
   "internal/update-ytdlp.ps1"
-  "internal/diagnose-link2media.ps1"
+  "internal/diagnose-anclora-filestudio.ps1"
 )
 
 for f in "${REQUIRED_FILES[@]}"; do
@@ -228,7 +228,7 @@ done
 
 # ── 13. .bat usa %~dp0 (rutas relativas) ───────────────────────────────────
 info "Verificando que los BAT usan %%~dp0 ..."
-BAT_FILES=("INICIAR_LINK2MEDIA.bat" "CERRAR_LINK2MEDIA.bat" "ACTUALIZAR_YTDLP.bat" "DIAGNOSTICO_LINK2MEDIA.bat")
+BAT_FILES=("INICIAR_ANCLORA_FILESTUDIO.bat" "CERRAR_ANCLORA_FILESTUDIO.bat" "ACTUALIZAR_YTDLP.bat" "DIAGNOSTICO_ANCLORA_FILESTUDIO.bat")
 for bat in "${BAT_FILES[@]}"; do
   if [[ -f "$EXTRACTED/$bat" ]] && grep -q "%~dp0" "$EXTRACTED/$bat" 2>/dev/null; then
     ok "  $bat usa %%~dp0"
@@ -237,36 +237,36 @@ for bat in "${BAT_FILES[@]}"; do
   fi
 done
 
-# ── 14. Launcher scripts set LINK2MEDIA_* env vars ──────────────────────────
-info "Verificando que start-link2media.ps1 establece variables LINK2MEDIA_*..."
+# ── 14. Launcher scripts set ANCLORA_FILESTUDIO_* env vars ──────────────────────────
+info "Verificando que start-anclora-filestudio.ps1 establece variables ANCLORA_FILESTUDIO_*..."
 
 REQUIRED_ENV_VARS=(
-  "LINK2MEDIA_FFMPEG_PATH"
-  "LINK2MEDIA_FFPROBE_PATH"
-  "LINK2MEDIA_YTDLP_PATH"
-  "LINK2MEDIA_QPDF_PATH"
-  "LINK2MEDIA_7ZIP_PATH"
-  "LINK2MEDIA_PANDOC_PATH"
-  "LINK2MEDIA_LIBREOFFICE_PATH"
-  "LINK2MEDIA_CALIBRE_PATH"
-  "LINK2MEDIA_TESSERACT_PATH"
-  "LINK2MEDIA_TESSDATA_PREFIX"
-  "LINK2MEDIA_POPPLER_PATH"
-  "LINK2MEDIA_DATA_DIR"
-  "LINK2MEDIA_TEMP_DIR"
+  "ANCLORA_FILESTUDIO_FFMPEG_PATH"
+  "ANCLORA_FILESTUDIO_FFPROBE_PATH"
+  "ANCLORA_FILESTUDIO_YTDLP_PATH"
+  "ANCLORA_FILESTUDIO_QPDF_PATH"
+  "ANCLORA_FILESTUDIO_7ZIP_PATH"
+  "ANCLORA_FILESTUDIO_PANDOC_PATH"
+  "ANCLORA_FILESTUDIO_LIBREOFFICE_PATH"
+  "ANCLORA_FILESTUDIO_CALIBRE_PATH"
+  "ANCLORA_FILESTUDIO_TESSERACT_PATH"
+  "ANCLORA_FILESTUDIO_TESSDATA_PREFIX"
+  "ANCLORA_FILESTUDIO_POPPLER_PATH"
+  "ANCLORA_FILESTUDIO_DATA_DIR"
+  "ANCLORA_FILESTUDIO_TEMP_DIR"
 )
 
-START_PS1="$EXTRACTED/internal/start-link2media.ps1"
+START_PS1="$EXTRACTED/internal/start-anclora-filestudio.ps1"
 if [[ -f "$START_PS1" ]]; then
   for var in "${REQUIRED_ENV_VARS[@]}"; do
     if grep -q "$var" "$START_PS1" 2>/dev/null; then
-      ok "  $var está en start-link2media.ps1"
+      ok "  $var está en start-anclora-filestudio.ps1"
     else
-      fail "  $var NO está en start-link2media.ps1"
+      fail "  $var NO está en start-anclora-filestudio.ps1"
     fi
   done
 else
-  fail "  start-link2media.ps1 no encontrado — no se pueden verificar env vars"
+  fail "  start-anclora-filestudio.ps1 no encontrado — no se pueden verificar env vars"
 fi
 
 # ── 15. No contiene .pnpm store ─────────────────────────────────────────────
@@ -286,31 +286,31 @@ else
   ok "  Ruta interna mas larga: ${MAX_PATH_LEN:-0} caracteres"
 fi
 
-# ── 16. diagnose-link2media.ps1 existe ──────────────────────────────────────
+# ── 16. diagnose-anclora-filestudio.ps1 existe ──────────────────────────────────────
 info "Verificando script de diagnostico..."
-if [[ -f "$EXTRACTED/internal/diagnose-link2media.ps1" ]]; then
-  ok "  internal/diagnose-link2media.ps1 existe"
+if [[ -f "$EXTRACTED/internal/diagnose-anclora-filestudio.ps1" ]]; then
+  ok "  internal/diagnose-anclora-filestudio.ps1 existe"
   # Verify it references tools
-  if grep -q "LINK2MEDIA_" "$EXTRACTED/internal/diagnose-link2media.ps1" 2>/dev/null; then
-    ok "  diagnose-link2media.ps1 referencia variables LINK2MEDIA_*"
+  if grep -q "ANCLORA_FILESTUDIO_" "$EXTRACTED/internal/diagnose-anclora-filestudio.ps1" 2>/dev/null; then
+    ok "  diagnose-anclora-filestudio.ps1 referencia variables ANCLORA_FILESTUDIO_*"
   else
-    warn "  diagnose-link2media.ps1 no referencia variables LINK2MEDIA_*"
+    warn "  diagnose-anclora-filestudio.ps1 no referencia variables ANCLORA_FILESTUDIO_*"
   fi
 else
-  fail "  internal/diagnose-link2media.ps1 no encontrado"
+  fail "  internal/diagnose-anclora-filestudio.ps1 no encontrado"
 fi
 
-# ── 17. DIAGNOSTICO_LINK2MEDIA.bat existe ───────────────────────────────────
-info "Verificando DIAGNOSTICO_LINK2MEDIA.bat..."
-if [[ -f "$EXTRACTED/DIAGNOSTICO_LINK2MEDIA.bat" ]]; then
-  ok "  DIAGNOSTICO_LINK2MEDIA.bat existe"
-  if grep -q "diagnose-link2media.ps1" "$EXTRACTED/DIAGNOSTICO_LINK2MEDIA.bat" 2>/dev/null; then
-    ok "  DIAGNOSTICO_LINK2MEDIA.bat invoca diagnose-link2media.ps1"
+# ── 17. DIAGNOSTICO_ANCLORA_FILESTUDIO.bat existe ───────────────────────────────────
+info "Verificando DIAGNOSTICO_ANCLORA_FILESTUDIO.bat..."
+if [[ -f "$EXTRACTED/DIAGNOSTICO_ANCLORA_FILESTUDIO.bat" ]]; then
+  ok "  DIAGNOSTICO_ANCLORA_FILESTUDIO.bat existe"
+  if grep -q "diagnose-anclora-filestudio.ps1" "$EXTRACTED/DIAGNOSTICO_ANCLORA_FILESTUDIO.bat" 2>/dev/null; then
+    ok "  DIAGNOSTICO_ANCLORA_FILESTUDIO.bat invoca diagnose-anclora-filestudio.ps1"
   else
-    fail "  DIAGNOSTICO_LINK2MEDIA.bat no invoca diagnose-link2media.ps1"
+    fail "  DIAGNOSTICO_ANCLORA_FILESTUDIO.bat no invoca diagnose-anclora-filestudio.ps1"
   fi
 else
-  fail "  DIAGNOSTICO_LINK2MEDIA.bat no encontrado"
+  fail "  DIAGNOSTICO_ANCLORA_FILESTUDIO.bat no encontrado"
 fi
 
 # ── Resultado final ─────────────────────────────────────────────────────────

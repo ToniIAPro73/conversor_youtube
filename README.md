@@ -1,6 +1,6 @@
-# Link2Media — Universal Local Converter
+# Anclora FileStudio — Universal Local Converter
 
-Link2Media is a privacy-first, 100% local file converter that runs entirely in your browser. Upload any supported file and convert it to another format — no cloud, no uploads to external servers, no data leaving your machine.
+Anclora FileStudio is a privacy-first, 100% local file converter that runs entirely in your browser. Upload any supported file and convert it to another format — no cloud, no uploads to external servers, no data leaving your machine.
 
 ## Features
 
@@ -55,7 +55,7 @@ Link2Media is a privacy-first, 100% local file converter that runs entirely in y
 
 ### System Dependencies
 
-Link2Media gracefully degrades when tools are missing — you only need the tools for the conversions you want to perform:
+Anclora FileStudio gracefully degrades when tools are missing — you only need the tools for the conversions you want to perform:
 
 - **FFmpeg & FFprobe**: Audio/video conversion, YouTube downloads
 - **yt-dlp**: YouTube URL downloads
@@ -103,7 +103,7 @@ pnpm build        # Production build
 
 ### Convert a Local File
 
-1. Open Link2Media in your browser
+1. Open Anclora FileStudio in your browser
 2. Click **"Local file"** tab
 3. Drag and drop a file or click to browse
 4. Select the output format from the available options
@@ -138,7 +138,7 @@ Go to the **"Diagnostics"** tab to see which conversion engines and tools are av
 
 ## Windows Portable Distribution
 
-Link2Media includes a build script that creates a self-contained Windows x64 ZIP package:
+Anclora FileStudio includes a build script that creates a self-contained Windows x64 ZIP package:
 
 ```bash
 bash scripts/build-windows-portable.sh
@@ -149,14 +149,14 @@ The ZIP includes:
 - Pre-built Next.js application
 - yt-dlp, FFmpeg, FFprobe binaries
 - `better-sqlite3` native module for Windows
-- Start/stop scripts (`INICIAR_LINK2MEDIA.bat`, `CERRAR_LINK2MEDIA.bat`)
+- Start/stop scripts (`INICIAR_ANCLORA_FILESTUDIO.bat`, `CERRAR_ANCLORA_FILESTUDIO.bat`)
 - `ACTUALIZAR_YTDLP.bat` for yt-dlp updates
 
 To use the portable distribution:
 1. Extract the ZIP to a local folder
-2. Double-click `INICIAR_LINK2MEDIA.bat`
+2. Double-click `INICIAR_ANCLORA_FILESTUDIO.bat`
 3. The browser opens automatically at `http://127.0.0.1:3000`
-4. To stop: double-click `CERRAR_LINK2MEDIA.bat`
+4. To stop: double-click `CERRAR_ANCLORA_FILESTUDIO.bat`
 
 Note: The portable distribution includes yt-dlp and FFmpeg but not Pandoc, LibreOffice, QPDF, Calibre, or Tesseract. Those tools need to be installed separately on Windows if needed.
 

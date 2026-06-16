@@ -1,4 +1,4 @@
-# Link2Media User Guide
+# Anclora FileStudio User Guide
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@
 
 ### Development Mode
 
-If you are a developer running Link2Media from source:
+If you are a developer running Anclora FileStudio from source:
 
 ```bash
 # Install dependencies
@@ -36,10 +36,10 @@ The application will be available at `http://localhost:3000`.
 
 If you are using the Windows portable distribution:
 
-1. Extract the `Link2Media-Windows-x64.zip` to a folder on your computer
-2. Double-click `INICIAR_LINK2MEDIA.bat`
+1. Extract the `Anclora FileStudio-Windows-x64.zip` to a folder on your computer
+2. Double-click `INICIAR_ANCLORA_FILESTUDIO.bat`
 3. Your browser will open automatically at `http://127.0.0.1:3000`
-4. To stop the application, double-click `CERRAR_LINK2MEDIA.bat`
+4. To stop the application, double-click `CERRAR_ANCLORA_FILESTUDIO.bat`
 
 The portable distribution includes Node.js, yt-dlp, FFmpeg, and FFprobe. For additional conversion capabilities (Pandoc, LibreOffice, QPDF, Calibre, Tesseract), install them separately.
 
@@ -47,12 +47,12 @@ The portable distribution includes Node.js, yt-dlp, FFmpeg, and FFprobe. For add
 
 ## Converting a Local File
 
-1. **Open Link2Media** in your browser
+1. **Open Anclora FileStudio** in your browser
 2. **Select the "Local file" tab** on the main screen
 3. **Upload your file** by either:
    - Dragging and dropping the file onto the upload area, or
    - Clicking the upload area and selecting a file from your computer
-4. **Wait for analysis** — Link2Media will detect the file type and category
+4. **Wait for analysis** — Anclora FileStudio will detect the file type and category
 5. **Choose an output format** from the list of available conversions:
    - Recommended formats are highlighted
    - Each option shows the conversion engine and loss profile
@@ -63,7 +63,7 @@ The portable distribution includes Node.js, yt-dlp, FFmpeg, and FFprobe. For add
 
 ### Supported File Types
 
-Link2Media supports files in the following categories:
+Anclora FileStudio supports files in the following categories:
 
 - **Audio**: MP3, M4A, WAV, FLAC, OGG
 - **Video**: MP4, WebM, MKV
@@ -106,7 +106,7 @@ Only download content that you own, is in the public domain, or has been publish
 
 ## Understanding Loss Profiles
 
-Every conversion in Link2Media is classified by a **loss profile** that tells you what kind of quality impact to expect:
+Every conversion in Anclora FileStudio is classified by a **loss profile** that tells you what kind of quality impact to expect:
 
 | Loss Profile | Meaning | Examples |
 |---|---|---|
@@ -127,7 +127,7 @@ Every conversion in Link2Media is classified by a **loss profile** that tells yo
 
 ### Warnings
 
-When a conversion has potential data loss, Link2Media shows a warning. Pay attention to these warnings — they explain what specifically may be lost.
+When a conversion has potential data loss, Anclora FileStudio shows a warning. Pay attention to these warnings — they explain what specifically may be lost.
 
 ---
 
@@ -149,7 +149,7 @@ The **Diagnostics** tab shows the status of all conversion engines and their req
 |---|---|---|
 | `ffmpeg` / `ffprobe` | Audio & video conversion | `sudo apt install ffmpeg` |
 | `yt-dlp` | YouTube downloads | `pip install yt-dlp` |
-| `sharp` (npm) | Image conversion | Included with Link2Media |
+| `sharp` (npm) | Image conversion | Included with Anclora FileStudio |
 | `pandoc` | Document & text conversion | `sudo apt install pandoc` |
 | `libreoffice` / `soffice` | Office format conversion | `sudo apt install libreoffice` |
 | `qpdf` | PDF manipulation | `sudo apt install qpdf` |
@@ -209,7 +209,7 @@ By default, batch processing runs up to 2 conversions simultaneously. This preve
 
 **Problem**: The file type is not accepted when uploading.
 
-**Solution**: Link2Media supports 50+ file formats. If your file type is not recognized, it may be in an unsupported format. Check the format matrix in the documentation for the complete list.
+**Solution**: Anclora FileStudio supports 50+ file formats. If your file type is not recognized, it may be in an unsupported format. Check the format matrix in the documentation for the complete list.
 
 ### Conversion hangs or times out
 
@@ -241,7 +241,7 @@ sudo apt install tesseract-ocr-spa tesseract-ocr-eng
 
 **Problem**: LibreOffice conversion fails even though LibreOffice is installed.
 
-**Solution**: Ensure you are using `libreoffice` or `soffice` command. Link2Media tries both names. Also make sure no other LibreOffice instance is running (headless mode uses a profile lock).
+**Solution**: Ensure you are using `libreoffice` or `soffice` command. Anclora FileStudio tries both names. Also make sure no other LibreOffice instance is running (headless mode uses a profile lock).
 
 ---
 
@@ -263,16 +263,16 @@ Converted files are stored temporarily on your machine and automatically deleted
 
 Greyed-out or unavailable options mean the required tool is not installed on your system. Check the Diagnostics tab to see which tools are missing.
 
-### Does Link2Media work on macOS?
+### Does Anclora FileStudio work on macOS?
 
 The web interface works on any browser. However, the conversion tools need to be installed separately on macOS:
 ```bash
 brew install ffmpeg yt-dlp pandoc qpdf p7zip libreoffice tesseract calibre poppler
 ```
 
-### Does Link2Media work on mobile?
+### Does Anclora FileStudio work on mobile?
 
-The UI is designed mobile-first and works in mobile browsers. However, Link2Media runs as a local server — you need to access it from a device on the same network. The Windows portable distribution is designed for desktop use.
+The UI is designed mobile-first and works in mobile browsers. However, Anclora FileStudio runs as a local server — you need to access it from a device on the same network. The Windows portable distribution is designed for desktop use.
 
 ### How do I update yt-dlp?
 

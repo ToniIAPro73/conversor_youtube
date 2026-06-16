@@ -3,7 +3,7 @@ import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
-  title: "Link2Media - Conversor de YouTube a MP3/MP4",
+  title: "Anclora FileStudio - Conversor de YouTube a MP3/MP4",
   description: "Convierte vídeos de YouTube a MP3 o MP4 de forma rápida, segura y gratuita.",
 };
 

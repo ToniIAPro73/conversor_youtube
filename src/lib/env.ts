@@ -1,25 +1,25 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  APP_NAME: z.string().default("Link2Media"),
+  APP_NAME: z.string().default("Anclora FileStudio"),
   APP_VERSION: z.string().default("0.1.0"),
 
-  // ── Tool paths: LINK2MEDIA_* env vars (portable distribution) ─────────
+  // ── Tool paths: ANCLORA_FILESTUDIO_* env vars (portable distribution) ─────────
   // These are set by the Windows portable launcher scripts.
   // In development mode, engines fall back to PATH lookups.
-  LINK2MEDIA_FFMPEG_PATH: z.string().default(""),
-  LINK2MEDIA_FFPROBE_PATH: z.string().default(""),
-  LINK2MEDIA_YTDLP_PATH: z.string().default(""),
-  LINK2MEDIA_QPDF_PATH: z.string().default(""),
-  LINK2MEDIA_7ZIP_PATH: z.string().default(""),
-  LINK2MEDIA_PANDOC_PATH: z.string().default(""),
-  LINK2MEDIA_LIBREOFFICE_PATH: z.string().default(""),
-  LINK2MEDIA_CALIBRE_PATH: z.string().default(""),
-  LINK2MEDIA_TESSERACT_PATH: z.string().default(""),
-  LINK2MEDIA_TESSDATA_PREFIX: z.string().default(""),
-  LINK2MEDIA_POPPLER_PATH: z.string().default(""),
-  LINK2MEDIA_DATA_DIR: z.string().default(""),
-  LINK2MEDIA_TEMP_DIR: z.string().default(""),
+  ANCLORA_FILESTUDIO_FFMPEG_PATH: z.string().default(""),
+  ANCLORA_FILESTUDIO_FFPROBE_PATH: z.string().default(""),
+  ANCLORA_FILESTUDIO_YTDLP_PATH: z.string().default(""),
+  ANCLORA_FILESTUDIO_QPDF_PATH: z.string().default(""),
+  ANCLORA_FILESTUDIO_7ZIP_PATH: z.string().default(""),
+  ANCLORA_FILESTUDIO_PANDOC_PATH: z.string().default(""),
+  ANCLORA_FILESTUDIO_LIBREOFFICE_PATH: z.string().default(""),
+  ANCLORA_FILESTUDIO_CALIBRE_PATH: z.string().default(""),
+  ANCLORA_FILESTUDIO_TESSERACT_PATH: z.string().default(""),
+  ANCLORA_FILESTUDIO_TESSDATA_PREFIX: z.string().default(""),
+  ANCLORA_FILESTUDIO_POPPLER_PATH: z.string().default(""),
+  ANCLORA_FILESTUDIO_DATA_DIR: z.string().default(""),
+  ANCLORA_FILESTUDIO_TEMP_DIR: z.string().default(""),
 
   // ── Legacy binary paths (backward compatibility) ──────────────────────
   MEDIA_TEMP_DIR: z.string().default(".tmp/media"),
@@ -47,11 +47,11 @@ export const env = envSchema.parse(process.env);
 export type Env = z.infer<typeof envSchema>;
 
 /**
- * Resolve a tool path: prefers LINK2MEDIA_* env var, falls back to the
+ * Resolve a tool path: prefers ANCLORA_FILESTUDIO_* env var, falls back to the
  * provided default (typically a PATH-based command name) in development mode.
  */
-export function resolveToolPath(link2mediaEnvVar: string, fallback: string): string {
-  if (link2mediaEnvVar) return link2mediaEnvVar;
+export function resolveToolPath(envVarPath: string, fallback: string): string {
+  if (envVarPath) return envVarPath;
   // In development/test mode, fall back to PATH lookup
   if (env.NODE_ENV !== "production") return fallback;
   // In production (portable dist), return the fallback too — engines will probe

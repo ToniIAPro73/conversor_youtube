@@ -1,4 +1,4 @@
-# AI Agent Documentation — Link2Media Implementation
+# AI Agent Documentation — Anclora FileStudio Implementation
 
 This document records the accumulated implementation process across all AI agents.
 
@@ -27,7 +27,7 @@ This document records the accumulated implementation process across all AI agent
 
 ## Phase 2 — Universal Conversion Suite (Claude Sonnet 4.6)
 
-**Agent:** Claude Sonnet 4.6 · **Branch:** `feat/claude-link2media-smart-conversion`
+**Agent:** Claude Sonnet 4.6 · **Branch:** `feat/claude-anclora-filestudio-smart-conversion`
 
 ### Objectives
 
@@ -61,7 +61,7 @@ Evolution from a simple YouTube converter to a complete local multimedia workspa
 
 ## Phases 3–9 — Universal E2E Pipeline (Z.ai)
 
-**Agent:** Z.ai · **Branch:** `feat/zai-link2media-universal-e2e`
+**Agent:** Z.ai · **Branch:** `feat/zai-anclora-filestudio-universal-e2e`
 
 ### Phase 3: Canonical Format Catalog & Unified Analysis Result
 
@@ -139,8 +139,8 @@ Evolution from a simple YouTube converter to a complete local multimedia workspa
   - Includes Node.js runtime, yt-dlp, FFmpeg/FFprobe, better-sqlite3 native module
   - SHA-256 checksum generation
 - **`scripts/windows-portable/`** — Start/stop scripts
-  - `INICIAR_LINK2MEDIA.bat`, `CERRAR_LINK2MEDIA.bat`
-  - `start-link2media.ps1`, `stop-link2media.ps1`
+  - `INICIAR_ANCLORA_FILESTUDIO.bat`, `CERRAR_ANCLORA_FILESTUDIO.bat`
+  - `start-anclora-filestudio.ps1`, `stop-anclora-filestudio.ps1`
   - `ACTUALIZAR_YTDLP.bat`, `update-ytdlp.ps1`
 
 ---

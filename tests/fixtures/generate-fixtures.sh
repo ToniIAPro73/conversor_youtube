@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate text-based test fixtures for the Link2Media integration tests.
+# Generate text-based test fixtures for the Anclora FileStudio integration tests.
 # Run from the project root: bash tests/fixtures/generate-fixtures.sh
 
 set -euo pipefail
@@ -62,7 +62,7 @@ HTML
 # ── sample.json ──────────────────────────────────────────────────────────────
 cat > "$FIXTURE_DIR/sample.json" <<'JSON'
 {
-  "name": "Link2Media Test",
+  "name": "Anclora FileStudio Test",
   "version": "0.1.0",
   "features": ["convert", "analyze", "batch"],
   "metadata": {
@@ -74,7 +74,7 @@ JSON
 
 # ── sample.yaml ──────────────────────────────────────────────────────────────
 cat > "$FIXTURE_DIR/sample.yaml" <<'YAML'
-name: Link2Media Test
+name: Anclora FileStudio Test
 version: "0.1.0"
 features:
   - convert
@@ -112,7 +112,7 @@ XML
 
 # ── sample.toml ──────────────────────────────────────────────────────────────
 cat > "$FIXTURE_DIR/sample.toml" <<'TOML'
-name = "Link2Media Test"
+name = "Anclora FileStudio Test"
 version = "0.1.0"
 
 [metadata]

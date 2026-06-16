@@ -12,13 +12,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $YtdlpExe  = Join-Path $BaseDir 'tools\yt-dlp\yt-dlp.exe'
-$PidFile   = Join-Path $BaseDir 'data\link2media.pid'
+$PidFile   = Join-Path $BaseDir 'data\anclora-filestudio.pid'
 $TempDir   = Join-Path $BaseDir 'temp'
 $YtdlpNew  = Join-Path $TempDir 'yt-dlp.new.exe'
 $YtdlpBack = Join-Path $TempDir 'yt-dlp.backup.exe'
 
 Write-Host ""
-Write-Host "  Link2Media - Actualizando yt-dlp..." -ForegroundColor White
+Write-Host "  Anclora FileStudio - Actualizando yt-dlp..." -ForegroundColor White
 Write-Host ""
 
 # - Comprobar que no hay conversion activa ------------------

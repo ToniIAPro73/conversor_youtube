@@ -469,7 +469,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <span className="h-px w-8 bg-linear-to-r from-transparent to-white/15" />
             <p className="text-[10px] font-medium uppercase tracking-[0.26em] text-stone-600">
-              Link2Media
+              Anclora FileStudio
             </p>
             <span className="h-1 w-1 rounded-full bg-teal-400/40" />
             <p className="text-[10px] font-medium uppercase tracking-[0.26em] text-stone-600">

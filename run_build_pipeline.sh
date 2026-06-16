@@ -5,11 +5,11 @@
 # =============================================================================
 set -euo pipefail
 
-LOG_FILE="/tmp/link2media-build-$(date +%Y%m%d-%H%M%S).log"
+LOG_FILE="/tmp/anclora-filestudio-build-$(date +%Y%m%d-%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "============================================================="
-echo "  Link2Media — Windows Portable Build Pipeline"
+echo "  Anclora FileStudio — Windows Portable Build Pipeline"
 echo "  $(date)"
 echo "============================================================="
 echo "  Log: $LOG_FILE"
@@ -97,11 +97,11 @@ echo ""
 echo "=== Informe final ==="
 echo ""
 
-ZIP="$REPO_DIR/scripts/Link2Media-Windows-x64.zip"
+ZIP="$REPO_DIR/scripts/Anclora FileStudio-Windows-x64.zip"
 if [ -f "$ZIP" ]; then
     SIZE=$(du -sh "$ZIP" | cut -f1)
     SHA256=$(sha256sum "$ZIP" | awk '{print $1}')
-    echo "  ZIP generado: scripts/Link2Media-Windows-x64.zip"
+    echo "  ZIP generado: scripts/Anclora FileStudio-Windows-x64.zip"
     echo "  Tamaño:       $SIZE"
     echo "  SHA256:       $SHA256"
 else

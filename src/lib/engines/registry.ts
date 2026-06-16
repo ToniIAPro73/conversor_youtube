@@ -14,6 +14,7 @@ import { libreOfficeEngine } from "./document/libreoffice-engine";
 import { ffmpegEngine } from "./media/ffmpeg-engine";
 import { calibreEngine } from "./ebook/calibre-engine";
 import { tesseractEngine } from "./ocr/tesseract-engine";
+import { backgroundRemovalEngine } from "./background/background-removal-engine";
 
 // ── Registration ─────────────────────────────────────────────────────────────
 
@@ -70,6 +71,12 @@ const REGISTERED_ENGINES: EngineRegistration[] = [
     engine: tesseractEngine,
     categories: ["image", "pdf"],
     requiredTools: ["tesseract"],
+    enabled: true,
+  },
+  {
+    engine: backgroundRemovalEngine,
+    categories: ["image"],
+    requiredTools: ["sharp"],
     enabled: true,
   },
 ];

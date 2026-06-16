@@ -11,7 +11,8 @@ export type EngineId =
   | "pandoc"
   | "libreoffice"
   | "calibre"
-  | "tesseract";
+  | "tesseract"
+  | "background-removal";
 
 export type CapabilityState =
   | "available"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # build-windows-portable.sh
-# Construye la distribución portable de Link2Media para Windows x64.
+# Construye la distribución portable de Anclora FileStudio para Windows x64.
 # Incluye 9 motores de conversión: FFmpeg, Sharp, QPDF, 7-Zip, Data Engine,
 # Pandoc, LibreOffice, Calibre, Tesseract.
 # Uso: bash scripts/build-windows-portable.sh
@@ -22,9 +22,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPTS_DIR="$REPO_ROOT/scripts"
 CACHE_DIR="$SCRIPTS_DIR/.cache/windows-portable"
 STAGING_BASE="$SCRIPTS_DIR/.staging"
-STAGING_DIR="$STAGING_BASE/Link2Media-Windows-x64"
-OUT_ZIP="$SCRIPTS_DIR/Link2Media-Windows-x64.zip"
-OUT_SHA="$SCRIPTS_DIR/Link2Media-Windows-x64.zip.sha256"
+STAGING_DIR="$STAGING_BASE/Anclora-FileStudio-Windows-x64-Core"
+OUT_ZIP="$REPO_ROOT/dist/windows/Anclora-FileStudio-Windows-x64-Core.zip"
+OUT_SHA="$REPO_ROOT/dist/windows/Anclora-FileStudio-Windows-x64-Core.zip.sha256"
 
 # ── Versiones (sobreescribibles por env) ─────────────────────────────────────
 # Medios (original)
@@ -130,8 +130,8 @@ rm -rf \
   "$APP_DIR/tests" \
   "$APP_DIR/data" \
   "$APP_DIR/tsconfig.tsbuildinfo" \
-  "$APP_DIR/Link2Media-Windows-x64.zip" \
-  "$APP_DIR/Link2Media-Windows-x64.zip.sha256" 2>/dev/null || true
+  "$APP_DIR/Anclora-FileStudio-Windows-x64-Core.zip" \
+  "$APP_DIR/Anclora-FileStudio-Windows-x64-Core.zip.sha256" 2>/dev/null || true
 ok "Fuentes, tests, scripts y datos de desarrollo excluidos del runtime portable"
 
 mkdir -p "$APP_DIR/.next/static"
@@ -600,15 +600,15 @@ info "Copiando scripts de Windows..."
 INTERNAL_DIR="$STAGING_DIR/internal"
 mkdir -p "$INTERNAL_DIR"
 
-cp "$SCRIPTS_DIR/windows-portable/start-link2media.ps1"     "$INTERNAL_DIR/" 2>/dev/null || warn "start-link2media.ps1 no encontrado"
-cp "$SCRIPTS_DIR/windows-portable/stop-link2media.ps1"      "$INTERNAL_DIR/" 2>/dev/null || warn "stop-link2media.ps1 no encontrado"
+cp "$SCRIPTS_DIR/windows-portable/start-anclora-filestudio.ps1"     "$INTERNAL_DIR/" 2>/dev/null || warn "start-anclora-filestudio.ps1 no encontrado"
+cp "$SCRIPTS_DIR/windows-portable/stop-anclora-filestudio.ps1"      "$INTERNAL_DIR/" 2>/dev/null || warn "stop-anclora-filestudio.ps1 no encontrado"
 cp "$SCRIPTS_DIR/windows-portable/update-ytdlp.ps1"         "$INTERNAL_DIR/" 2>/dev/null || warn "update-ytdlp.ps1 no encontrado"
-cp "$SCRIPTS_DIR/windows-portable/diagnose-link2media.ps1"  "$INTERNAL_DIR/" 2>/dev/null || warn "diagnose-link2media.ps1 no encontrado"
+cp "$SCRIPTS_DIR/windows-portable/diagnose-anclora-filestudio.ps1"  "$INTERNAL_DIR/" 2>/dev/null || warn "diagnose-anclora-filestudio.ps1 no encontrado"
 
-cp "$SCRIPTS_DIR/INICIAR_LINK2MEDIA.bat"   "$STAGING_DIR/" 2>/dev/null || warn "INICIAR_LINK2MEDIA.bat no encontrado"
-cp "$SCRIPTS_DIR/CERRAR_LINK2MEDIA.bat"    "$STAGING_DIR/" 2>/dev/null || warn "CERRAR_LINK2MEDIA.bat no encontrado"
+cp "$SCRIPTS_DIR/INICIAR_ANCLORA_FILESTUDIO.bat"   "$STAGING_DIR/" 2>/dev/null || warn "INICIAR_ANCLORA_FILESTUDIO.bat no encontrado"
+cp "$SCRIPTS_DIR/CERRAR_ANCLORA_FILESTUDIO.bat"    "$STAGING_DIR/" 2>/dev/null || warn "CERRAR_ANCLORA_FILESTUDIO.bat no encontrado"
 cp "$SCRIPTS_DIR/ACTUALIZAR_YTDLP.bat"     "$STAGING_DIR/" 2>/dev/null || warn "ACTUALIZAR_YTDLP.bat no encontrado"
-cp "$SCRIPTS_DIR/DIAGNOSTICO_LINK2MEDIA.bat" "$STAGING_DIR/" 2>/dev/null || warn "DIAGNOSTICO_LINK2MEDIA.bat no encontrado"
+cp "$SCRIPTS_DIR/DIAGNOSTICO_ANCLORA_FILESTUDIO.bat" "$STAGING_DIR/" 2>/dev/null || warn "DIAGNOSTICO_ANCLORA_FILESTUDIO.bat no encontrado"
 
 ok "Scripts copiados"
 
@@ -631,7 +631,7 @@ if [[ -f "$LEEME_TEMPLATE" ]]; then
 else
   cat > "$STAGING_DIR/LEEME.txt" << 'EOF'
 ╔══════════════════════════════════════════════════════════════╗
-║                  Link2Media  — Guía rápida                   ║
+║                  Anclora FileStudio  — Guía rápida                   ║
 ╚══════════════════════════════════════════════════════════════╝
 
 CÓMO EMPEZAR
@@ -639,7 +639,7 @@ CÓMO EMPEZAR
 1. Extrae TODO el contenido del ZIP en una carpeta de tu ordenador.
    (Importante: no ejecutes nada directamente desde el ZIP.)
 2. Abre la carpeta extraída.
-3. Haz doble clic en INICIAR_LINK2MEDIA.bat
+3. Haz doble clic en INICIAR_ANCLORA_FILESTUDIO.bat
 4. Espera a que se abra el navegador automáticamente.
 5. Pega un enlace de YouTube o selecciona un archivo local.
 
@@ -662,7 +662,7 @@ en este paquete, se indicarán como "no disponibles" en la app.
 
 CÓMO CERRAR
 ───────────
-Haz doble clic en CERRAR_LINK2MEDIA.bat
+Haz doble clic en CERRAR_ANCLORA_FILESTUDIO.bat
 o cierra la ventana de consola que se abrió al iniciar.
 
 REQUISITOS
@@ -689,7 +689,7 @@ PROBLEMAS FRECUENTES
 
 · La ventana indica que faltan archivos:
   Extrae primero todo el ZIP en una carpeta local (no en red ni
-  en una unidad virtual) y vuelve a ejecutar INICIAR_LINK2MEDIA.bat
+  en una unidad virtual) y vuelve a ejecutar INICIAR_ANCLORA_FILESTUDIO.bat
 
 · El navegador no se abre:
   Abre manualmente http://127.0.0.1:3000 (u otro puerto indicado).
@@ -697,7 +697,7 @@ PROBLEMAS FRECUENTES
 VERIFICACIÓN DE INTEGRIDAD
 ───────────────────────────
 Puedes verificar el SHA256 del paquete con el archivo
-Link2Media-Windows-x64.zip.sha256 incluido en el repositorio.
+Anclora-FileStudio-Windows-x64-Core.zip.sha256 incluido en el repositorio.
 
 ═══════════════════════════════════════════════════════════════
 Solo para contenido propio o con autorización del titular.
@@ -709,7 +709,7 @@ ok "LEEME.txt generado"
 
 # ── 23. Generar VERSION.txt ──────────────────────────────────────────────────
 cat > "$STAGING_DIR/VERSION.txt" << EOF
-Link2Media $APP_VERSION
+Anclora FileStudio $APP_VERSION
 Plataforma: Windows x64
 Fecha de build: $BUILD_DATE_UTC
 
@@ -732,10 +732,10 @@ ok "VERSION.txt generado"
 info "Generando manifest.json..."
 cat > "$STAGING_DIR/manifest.json" << EOF
 {
-  "app": "Link2Media",
+  "app": "Anclora FileStudio",
   "version": "$APP_VERSION",
   "application": {
-    "name": "Link2Media",
+    "name": "Anclora FileStudio",
     "version": "$APP_VERSION",
     "platform": "windows-x64",
     "buildDateUtc": "$BUILD_DATE_UTC"
@@ -799,7 +799,7 @@ ok "manifest.json generado"
 info "Generando THIRD_PARTY_NOTICES.txt..."
 cat > "$STAGING_DIR/THIRD_PARTY_NOTICES.txt" << EOF
 ═══════════════════════════════════════════════════════════════════
-THIRD-PARTY NOTICES — Link2Media $APP_VERSION
+THIRD-PARTY NOTICES — Anclora FileStudio $APP_VERSION
 ═══════════════════════════════════════════════════════════════════
 
 Este paquete incluye software de terceros. A continuación se detallan
@@ -1065,7 +1065,7 @@ export _OUT_ZIP="$OUT_ZIP"
 python3 - << 'PYEOF'
 import zipfile, os, sys
 out_zip = os.environ["_OUT_ZIP"]
-prefix  = "Link2Media-Windows-x64"
+prefix  = "Anclora-FileStudio-Windows-x64-Core"
 count   = 0
 SKIP_DIRS = {'.git', '.cache', '.staging', '.tmp', '__pycache__', '.verify_tmp'}
 SKIP_FILES = {'.gitkeep', '.gitignore', '.env.local', '.env.production'}
@@ -1087,7 +1087,7 @@ ok "ZIP creado: $OUT_ZIP"
 # ── 29. Calcular SHA256 ──────────────────────────────────────────────────────
 info "Calculando SHA256 del ZIP..."
 ZIP_SHA256="$(sha256sum "$OUT_ZIP" | awk '{print $1}')"
-echo "$ZIP_SHA256  Link2Media-Windows-x64.zip" > "$OUT_SHA"
+echo "$ZIP_SHA256  Anclora-FileStudio-Windows-x64-Core.zip" > "$OUT_SHA"
 ok "SHA256: $ZIP_SHA256"
 
 # ── 30. Tamaño final ────────────────────────────────────────────────────────

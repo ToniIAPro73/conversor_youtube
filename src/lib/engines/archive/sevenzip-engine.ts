@@ -20,7 +20,7 @@ const MAX_ENTRIES = 10_000;
 const MAX_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
 
 function findSevenZipBinary(): string {
-  // 1. Prefer LINK2MEDIA_7ZIP_PATH env var (portable distribution)
+  // 1. Prefer ANCLORA_FILESTUDIO_7ZIP_PATH env var (portable distribution)
   const envPath = CONFIG.media.binaries.sevenzip;
   if (envPath && envPath !== "7z") return envPath;
   // 2. Windows portable path
@@ -181,7 +181,7 @@ export class SevenZipEngine implements ConversionEngine {
     start: number
   ): Promise<ExecutionResult> {
     // Create a temp directory, extract there, then compress to target format
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "link2media-7z-"));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "anclora-filestudio-7z-"));
     try {
       onProgress(10, "Extrayendo contenido");
 

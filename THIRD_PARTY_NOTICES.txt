@@ -1,0 +1,129 @@
+Anclora FileStudio — Third Party Notices
+=========================================
+
+This software includes components from the following third parties:
+
+────────────────────────────────────────────────────────────────────────────────
+FFmpeg
+────────────────────────────────────────────────────────────────────────────────
+License: GNU General Public License v2.0 or later (GPL-2.0-or-later)
+Source:  https://ffmpeg.org/
+Code:    https://git.ffmpeg.org/ffmpeg.git
+
+FFmpeg is a trademark of Fabrice Bellard, originator of the FFmpeg project.
+The GPL license requires that any distribution include access to the source code.
+See: https://ffmpeg.org/legal.html
+
+────────────────────────────────────────────────────────────────────────────────
+yt-dlp
+────────────────────────────────────────────────────────────────────────────────
+License: The Unlicense (Public Domain)
+Source:  https://github.com/yt-dlp/yt-dlp
+License: https://github.com/yt-dlp/yt-dlp/blob/master/LICENSE
+
+────────────────────────────────────────────────────────────────────────────────
+QPDF
+────────────────────────────────────────────────────────────────────────────────
+License: Apache License 2.0
+Source:  https://github.com/qpdf/qpdf
+License: https://github.com/qpdf/qpdf/blob/main/LICENSE.txt
+
+────────────────────────────────────────────────────────────────────────────────
+7-Zip
+────────────────────────────────────────────────────────────────────────────────
+License: GNU Lesser General Public License v2.1 (LGPL-2.1)
+Source:  https://7-zip.org/
+Code:    https://7-zip.org/sdk.html
+License: https://7-zip.org/license.txt
+
+Note: The unRAR code is subject to a separate license with restrictions.
+This distribution does not include the unRAR code.
+
+────────────────────────────────────────────────────────────────────────────────
+Pandoc (Office Pack — optional)
+────────────────────────────────────────────────────────────────────────────────
+License: GNU General Public License v2.0 or later (GPL-2.0-or-later)
+Source:  https://pandoc.org/
+Code:    https://github.com/jgm/pandoc
+License: https://github.com/jgm/pandoc/blob/main/COPYING.md
+
+────────────────────────────────────────────────────────────────────────────────
+LibreOffice (Office Pack — optional)
+────────────────────────────────────────────────────────────────────────────────
+License: GNU Lesser General Public License v3.0 (LGPL-3.0)
+Source:  https://www.libreoffice.org/
+Code:    https://www.libreoffice.org/about-us/source-code/
+License: https://www.libreoffice.org/about-us/licenses/
+
+────────────────────────────────────────────────────────────────────────────────
+Calibre (Ebook Pack — optional)
+────────────────────────────────────────────────────────────────────────────────
+License: GNU General Public License v3.0 (GPL-3.0)
+Source:  https://calibre-ebook.com/
+Code:    https://github.com/kovidgoyal/calibre
+License: https://github.com/kovidgoyal/calibre/blob/master/LICENSE
+
+────────────────────────────────────────────────────────────────────────────────
+Tesseract OCR
+────────────────────────────────────────────────────────────────────────────────
+License: Apache License 2.0
+Source:  https://github.com/tesseract-ocr/tesseract
+License: https://github.com/tesseract-ocr/tesseract/blob/main/LICENSE
+
+Tesseract language data (spa, eng):
+Source:  https://github.com/tesseract-ocr/tessdata_fast
+License: Apache License 2.0
+
+────────────────────────────────────────────────────────────────────────────────
+Poppler (OCR Pack — optional)
+────────────────────────────────────────────────────────────────────────────────
+License: GNU General Public License v2.0 (GPL-2.0)
+Source:  https://poppler.freedesktop.org/
+Code:    https://gitlab.freedesktop.org/poppler/poppler
+License: https://gitlab.freedesktop.org/poppler/poppler/-/blob/master/COPYING
+
+────────────────────────────────────────────────────────────────────────────────
+Sharp (libvips)
+────────────────────────────────────────────────────────────────────────────────
+License: Apache License 2.0
+Source:  https://github.com/lovell/sharp
+License: https://github.com/lovell/sharp/blob/main/LICENSE
+
+libvips (underlying C library):
+License: LGPL-2.1-or-later
+Source:  https://github.com/libvips/libvips
+
+────────────────────────────────────────────────────────────────────────────────
+Node.js
+────────────────────────────────────────────────────────────────────────────────
+License: MIT and various (see https://github.com/nodejs/node/blob/main/LICENSE)
+Source:  https://nodejs.org/
+
+────────────────────────────────────────────────────────────────────────────────
+better-sqlite3
+────────────────────────────────────────────────────────────────────────────────
+License: MIT
+Source:  https://github.com/WiseLibs/better-sqlite3
+
+────────────────────────────────────────────────────────────────────────────────
+Next.js
+────────────────────────────────────────────────────────────────────────────────
+License: MIT
+Source:  https://github.com/vercel/next.js
+
+────────────────────────────────────────────────────────────────────────────────
+Tailwind CSS
+────────────────────────────────────────────────────────────────────────────────
+License: MIT
+Source:  https://github.com/tailwindlabs/tailwindcss
+
+────────────────────────────────────────────────────────────────────────────────
+Lucide Icons
+────────────────────────────────────────────────────────────────────────────────
+License: ISC
+Source:  https://github.com/lucide-icons/lucide
+
+────────────────────────────────────────────────────────────────────────────────
+
+Full license texts are available in the `licenses/` directory of this distribution
+and on the respective project websites listed above.
