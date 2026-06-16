@@ -1,0 +1,128 @@
+services:
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    networks:
+      - public
+      - internal
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/vps/Dockerfile.api
+    restart: unless-stopped
+    environment:
+      ANCLORA_FILESTUDIO_MODE: service
+      ANCLORA_FILESTUDIO_ENV: production
+      ANCLORA_FILESTUDIO_PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      ANCLORA_FILESTUDIO_DATABASE_URL: ${DATABASE_URL}
+      ANCLORA_FILESTUDIO_REDIS_URL: redis://redis:6379
+      ANCLORA_FILESTUDIO_JWT_ISSUER: ${JWT_ISSUER}
+      ANCLORA_FILESTUDIO_JWT_AUDIENCE: anclora-filestudio-service
+      ANCLORA_FILESTUDIO_JWT_PUBLIC_KEYS_PATH: /run/secrets/jwt_keys
+      ANCLORA_FILESTUDIO_STORAGE_DRIVER: shared-filesystem
+      ANCLORA_FILESTUDIO_STORAGE_ROOT: /data/artifacts
+      ANCLORA_FILESTUDIO_WORK_ROOT: /data/work
+      ANCLORA_FILESTUDIO_LOG_LEVEL: info
+    volumes:
+      - filestudio_data:/data
+      - jwt_keys:/run/secrets/jwt_keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    user: "1001:1001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: deploy/vps/Dockerfile.worker
+    restart: unless-stopped
+    environment:
+      ANCLORA_WORKER_REDIS_URL: redis://redis:6379
+      ANCLORA_WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+      ANCLORA_WORKER_HEARTBEAT_INTERVAL_MS: 30000
+    volumes:
+      - filestudio_data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    user: "1001:1001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: filestudio
+      POSTGRES_USER: filestudio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U filestudio -d filestudio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  caddy_data:
+  caddy_config:
+  filestudio_data:
+  postgres_data:
+  redis_data:
+  jwt_keys:
+    external: true  # created manually with: docker volume create jwt_keys
+
+networks:
+  public:
+  internal:
+    internal: true

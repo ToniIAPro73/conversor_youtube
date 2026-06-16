@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
 import { createMiddleware } from "hono/factory";
-import { importSPKI, jwtVerify, type JWTPayload } from "jose";
+import { importSPKI, jwtVerify, errors as joseErrors, type JWTPayload } from "jose";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -58,8 +58,7 @@ export const authMiddleware = (keysPath: string, audience: string) =>
       c.set("auth", { claims } satisfies AuthContext);
       await next();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "unknown";
-      const code = msg.includes("expir") ? "AUTH_EXPIRED_TOKEN" : "AUTH_INVALID_TOKEN";
+      const code = err instanceof joseErrors.JWTExpired ? "AUTH_EXPIRED_TOKEN" : "AUTH_INVALID_TOKEN";
       return c.json({ type: "about:blank", title: "Unauthorized", status: 401, code }, 401);
     }
   });

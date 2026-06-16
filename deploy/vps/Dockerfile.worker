@@ -1,0 +1,47 @@
+# Multi-stage build — Worker process only
+FROM node:22-alpine AS deps
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/core/package.json ./packages/core/
+COPY packages/engines/package.json ./packages/engines/
+COPY apps/worker/package.json ./apps/worker/
+
+RUN pnpm install --frozen-lockfile --filter @anclora/filestudio-worker... --prod
+
+# Stage 2: TypeScript compile
+FROM node:22-alpine AS builder
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/core/package.json ./packages/core/
+COPY packages/engines/package.json ./packages/engines/
+COPY apps/worker/package.json ./apps/worker/
+
+RUN pnpm install --frozen-lockfile --filter @anclora/filestudio-worker...
+
+COPY packages/ ./packages/
+COPY apps/worker/ ./apps/worker/
+
+# Worker does not require a separate build step (runs via tsx in prod or Node ESM dist)
+# Copy source for tsx runtime (avoids native compilation complexity)
+
+# Stage 3: runtime
+FROM node:22-alpine AS runtime
+
+# Install ffmpeg and ffprobe for media conversion jobs
+RUN apk add --no-cache ffmpeg
+
+WORKDIR /app
+
+RUN addgroup -g 1001 filestudio && adduser -u 1001 -G filestudio -s /bin/sh -D filestudio
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/worker/node_modules ./apps/worker/node_modules
+COPY --from=builder /app/packages/ ./packages/
+COPY --from=builder /app/apps/worker/ ./apps/worker/
+
+USER filestudio
+CMD ["node", "--experimental-specifier-resolution=node", "apps/worker/src/worker.ts"]

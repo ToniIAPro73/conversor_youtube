@@ -1,0 +1,50 @@
+# Multi-stage build — API server only (no worker, no native sqlite)
+# Stage 1: dependency install
+FROM node:22-alpine AS deps
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/core/package.json ./packages/core/
+COPY packages/engines/package.json ./packages/engines/
+COPY apps/api/package.json ./apps/api/
+
+RUN pnpm install --frozen-lockfile --filter @anclora/filestudio-api... --prod
+
+# Stage 2: TypeScript compile
+FROM node:22-alpine AS builder
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/core/package.json ./packages/core/
+COPY packages/engines/package.json ./packages/engines/
+COPY apps/api/package.json ./apps/api/
+
+RUN pnpm install --frozen-lockfile --filter @anclora/filestudio-api...
+
+COPY packages/ ./packages/
+COPY apps/api/ ./apps/api/
+
+RUN pnpm --filter @anclora/filestudio-api build 2>/dev/null || true
+
+# Stage 3: minimal runtime
+FROM node:22-alpine AS runtime
+WORKDIR /app
+
+# Non-root user
+RUN addgroup -g 1001 filestudio && adduser -u 1001 -G filestudio -s /bin/sh -D filestudio
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/packages/core/src ./packages/core/src
+COPY --from=builder /app/apps/api/package.json ./apps/api/
+
+# Run migrations on startup then start server
+COPY deploy/vps/docker-entrypoint-api.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+USER filestudio
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
