@@ -22,9 +22,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPTS_DIR="$REPO_ROOT/scripts"
 CACHE_DIR="$SCRIPTS_DIR/.cache/windows-portable"
 STAGING_BASE="$SCRIPTS_DIR/.staging"
-STAGING_DIR="$STAGING_BASE/Anclora FileStudio-Windows-x64"
-OUT_ZIP="$SCRIPTS_DIR/Anclora FileStudio-Windows-x64.zip"
-OUT_SHA="$SCRIPTS_DIR/Anclora FileStudio-Windows-x64.zip.sha256"
+STAGING_DIR="$STAGING_BASE/Anclora-FileStudio-Windows-x64-Core"
+OUT_ZIP="$REPO_ROOT/dist/windows/Anclora-FileStudio-Windows-x64-Core.zip"
+OUT_SHA="$REPO_ROOT/dist/windows/Anclora-FileStudio-Windows-x64-Core.zip.sha256"
 
 # ── Versiones (sobreescribibles por env) ─────────────────────────────────────
 # Medios (original)
@@ -130,8 +130,8 @@ rm -rf \
   "$APP_DIR/tests" \
   "$APP_DIR/data" \
   "$APP_DIR/tsconfig.tsbuildinfo" \
-  "$APP_DIR/Anclora FileStudio-Windows-x64.zip" \
-  "$APP_DIR/Anclora FileStudio-Windows-x64.zip.sha256" 2>/dev/null || true
+  "$APP_DIR/Anclora-FileStudio-Windows-x64-Core.zip" \
+  "$APP_DIR/Anclora-FileStudio-Windows-x64-Core.zip.sha256" 2>/dev/null || true
 ok "Fuentes, tests, scripts y datos de desarrollo excluidos del runtime portable"
 
 mkdir -p "$APP_DIR/.next/static"
@@ -697,7 +697,7 @@ PROBLEMAS FRECUENTES
 VERIFICACIÓN DE INTEGRIDAD
 ───────────────────────────
 Puedes verificar el SHA256 del paquete con el archivo
-Anclora FileStudio-Windows-x64.zip.sha256 incluido en el repositorio.
+Anclora-FileStudio-Windows-x64-Core.zip.sha256 incluido en el repositorio.
 
 ═══════════════════════════════════════════════════════════════
 Solo para contenido propio o con autorización del titular.
@@ -1065,7 +1065,7 @@ export _OUT_ZIP="$OUT_ZIP"
 python3 - << 'PYEOF'
 import zipfile, os, sys
 out_zip = os.environ["_OUT_ZIP"]
-prefix  = "Anclora FileStudio-Windows-x64"
+prefix  = "Anclora-FileStudio-Windows-x64-Core"
 count   = 0
 SKIP_DIRS = {'.git', '.cache', '.staging', '.tmp', '__pycache__', '.verify_tmp'}
 SKIP_FILES = {'.gitkeep', '.gitignore', '.env.local', '.env.production'}
@@ -1087,7 +1087,7 @@ ok "ZIP creado: $OUT_ZIP"
 # ── 29. Calcular SHA256 ──────────────────────────────────────────────────────
 info "Calculando SHA256 del ZIP..."
 ZIP_SHA256="$(sha256sum "$OUT_ZIP" | awk '{print $1}')"
-echo "$ZIP_SHA256  Anclora FileStudio-Windows-x64.zip" > "$OUT_SHA"
+echo "$ZIP_SHA256  Anclora-FileStudio-Windows-x64-Core.zip" > "$OUT_SHA"
 ok "SHA256: $ZIP_SHA256"
 
 # ── 30. Tamaño final ────────────────────────────────────────────────────────

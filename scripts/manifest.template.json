@@ -1,0 +1,17 @@
+{
+  "name": "Anclora FileStudio",
+  "version": "${VERSION}",
+  "buildId": "${BUILD_ID}",
+  "buildDate": "${BUILD_DATE}",
+  "platform": "${PLATFORM}",
+  "arch": "x64",
+  "commit": "${COMMIT}",
+  "toolchainId": "${TOOLCHAIN_ID}",
+  "capabilities": [
+    "audio", "video", "gif", "thumbnail",
+    "image", "pdf", "document", "ebook",
+    "archive", "ocr", "structured-data"
+  ],
+  "tools": [],
+  "licenses": []
+}
