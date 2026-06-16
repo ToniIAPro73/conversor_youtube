@@ -48,12 +48,30 @@ Runtime smoke results:
 ```text
 dist/windows/Anclora-FileStudio-Windows-x64-Core.zip  (250 MB)
 dist/windows/Anclora-FileStudio-Windows-x64-Core.zip.sha256
-SHA-256: e7151cc5f3ad5090b7ca9df6ca22bcc682c1202ff6e7734d23f1a4c0de19155a
+SHA-256: 08ff9c809ea3c7637de9776c82c5cac5982b4f241799646defb6d0620d136518
 ```
 
 Bundled Node.js v24.16.0 (ABI 137, win-x64) — no system Node required.
 
-Structural smoke: 20/20 PASS. Runtime smoke: pending (requires Windows).
+Structural verify: 80/80 PASS. Structural smoke: 26/26 PASS. Native acceptance: PASS.
+
+### semver root cause and fix
+
+**Root cause:** Next.js standalone traces `semver@7.8.1` as a stub (only `package.json`, no `index.js`) in the pnpm flat namespace because it uses its own bundled copy (`next/dist/compiled/semver`). The flat layer step materializes this stub into `app/node_modules/semver/`, but Sharp@0.35.1 requires `semver@^7.8.4` (full package) to load.
+
+**Fix (build-windows-portable.sh):** After flattening node_modules and before removing `.pnpm`, detect if `app/node_modules/semver/index.js` is missing. If so, replace the stub with the full `semver@7.8.4` from `node_modules/.pnpm/semver@7.8.4/node_modules/semver/`. Validates 6 required files: `index.js`, `classes/semver.js`, `classes/range.js`, `functions/parse.js`, `internal/re.js`, `ranges/valid.js`.
+
+### Native Windows acceptance (smoke-windows-portable.ps1)
+
+Tests executed via `powershell.exe` from WSL. ZIP is copied to Windows TEMP first (avoids UNC execution path). PS1 uses string concatenation (no here-strings) for PS5 compatibility.
+
+| Check | Result |
+| --- | --- |
+| RUNTIME_OK (win32, x64, v24.16.0, ABI 137) | PASS |
+| SQLITE_OK (CREATE/INSERT/SELECT/close) | PASS |
+| SHARP_OK (sharp=0.35.1 vips=8.18.3) | PASS |
+| WEBP_OK (68 bytes, RIFF/WEBP magic) | PASS |
+| NATIVE_ACCEPTANCE_WINDOWS_PASS | PASS |
 
 ## Security constraints met
 

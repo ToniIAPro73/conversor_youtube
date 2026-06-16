@@ -24,10 +24,16 @@
 
 ## Windows
 
-| Test                         | Script                      | Status  | Notes                        |
-| ---------------------------- | --------------------------- | ------- | ---------------------------- |
-| Structural smoke (20 checks) | `smoke-windows-portable.sh` | PASS    | 20/20                        |
-| Runtime smoke                | manual                      | PENDING | Requires Windows environment |
+| Test | Script | Status | Notes |
+| --- | --- | --- | --- |
+| Structural verify (80 checks) | `verify-windows-portable-v2.sh` | PASS | 80/80 — semver, DLLs, manifest, security |
+| Structural smoke (26 checks) | `smoke-windows-portable.sh` | PASS | 26/26 — semver@7.8.4, native modules, no dev paths |
+| Native acceptance (Windows) | `smoke-windows-portable.ps1` via smoke.sh | PASS | runtime win32/x64/v24.16.0/ABI 137, SQLITE_OK, SHARP_OK 0.35.1/8.18.3, WEBP_OK 68B RIFF/WEBP |
+| semver stub fix | `build-windows-portable.sh` | PASS | stub 7.8.1 replaced with full 7.8.4 before .pnpm removal |
+| Sharp load (bundled node.exe) | `smoke-windows-portable.ps1` | PASS | sharp=0.35.1 vips=8.18.3 confirmed in Windows TEMP |
+| PNG->WebP (win32 native) | `smoke-windows-portable.ps1` | PASS | 68 bytes, magic RIFF/WEBP confirmed |
+| better-sqlite3 CRUD | `smoke-windows-portable.ps1` | PASS | CREATE, INSERT, SELECT, close — no error |
+| SHA-256 match | smoke + verify | PASS | 08ff9c80... |
 
 ## CI gate requirement
 
@@ -36,7 +42,9 @@ Before merging to `main`:
 - [x] Linux structural verify passes (exit 0)
 - [x] Linux smoke passes (exit 0)
 - [x] Linux runtime smoke: server starts with bundled node, SQLite works, clean stop
-- [ ] Windows structural smoke passes when artifact exists
+- [x] Windows structural verify passes (exit 0)
+- [x] Windows structural smoke passes (exit 0)
+- [x] Windows native acceptance: runtime, SQLite, Sharp, PNG→WebP — all PASS
 - [x] Neither smoke gives false positive when artifact is absent (exit 1)
 
 ## Known non-issues
