@@ -8,10 +8,10 @@
 set -euo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
-info() { echo -e "${CYAN}[CHECK]${NC} $*"; }
-ok()   { echo -e "${GREEN}[PASS]${NC}  $*"; }
-warn() { echo -e "${YELLOW}[WARN]${NC}  $*"; }
-fail() { echo -e "${RED}[FAIL]${NC}  $*"; FAILURES=$((FAILURES+1)); }
+info() { printf "%b %s\n" "${CYAN}[CHECK]${NC}" "$*"; }
+ok()   { printf "%b  %s\n" "${GREEN}[PASS]${NC}" "$*"; }
+warn() { printf "%b  %s\n" "${YELLOW}[WARN]${NC}" "$*"; }
+fail() { printf "%b  %s\n" "${RED}[FAIL]${NC}" "$*"; FAILURES=$((FAILURES+1)); }
 
 if REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"; then :
 else
@@ -123,6 +123,7 @@ REQUIRED_FILES=(
   "internal/stop-anclora-filestudio.ps1"
   "internal/update-ytdlp.ps1"
   "internal/diagnose-anclora-filestudio.ps1"
+  "internal/tool-resolution.ps1"
   "runtime/node.exe"
   "tools/yt-dlp/yt-dlp.exe"
   "tools/ffmpeg/ffmpeg.exe"
@@ -311,6 +312,10 @@ REQUIRED_ENV_VARS=(
   "ANCLORA_FILESTUDIO_QPDF_PATH"
   "ANCLORA_FILESTUDIO_7ZIP_PATH"
   "ANCLORA_FILESTUDIO_PANDOC_PATH"
+  "ANCLORA_FILESTUDIO_LIBREOFFICE_PATH"
+  "ANCLORA_FILESTUDIO_CALIBRE_PATH"
+  "ANCLORA_FILESTUDIO_TESSERACT_PATH"
+  "ANCLORA_FILESTUDIO_TESSDATA_PREFIX"
   "ANCLORA_FILESTUDIO_DATA_DIR"
   "ANCLORA_FILESTUDIO_TEMP_DIR"
 )
@@ -325,6 +330,29 @@ if [[ -f "$START_PS1" ]]; then
   done
 else
   fail "  start-anclora-filestudio.ps1 no encontrado"
+fi
+
+TOOL_RESOLUTION_PS1="$EXTRACTED/internal/tool-resolution.ps1"
+info "Verificando resolución de herramientas externas..."
+if [[ -f "$TOOL_RESOLUTION_PS1" ]]; then
+  TOOL_RESOLUTION_MARKERS=(
+    "C:\\Program Files\\LibreOffice\\program\\soffice.exe"
+    "C:\\Program Files\\Calibre2\\ebook-convert.exe"
+    "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+    "C:\\Program Files\\Tesseract-OCR\\tessdata"
+    "Get-Command"
+    "ANCLORA_FILESTUDIO_TESSDATA_PREFIX"
+  )
+  for marker in "${TOOL_RESOLUTION_MARKERS[@]}"; do
+    if grep -Fq "$marker" "$TOOL_RESOLUTION_PS1" 2>/dev/null; then
+      ok "  tool-resolution contiene: $marker"
+      PASS=$((PASS+1))
+    else
+      fail "  tool-resolution no contiene: $marker"
+    fi
+  done
+else
+  fail "  tool-resolution.ps1 no encontrado"
 fi
 
 # ── 15. Launcher binds to 127.0.0.1 ─────────────────────────────────────────

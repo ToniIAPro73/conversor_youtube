@@ -15,7 +15,7 @@ Branch: `build/anclora-filestudio-portables`
 | Linux runtime smoke (9/9) | PASS |
 | Windows build script (complete rewrite) | Done |
 | Windows artifact (zip + sha256) | Done (250MB) |
-| Windows structural smoke (31/31) | PASS |
+| Windows structural smoke (39/39) | PASS |
 | Windows runtime smoke | PASS |
 | Windows path-with-spaces startup regression | PASS |
 | Windows BAT startup from Downloads path with spaces | PASS |
@@ -50,12 +50,34 @@ Runtime smoke results:
 ```text
 dist/windows/Anclora-FileStudio-Windows-x64-Core.zip  (250 MB)
 dist/windows/Anclora-FileStudio-Windows-x64-Core.zip.sha256
-SHA-256: 43f999863a5686c3ebeb5e97766aa1a018cdf893b3183d9178d4e0315036fe4c
+SHA-256: fc5c9983fe597b2730547876c2d22564a919f78257a592b399652b36956f5344
 ```
 
 Bundled Node.js v24.16.0 (ABI 137, win-x64) — no system Node required.
 
-Structural verify: 80/80 PASS. Structural smoke: 31/31 PASS. Native acceptance: PASS.
+Structural verify: 91/91 PASS. Structural smoke: 39/39 PASS. Native acceptance: PASS.
+
+### Windows external tool resolution
+
+`start-anclora-filestudio.ps1` and `diagnose-anclora-filestudio.ps1` share
+`internal\tool-resolution.ps1`. Resolution order:
+
+1. Portable `tools\` path.
+2. Valid `ANCLORA_FILESTUDIO_*` environment variable.
+3. Standard Windows installation path.
+4. `Get-Command` / `PATH`.
+
+LibreOffice, Calibre, and Tesseract use existing full installations when found:
+
+```text
+C:\Program Files\LibreOffice\program\soffice.exe
+C:\Program Files\Calibre2\ebook-convert.exe
+C:\Program Files\Tesseract-OCR\tesseract.exe
+C:\Program Files\Tesseract-OCR\tessdata
+```
+
+Tesseract also sets `ANCLORA_FILESTUDIO_TESSDATA_PREFIX` to the resolved
+`tessdata` directory.
 
 ### Windows launcher path-with-spaces fix
 

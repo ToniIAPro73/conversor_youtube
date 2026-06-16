@@ -26,11 +26,13 @@
 
 | Test | Script | Status | Notes |
 | --- | --- | --- | --- |
-| Structural verify (80 checks) | `verify-windows-portable-v2.sh` | PASS | 80/80 — semver, DLLs, manifest, security |
-| Structural smoke (31 checks) | `smoke-windows-portable.sh` | PASS | 31/31 — semver@7.8.4, native modules, no dev paths, launcher regression guards |
+| Structural verify (91 checks) | `verify-windows-portable-v2.sh` | PASS | 91/91 — semver, DLLs, manifest, security, external tool markers |
+| Structural smoke (39 checks) | `smoke-windows-portable.sh` | PASS | 39/39 — semver@7.8.4, native modules, no dev paths, launcher regression guards, external tool markers |
 | Native acceptance (Windows) | `smoke-windows-portable.ps1` via smoke.sh | PASS | runtime win32/x64/v24.16.0/ABI 137, SQLITE_OK, SHARP_OK 0.35.1/8.18.3, WEBP_OK 68B RIFF/WEBP |
 | Path with spaces startup | `smoke-windows-portable.ps1` via smoke.sh | PASS | extracts to `%TEMP%\Prueba Anclora FileStudio Windows <id>`, launches internal PS1 with `-SkipBrowser`, health OK |
 | BAT startup from Downloads path with spaces | manual native Windows command | PASS | `INICIAR_ANCLORA_FILESTUDIO.bat` exit 0, health 200, browser open attempted, stop BAT released port |
+| External tool resolution order | `windows-tool-resolution.test.ts` | PASS | portable, env var, Program Files, PATH, missing warning state |
+| External tool markers in package | `verify-windows-portable-v2.sh` + smoke | PASS | Program Files paths, `Get-Command`, `ANCLORA_FILESTUDIO_TESSDATA_PREFIX` |
 | Launcher argument regression | `smoke-windows-portable.sh` + PS1 smoke | PASS | blocks `ArgumentList = @($ServerJs)`, requires `server.js` + `WorkingDirectory = <portable>\app` |
 | NonInteractive compatibility | `smoke-windows-portable.sh` | PASS | `internal/start-anclora-filestudio.ps1` contains no `Read-Host` |
 | PID-scoped stop | `smoke-windows-portable.ps1` | PASS | PID belongs to bundled `runtime\node.exe`; stop releases port and leaves no server process |
@@ -38,7 +40,7 @@
 | Sharp load (bundled node.exe) | `smoke-windows-portable.ps1` | PASS | sharp=0.35.1 vips=8.18.3 confirmed in Windows TEMP |
 | PNG->WebP (win32 native) | `smoke-windows-portable.ps1` | PASS | 68 bytes, magic RIFF/WEBP confirmed |
 | better-sqlite3 CRUD | `smoke-windows-portable.ps1` | PASS | CREATE, INSERT, SELECT, close — no error |
-| SHA-256 match | smoke + verify | PASS | 43f99986... |
+| SHA-256 match | smoke + verify | PASS | fc5c9983... |
 
 ## CI gate requirement
 
@@ -52,6 +54,7 @@ Before merging to `main`:
 - [x] Windows native acceptance: runtime, SQLite, Sharp, PNG→WebP — all PASS
 - [x] Windows startup from a local path with spaces: launcher, PID, health, stop — all PASS
 - [x] Windows BAT startup from Downloads path with spaces: start, health, stop — PASS
+- [x] Windows external tool resolution: portable, env, Program Files, PATH — PASS
 - [x] Neither smoke gives false positive when artifact is absent (exit 1)
 
 ## Known non-issues

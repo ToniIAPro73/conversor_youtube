@@ -48,6 +48,27 @@ C:\Users\antonio.ballesterosa\Downloads\Prueba Anclora Windows Arranque Final
 El script PowerShell interno no solicita entrada interactiva. En errores sale
 con código distinto de cero; la única pausa de usuario vive en el BAT.
 
+### Detección de herramientas externas
+
+El launcher y el diagnóstico resuelven herramientas en este orden:
+
+1. Ruta incluida en el portable.
+2. Variable de entorno `ANCLORA_FILESTUDIO_*` válida.
+3. Ruta estándar de Windows en `C:\Program Files`.
+4. `Get-Command` / `PATH`.
+
+Las rutas estándar soportadas son:
+
+```text
+C:\Program Files\LibreOffice\program\soffice.exe
+C:\Program Files\Calibre2\ebook-convert.exe
+C:\Program Files\Tesseract-OCR\tesseract.exe
+C:\Program Files\Tesseract-OCR\tessdata
+```
+
+Si Tesseract se resuelve desde una instalación completa, el launcher configura
+también `ANCLORA_FILESTUDIO_TESSDATA_PREFIX` hacia el directorio `tessdata`.
+
 ### Parada
 
 Doble clic en `CERRAR_ANCLORA_FILESTUDIO.bat`

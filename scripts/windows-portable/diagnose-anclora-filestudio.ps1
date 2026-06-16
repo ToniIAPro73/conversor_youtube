@@ -11,6 +11,14 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Continue'
 
+$ToolResolutionScript = Join-Path $PSScriptRoot 'tool-resolution.ps1'
+if (Test-Path $ToolResolutionScript) {
+    . $ToolResolutionScript
+} else {
+    Write-Host "  [ERROR] No se encuentra tool-resolution.ps1" -ForegroundColor Red
+    exit 1
+}
+
 Write-Host ""
 Write-Host "  ══════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host "    Anclora FileStudio - Diagnostico completo" -ForegroundColor Cyan
@@ -18,15 +26,7 @@ Write-Host "  ══════════════════════
 Write-Host ""
 
 $failures = 0
-
-function Resolve-ToolPath([string[]]$Candidates) {
-    foreach ($candidate in $Candidates) {
-        if (Test-Path $candidate) {
-            return $candidate
-        }
-    }
-    return $Candidates[0]
-}
+$resolvedTools = Resolve-AncloraWindowsTools -BaseDir $BaseDir
 
 # - 1. Archivos criticos ------------------------------------
 Write-Host "  [1] Archivos criticos" -ForegroundColor White
@@ -51,28 +51,29 @@ foreach ($f in $criticalFiles) {
 Write-Host ""
 Write-Host "  [2] Herramientas de conversion" -ForegroundColor White
 $tools = @(
-    @{ Name = 'yt-dlp'; Path = (Join-Path $BaseDir 'tools\yt-dlp\yt-dlp.exe'); EnvVar = 'ANCLORA_FILESTUDIO_YTDLP_PATH' },
-    @{ Name = 'FFmpeg'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\ffmpeg\ffmpeg.exe'), (Join-Path $BaseDir 'tools\ffmpeg\bin\ffmpeg.exe'))); EnvVar = 'ANCLORA_FILESTUDIO_FFMPEG_PATH' },
-    @{ Name = 'FFprobe'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\ffmpeg\ffprobe.exe'), (Join-Path $BaseDir 'tools\ffmpeg\bin\ffprobe.exe'))); EnvVar = 'ANCLORA_FILESTUDIO_FFPROBE_PATH' },
-    @{ Name = 'QPDF'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\qpdf\qpdf.exe'), (Join-Path $BaseDir 'tools\qpdf\bin\qpdf.exe'))); EnvVar = 'ANCLORA_FILESTUDIO_QPDF_PATH' },
-    @{ Name = '7-Zip'; Path = (Resolve-ToolPath @((Join-Path $BaseDir 'tools\sevenzip\7z.exe'), (Join-Path $BaseDir 'tools\sevenzip\7za.exe'), (Join-Path $BaseDir 'tools\sevenzip\7zr.exe'))); EnvVar = 'ANCLORA_FILESTUDIO_7ZIP_PATH' },
-    @{ Name = 'Pandoc'; Path = (Join-Path $BaseDir 'tools\pandoc\pandoc.exe'); EnvVar = 'ANCLORA_FILESTUDIO_PANDOC_PATH' },
-    @{ Name = 'LibreOffice'; Path = (Join-Path $BaseDir 'tools\libreoffice\program\soffice.exe'); EnvVar = 'ANCLORA_FILESTUDIO_LIBREOFFICE_PATH' },
-    @{ Name = 'Calibre'; Path = (Join-Path $BaseDir 'tools\calibre\ebook-convert.exe'); EnvVar = 'ANCLORA_FILESTUDIO_CALIBRE_PATH' },
-    @{ Name = 'Tesseract'; Path = (Join-Path $BaseDir 'tools\tesseract\tesseract.exe'); EnvVar = 'ANCLORA_FILESTUDIO_TESSERACT_PATH' },
-    @{ Name = 'Poppler'; Path = (Join-Path $BaseDir 'tools\poppler\pdftoppm.exe'); EnvVar = 'ANCLORA_FILESTUDIO_POPPLER_PATH' }
+    $resolvedTools.Ytdlp,
+    $resolvedTools.Ffmpeg,
+    $resolvedTools.Ffprobe,
+    $resolvedTools.Qpdf,
+    $resolvedTools.SevenZip,
+    $resolvedTools.Pandoc,
+    $resolvedTools.LibreOffice,
+    $resolvedTools.Calibre,
+    $resolvedTools.Tesseract,
+    $resolvedTools.Poppler
 )
 
 $availableCount = 0
 $missingCount = 0
 foreach ($tool in $tools) {
-    if (Test-Path $tool.Path) {
+    if ($tool.Resolved) {
         # Try to get version
         $ver = ''
         try {
             $ver = (& $tool.Path --version 2>&1 | Select-Object -First 1).Trim()
         } catch { $ver = '(no se pudo obtener version)' }
         Write-Host "    [OK] $($tool.Name): $ver" -ForegroundColor Green
+        Write-Host "         Ruta: $($tool.Path) [$($tool.Source)]" -ForegroundColor DarkGray
         $availableCount++
     } else {
         Write-Host "    [FALTA] $($tool.Name) - $($tool.EnvVar)" -ForegroundColor Red
@@ -87,7 +88,7 @@ $dirs = @(
     @{ Name = 'data'; Path = (Join-Path $BaseDir 'data') },
     @{ Name = 'temp'; Path = (Join-Path $BaseDir 'temp') },
     @{ Name = 'logs'; Path = (Join-Path $BaseDir 'logs') },
-    @{ Name = 'tessdata'; Path = (Join-Path $BaseDir 'tools\tessdata') }
+    @{ Name = 'tessdata'; Path = $resolvedTools.Tessdata.Path }
 )
 foreach ($d in $dirs) {
     if (Test-Path $d.Path) {
@@ -100,7 +101,7 @@ foreach ($d in $dirs) {
 # - 4. Tesseract language data --------------------------------
 Write-Host ""
 Write-Host "  [4] Datos de idioma Tesseract" -ForegroundColor White
-$tessdataDir = Join-Path $BaseDir 'tools\tessdata'
+$tessdataDir = $resolvedTools.Tessdata.Path
 if (Test-Path $tessdataDir) {
     $traineddata = Get-ChildItem -Path $tessdataDir -Filter '*.traineddata' -ErrorAction SilentlyContinue
     if ($traineddata.Count -gt 0) {

@@ -40,3 +40,29 @@ Windows-local `%TEMP%` path containing spaces, starts
 `internal\start-anclora-filestudio.ps1 -SkipBrowser`, verifies
 `http://127.0.0.1:<port>/api/health`, checks `error.log` for
 `MODULE_NOT_FOUND`, and stops the recorded PID.
+
+## Windows portable reports missing LibreOffice, Calibre, or Tesseract
+
+The portable first checks its bundled `tools\` directory, then valid
+`ANCLORA_FILESTUDIO_*` environment variables, then standard Windows
+installations, then `PATH`.
+
+Expected standard locations:
+
+```text
+C:\Program Files\LibreOffice\program\soffice.exe
+C:\Program Files\Calibre2\ebook-convert.exe
+C:\Program Files\Tesseract-OCR\tesseract.exe
+C:\Program Files\Tesseract-OCR\tessdata
+```
+
+If those installations exist, `INICIAR_ANCLORA_FILESTUDIO.bat` should print:
+
+```text
+[OK] LibreOffice encontrado
+[OK] Calibre encontrado
+[OK] Tesseract encontrado
+```
+
+For Tesseract, the launcher also sets
+`ANCLORA_FILESTUDIO_TESSDATA_PREFIX` to the resolved `tessdata` directory.

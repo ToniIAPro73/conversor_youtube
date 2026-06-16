@@ -71,6 +71,7 @@ if [[ -n "$SEVENZIP" ]]; then
     "tools/qpdf/qpdf.exe"
     "internal/start-anclora-filestudio.ps1"
     "internal/stop-anclora-filestudio.ps1"
+    "internal/tool-resolution.ps1"
     "app/server.js"
     "app/.next/static"
     "app/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
@@ -142,6 +143,7 @@ if [[ -n "$SEVENZIP" ]]; then
 
   START_PS1="$PKG/internal/start-anclora-filestudio.ps1"
   STOP_PS1="$PKG/internal/stop-anclora-filestudio.ps1"
+  TOOL_RESOLUTION_PS1="$PKG/internal/tool-resolution.ps1"
 
   if grep -q 'Read-Host' "$START_PS1"; then
     echo "[FAIL] start launcher contains Read-Host despite -NonInteractive BAT"
@@ -184,6 +186,22 @@ if [[ -n "$SEVENZIP" ]]; then
     echo "[PASS] stop launcher only targets recorded PID"
     PASS=$((PASS+1))
   fi
+
+  for marker in \
+    'C:\Program Files\LibreOffice\program\soffice.exe' \
+    'C:\Program Files\Calibre2\ebook-convert.exe' \
+    'C:\Program Files\Tesseract-OCR\tesseract.exe' \
+    'C:\Program Files\Tesseract-OCR\tessdata' \
+    'Get-Command' \
+    'ANCLORA_FILESTUDIO_TESSDATA_PREFIX'; do
+    if grep -Fq "$marker" "$TOOL_RESOLUTION_PS1"; then
+      echo "[PASS] tool-resolution contains $marker"
+      PASS=$((PASS+1))
+    else
+      echo "[FAIL] tool-resolution missing $marker"
+      FAIL=$((FAIL+1))
+    fi
+  done
 
   echo ""
   echo "--- Structural: $PASS PASS, $FAIL FAIL ---"
@@ -243,8 +261,35 @@ else
     WIN_PS1_LOCAL="${WIN_SMOKE_COPY}\\smoke.ps1"
 
     echo "[INFO] Executing native acceptance test via powershell.exe..."
-    if powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass \
-        -File "$WIN_PS1_LOCAL" -ZipPath "$WIN_ZIP_LOCAL"; then
+    NATIVE_LOG="$(mktemp)"
+    powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass \
+        -File "$WIN_PS1_LOCAL" -ZipPath "$WIN_ZIP_LOCAL" >"$NATIVE_LOG" 2>&1 &
+    NATIVE_PID=$!
+    NATIVE_RESULT=""
+    for _ in $(seq 1 240); do
+      if grep -q '^=== NATIVE_ACCEPTANCE_WINDOWS_PASS ===$' "$NATIVE_LOG"; then
+        NATIVE_RESULT="pass"
+        break
+      fi
+      if grep -q '^=== NATIVE_ACCEPTANCE_WINDOWS_FAIL ===$' "$NATIVE_LOG"; then
+        NATIVE_RESULT="fail"
+        break
+      fi
+      if ! kill -0 "$NATIVE_PID" 2>/dev/null; then
+        break
+      fi
+      sleep 1
+    done
+    cat "$NATIVE_LOG"
+    if kill -0 "$NATIVE_PID" 2>/dev/null; then
+      kill "$NATIVE_PID" 2>/dev/null || true
+      wait "$NATIVE_PID" 2>/dev/null || true
+    else
+      wait "$NATIVE_PID" 2>/dev/null || true
+    fi
+    rm -f "$NATIVE_LOG"
+
+    if [[ "$NATIVE_RESULT" == "pass" ]]; then
       echo "[PASS] NATIVE_ACCEPTANCE_WINDOWS_PASS"
       PASS=$((PASS+1))
     else

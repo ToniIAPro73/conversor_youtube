@@ -473,7 +473,7 @@ INTERNAL_DIR="$STAGING_DIR/internal"
 
 WIN_SCRIPTS_DIR="$SCRIPT_DIR/windows-portable"
 for ps1 in start-anclora-filestudio.ps1 stop-anclora-filestudio.ps1 \
-           update-ytdlp.ps1 diagnose-anclora-filestudio.ps1; do
+           update-ytdlp.ps1 diagnose-anclora-filestudio.ps1 tool-resolution.ps1; do
   if [[ -f "$WIN_SCRIPTS_DIR/$ps1" ]]; then
     cp "$WIN_SCRIPTS_DIR/$ps1" "$INTERNAL_DIR/"
   else

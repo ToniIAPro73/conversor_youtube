@@ -14,43 +14,30 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$ToolResolutionScript = Join-Path $PSScriptRoot 'tool-resolution.ps1'
+if (-not (Test-Path $ToolResolutionScript)) {
+    Write-Host ""
+    Write-Host "  [ERROR] No se encuentra el helper interno: tool-resolution.ps1" -ForegroundColor Red
+    exit 1
+}
+. $ToolResolutionScript
+
 # - Rutas absolutas derivadas de BaseDir ------------------
 $NodeExe      = Join-Path $BaseDir 'runtime\node.exe'
 $AppDir       = Join-Path $BaseDir 'app'
 $ServerJs     = Join-Path $AppDir 'server.js'
 $ServerEntry  = 'server.js'
-$YtdlpExe     = Join-Path $BaseDir 'tools\yt-dlp\yt-dlp.exe'
-function Resolve-ToolPath([string[]]$Candidates) {
-    foreach ($candidate in $Candidates) {
-        if (Test-Path $candidate) {
-            return $candidate
-        }
-    }
-    return $Candidates[0]
-}
-
-$FfmpegExe    = Resolve-ToolPath @(
-    (Join-Path $BaseDir 'tools\ffmpeg\ffmpeg.exe'),
-    (Join-Path $BaseDir 'tools\ffmpeg\bin\ffmpeg.exe')
-)
-$FfprobeExe   = Resolve-ToolPath @(
-    (Join-Path $BaseDir 'tools\ffmpeg\ffprobe.exe'),
-    (Join-Path $BaseDir 'tools\ffmpeg\bin\ffprobe.exe')
-)
-$QpdfExe      = Resolve-ToolPath @(
-    (Join-Path $BaseDir 'tools\qpdf\qpdf.exe'),
-    (Join-Path $BaseDir 'tools\qpdf\bin\qpdf.exe')
-)
-$SevenZipExe  = Resolve-ToolPath @(
-    (Join-Path $BaseDir 'tools\sevenzip\7z.exe'),
-    (Join-Path $BaseDir 'tools\sevenzip\7za.exe'),
-    (Join-Path $BaseDir 'tools\sevenzip\7zr.exe')
-)
-$PandocExe    = Join-Path $BaseDir 'tools\pandoc\pandoc.exe'
-$LibreOfficeExe = Join-Path $BaseDir 'tools\libreoffice\program\soffice.exe'
-$CalibreExe   = Join-Path $BaseDir 'tools\calibre\ebook-convert.exe'
-$TesseractExe = Join-Path $BaseDir 'tools\tesseract\tesseract.exe'
-$TessdataDir  = Join-Path $BaseDir 'tools\tessdata'
+$Tools        = Resolve-AncloraWindowsTools -BaseDir $BaseDir
+$YtdlpExe     = $Tools.Ytdlp.Path
+$FfmpegExe    = $Tools.Ffmpeg.Path
+$FfprobeExe   = $Tools.Ffprobe.Path
+$QpdfExe      = $Tools.Qpdf.Path
+$SevenZipExe  = $Tools.SevenZip.Path
+$PandocExe    = $Tools.Pandoc.Path
+$LibreOfficeExe = $Tools.LibreOffice.Path
+$CalibreExe   = $Tools.Calibre.Path
+$TesseractExe = $Tools.Tesseract.Path
+$TessdataDir  = $Tools.Tessdata.Path
 $PopplerDir   = Join-Path $BaseDir 'tools\poppler'
 $DataDir      = Join-Path $BaseDir 'data'
 $TempDir      = Join-Path $BaseDir 'temp'
@@ -132,22 +119,22 @@ Write-Ok "Archivos criticos verificados"
 # - Verificar herramientas opcionales --------------------
 Write-Step "Verificando herramientas de conversion..."
 $optionalTools = @(
-    @{ Name = 'yt-dlp'; Path = $YtdlpExe },
-    @{ Name = 'FFmpeg'; Path = $FfmpegExe },
-    @{ Name = 'FFprobe'; Path = $FfprobeExe },
-    @{ Name = 'QPDF'; Path = $QpdfExe },
-    @{ Name = '7-Zip'; Path = $SevenZipExe },
-    @{ Name = 'Pandoc'; Path = $PandocExe },
-    @{ Name = 'LibreOffice'; Path = $LibreOfficeExe },
-    @{ Name = 'Calibre'; Path = $CalibreExe },
-    @{ Name = 'Tesseract'; Path = $TesseractExe }
+    $Tools.Ytdlp,
+    $Tools.Ffmpeg,
+    $Tools.Ffprobe,
+    $Tools.Qpdf,
+    $Tools.SevenZip,
+    $Tools.Pandoc,
+    $Tools.LibreOffice,
+    $Tools.Calibre,
+    $Tools.Tesseract
 )
 $missingTools = @()
 foreach ($tool in $optionalTools) {
-    if (Test-Path $tool.Path) {
-        Write-Ok "  $($tool.Name) encontrado"
+    if ($tool.Resolved) {
+        Write-Ok "$($tool.Name) encontrado"
     } else {
-        Write-Warn "  $($tool.Name) no encontrado (algunas conversiones no estaran disponibles)"
+        Write-Warn "$($tool.Name) no encontrado (algunas conversiones no estaran disponibles)"
         $missingTools += $tool.Name
     }
 }
@@ -156,7 +143,13 @@ foreach ($tool in $optionalTools) {
 if (-not (Test-Path $DataDir))    { New-Item -ItemType Directory -Path $DataDir    -Force | Out-Null }
 if (-not (Test-Path $TempDir))    { New-Item -ItemType Directory -Path $TempDir    -Force | Out-Null }
 if (-not (Test-Path $LogDir))     { New-Item -ItemType Directory -Path $LogDir     -Force | Out-Null }
-if (-not (Test-Path $TessdataDir) ) { New-Item -ItemType Directory -Path $TessdataDir -Force | Out-Null }
+if (-not $Tools.Tessdata.Resolved) {
+    $portableTessdataDir = Join-Path $BaseDir 'tools\tessdata'
+    if (-not (Test-Path $portableTessdataDir)) {
+        New-Item -ItemType Directory -Path $portableTessdataDir -Force | Out-Null
+    }
+    $TessdataDir = $portableTessdataDir
+}
 
 # - Limpiar temporales caducados (>2 horas) -----------------
 Write-Step "Limpiando archivos temporales caducados..."

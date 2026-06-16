@@ -286,11 +286,8 @@ catch {
     $ExitCode = 1
 }
 finally {
-    if (Get-Command Stop-PortableIfNeeded -ErrorAction SilentlyContinue) {
-        Stop-PortableIfNeeded -PackageDir $PkgDir
-    }
-    if (Test-Path $SmokeDir) {
-        Remove-Item -Recurse -Force $SmokeDir -ErrorAction SilentlyContinue
-    }
+    # Avoid making best-effort temp cleanup part of the acceptance result.
+    # On WSL interop, recursive deletion of a recently stopped Windows process tree
+    # can keep powershell.exe alive after the smoke already printed PASS/FAIL.
 }
-exit $ExitCode
+[Environment]::Exit($ExitCode)
