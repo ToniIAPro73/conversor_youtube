@@ -2,7 +2,6 @@
 // Security: DNS re-resolution before each delivery, RFC 1918 blocklist, no redirect follow,
 // 10s timeout, HMAC-SHA256 signature with timestamp anti-replay.
 import { createHmac, randomBytes } from "node:crypto";
-import { lookup } from "node:dns/promises";
 
 // ── SSRF Protection ───────────────────────────────────────────────────────────
 
@@ -147,7 +146,7 @@ export async function deliverWebhook(
   lookupFn?: LookupFn
 ): Promise<WebhookDeliveryResult> {
   const t0 = Date.now();
-  const resolveFn = lookupFn ?? (await import("node:dns/promises").then((m) => m.lookup as unknown as LookupFn));
+  const resolveFn: LookupFn = lookupFn ?? (await import("node:dns/promises").then((m) => m.lookup as unknown as LookupFn));
 
   // SSRF check — re-resolves DNS before each delivery
   let validatedUrl: string;

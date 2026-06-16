@@ -5,6 +5,7 @@ import { authMiddleware } from "./middleware/auth.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createJobsRouter } from "./routes/jobs.js";
 import { createUploadsRouter } from "./routes/uploads.js";
+import { createAgentAuthenticatedRouter, createAgentAdminRouter, createAgentPublicRouter } from "./routes/agent.js";
 
 interface AppOptions {
   jwtPublicKeysPath: string;
@@ -26,10 +27,13 @@ export function createApp(options: AppOptions): Hono {
 
   // Public routes (no auth)
   app.route("/api/v1", createHealthRouter());
+  app.route("/api/v1", createAgentPublicRouter());
+  app.route("/api/v1/agent", createAgentAuthenticatedRouter());
 
   // Protected routes
   const v1 = new Hono();
   v1.use("*", authMiddleware(options.jwtPublicKeysPath, options.jwtAudience));
+  v1.route("/admin", createAgentAdminRouter());
   v1.route("/uploads", createUploadsRouter());
   v1.route("/jobs", createJobsRouter());
 

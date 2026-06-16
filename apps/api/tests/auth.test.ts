@@ -1,15 +1,16 @@
 // JWT auth middleware tests — uses generated EdDSA key pair (no fixtures needed)
 import { describe, it, expect, beforeAll } from "vitest";
-import { generateKeyPair, exportSPKI, exportPKCS8, SignJWT } from "jose";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { generateKeyPair, exportSPKI, SignJWT } from "jose";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Hono } from "hono";
 import { authMiddleware, requireScope } from "../src/middleware/auth.js";
+import type { KeyLike } from "jose";
 
 interface KeyPairFixture {
   keysDir: string;
-  signKey: CryptoKey;
+  signKey: CryptoKey | KeyLike;
   audience: string;
 }
 

@@ -5,6 +5,15 @@
 Nexus actúa como gateway central: gestiona identidad, permisos y trazabilidad.
 FileStudio Service no conoce a los usuarios finales — solo conoce clientes de servicio.
 
+## Estado implementado en subfase 5.5
+
+- Paquete `@anclora/filestudio-nexus` incluido en workspace.
+- Política de routing configurable con rechazo de `restricted` sin aprobación humana.
+- `confidential` no cae al VPS salvo habilitación explícita `allowConfidentialPrivateService`.
+- Mock server de contrato aislado en `src/mock-server`, con comparación estricta de bearer token, IDs criptográficos e idempotencia por hash de payload.
+- Fixtures y pruebas de contrato para uploads, jobs, result tokens, errores e idempotencia.
+- Documentación pública en `docs/integrations/anclora-nexus/*`.
+
 ```
 Usuario final → Nexus → FileStudio Service → Worker → FileStudio Service → Nexus → Usuario final
 ```

@@ -16,6 +16,19 @@
 
 ## Nuevas suites (Service)
 
+### Subfase 5.5 ejecutada
+
+| Comando | Resultado |
+|---|---|
+| `pnpm --filter @anclora/filestudio-local-agent typecheck` | OK |
+| `pnpm --filter @anclora/filestudio-api typecheck` | OK |
+| `pnpm --filter @anclora/filestudio-nexus typecheck` | OK |
+| `pnpm test:local-agent` | 6 files, 24 tests OK |
+| `pnpm test:routing` | OK |
+| `pnpm test:nexus-contract` | OK |
+| `pnpm --filter @anclora/filestudio-api test -- tests/agent.test.ts tests/auth.test.ts` | OK |
+| `pnpm build:local-agent` | OK |
+
 ### `pnpm test:api`
 
 | Test | Archivo |

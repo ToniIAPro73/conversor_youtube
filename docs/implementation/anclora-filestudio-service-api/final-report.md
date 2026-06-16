@@ -48,10 +48,23 @@
 
 ## Subfase 5.5
 
-- Estado: ⏳ Pendiente
-- Commit: —
-- Push: —
-- Gates: —
+- Estado: En validación previa a commit
+- Commit: pendiente
+- Push: pendiente
+- Gates ejecutados:
+  - `pnpm --filter @anclora/filestudio-local-agent typecheck` — OK
+  - `pnpm --filter @anclora/filestudio-api typecheck` — OK
+  - `pnpm --filter @anclora/filestudio-nexus typecheck` — OK
+  - `pnpm test:local-agent` — OK, 6 archivos / 24 tests
+  - `pnpm test:routing` — OK
+  - `pnpm test:nexus-contract` — OK
+  - `pnpm --filter @anclora/filestudio-api test -- tests/agent.test.ts tests/auth.test.ts` — OK
+  - `pnpm test:security` — OK, 16 tests
+  - `pnpm build` — OK
+  - `pnpm build:local-agent` — OK
+- Gate no aplicable a 5.5: `pnpm build:service` se ejecutó de forma anticipada y falló por configuración `rootDir` de `apps/api/tsconfig.build.json` al importar `packages/core`; se registra como corrección de subfase 5.6.
+- Smoke test: incluido en `apps/local-agent/tests/smoke.test.ts`; ejecuta conversión real `data.json-to-yaml` contra servidor HTTP local de test.
+- Limitaciones reales: keychain nativo Windows/Linux queda documentado como hardening posterior; fallback portable exige clave explícita y cifra con AES-256-GCM.
 
 ## Subfase 5.6
 

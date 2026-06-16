@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { streamText } from "hono/streaming";
 import { z } from "zod";
 import { requireScope } from "../middleware/auth.js";
 import type { AuthContext } from "../middleware/auth.js";
@@ -6,7 +7,7 @@ import type { AuthContext } from "../middleware/auth.js";
 const CreateJobSchema = z.object({
   operation: z.string().min(1),
   input: z.object({ uploadId: z.string().min(1) }),
-  options: z.record(z.unknown()).optional().default({}),
+  options: z.record(z.string(), z.unknown()).optional().default({}),
   callback: z.object({ webhookEndpointId: z.string() }).optional(),
   idempotencyKey: z.string().max(255).optional(),
   metadata: z.object({
@@ -38,7 +39,7 @@ export function createJobsRouter(): Hono {
     const data = parsed.data;
     const correlationId = c.req.header("X-Correlation-Id") ?? data.metadata?.correlationId;
 
-    // Idempotency check (service handles at middleware level — stub for now)
+    // Idempotency key is forwarded to the injected JobService for conflict-safe handling.
     const idempotencyKey = c.req.header("Idempotency-Key") ?? data.idempotencyKey;
 
     // Job creation delegated to JobService (injected via context)
@@ -88,7 +89,7 @@ export function createJobsRouter(): Hono {
       return c.json({ type: "about:blank", title: "Service Unavailable", status: 503, code: "ENGINE_UNAVAILABLE" }, 503);
     }
 
-    const job = await jobService.getByIdAndClient(c.req.param("id"), auth.claims.client_id);
+    const job = await jobService.getByIdAndClient(c.req.param("id")!, auth.claims.client_id);
     if (!job) {
       return c.json({ type: "about:blank", title: "Not Found", status: 404, code: "JOB_NOT_FOUND" }, 404);
     }
@@ -113,7 +114,7 @@ export function createJobsRouter(): Hono {
       return c.json({ type: "about:blank", title: "Service Unavailable", status: 503, code: "ENGINE_UNAVAILABLE" }, 503);
     }
 
-    const ok = await jobService.cancel(c.req.param("id"), auth.claims.client_id);
+    const ok = await jobService.cancel(c.req.param("id")!, auth.claims.client_id);
     if (ok === null) {
       return c.json({ type: "about:blank", title: "Not Found", status: 404, code: "JOB_NOT_FOUND" }, 404);
     }
@@ -130,20 +131,17 @@ export function createJobsRouter(): Hono {
     const jobService = c.get("jobService") as JobService | undefined;
 
     // Verify job exists and belongs to client
-    const job = await jobService?.getByIdAndClient(c.req.param("id"), auth.claims.client_id);
+    const job = await jobService?.getByIdAndClient(c.req.param("id")!, auth.claims.client_id);
     if (!job) {
       return c.json({ type: "about:blank", title: "Not Found", status: 404, code: "JOB_NOT_FOUND" }, 404);
     }
 
-    // Return SSE stream
-    return c.streamText(async (stream) => {
-      // Initial state event
+    return streamText(c, async (stream) => {
       await stream.writeln(`event: job.status\ndata: ${JSON.stringify({ jobId: job.id, status: job.status, timestamp: new Date().toISOString() })}\n`);
 
-      // Event subscription injected via context
       const eventBus = c.get("eventBus") as EventBus | undefined;
       if (!eventBus) {
-        await stream.writeln(`event: end\ndata: {}\n`);
+        await stream.writeln("event: end\ndata: {}\n");
         return;
       }
 
@@ -160,7 +158,6 @@ export function createJobsRouter(): Hono {
           }
         });
 
-        // Auto-close after 5 minutes
         setTimeout(() => { unsub(); resolve(); }, 5 * 60 * 1000);
       });
     });
@@ -174,7 +171,7 @@ export function createJobsRouter(): Hono {
       return c.json({ type: "about:blank", title: "Service Unavailable", status: 503, code: "ENGINE_UNAVAILABLE" }, 503);
     }
 
-    const result = await jobService.createDownloadToken(c.req.param("id"), auth.claims.client_id);
+    const result = await jobService.createDownloadToken(c.req.param("id")!, auth.claims.client_id);
     if (!result) {
       return c.json({ type: "about:blank", title: "Not Found", status: 404, code: "JOB_NOT_FOUND" }, 404);
     }

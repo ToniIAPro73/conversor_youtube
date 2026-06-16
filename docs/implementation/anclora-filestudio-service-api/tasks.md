@@ -78,6 +78,25 @@
 - [ ] Implementar `WebhookDeliveryService` con SSRF protection
 - [ ] Implementar firma HMAC-SHA256 de webhooks
 - [ ] Crear `deploy/vps/` completo
+
+## Subfase 5.5 — Local Agent híbrido e integración Nexus
+
+- [x] Preservar working tree parcial en `/tmp/anclora-filestudio-handoff`
+- [x] Verificar rama obligatoria `feat/anclora-filestudio-service-api`
+- [x] Actualizar `origin` al remoto canónico verificado
+- [x] Incluir `packages/integrations/*` en workspace pnpm
+- [x] Eliminar placeholder de ejecución del Local Agent
+- [x] Implementar catálogo/probes/capabilities reales del agente
+- [x] Implementar conversión real `data.json-to-yaml` y `data.yaml-to-json`
+- [x] Implementar probe/operación opcional `image.png-to-webp` con Sharp cuando esté disponible
+- [x] Implementar `CredentialStore` en memoria y fallback cifrado AES-256-GCM
+- [x] Implementar refresh token rotatorio, expiración, reutilización y unpair
+- [x] Implementar endpoints de pairing, admin approve/reject, capabilities, heartbeat y jobs locales
+- [x] Evitar tokens sensibles en query string para input del agente
+- [x] Endurecer mock Nexus con IDs criptográficos e idempotencia por hash de payload
+- [x] Hacer routing configurable y evitar fallback confidencial automático al VPS
+- [x] Añadir tests de pairing, credenciales, refresh, revocación, consentimiento, routing, contrato y smoke local
+- [x] Añadir `build:local-agent` con artefactos ignorados en `dist/local-agent/*`
   - `compose.yml`, `compose.dev.yml`, `compose.prod.yml`
   - `Caddyfile`
   - `env.example`

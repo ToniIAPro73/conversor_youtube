@@ -5,6 +5,19 @@
 Permitir que Nexus asigne trabajos de conversión a un equipo local autorizado, sin que ese
 equipo abra puertos entrantes ni dependa de Docker.
 
+## Estado implementado en subfase 5.5
+
+- Pairing Ed25519 con código de un solo uso, expiración y aprobación/rechazo administrativa.
+- Access token de vida corta y refresh token rotatorio.
+- Detección de reutilización de refresh token con revocación del dispositivo.
+- `CredentialStore` en memoria para tests y fallback portable cifrado AES-256-GCM con permisos `0600`.
+- Capabilities calculadas a partir de probes reales del catálogo local del agente.
+- Ejecución real para `data.json-to-yaml`, `data.yaml-to-json` y operación Sharp opcional `image.png-to-webp`.
+- Descarga de input con cabecera `X-Agent-Input-Token`, validación de `Content-Length` y SHA-256.
+- Upload de resultado con `X-Content-Sha256` y confirmación de hash.
+- Limpieza de directorio temporal tras éxito o error.
+- Smoke test HTTP local que cubre capabilities, job, descarga, conversión real, upload y confirmación.
+
 ## Modelo de seguridad
 
 - Solo conexiones HTTPS **salientes**.
