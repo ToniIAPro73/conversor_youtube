@@ -79,6 +79,42 @@
 | Test | `tests/security/auth.test.ts` |
 | Riesgo residual | Bajo — ventana de 1h si token robado antes de expirar |
 
+### A-16: Reutilización de código de pairing
+
+| Campo | Valor |
+|---|---|
+| Activo | Registro de dispositivos locales |
+| Actor | Atacante con acceso al código temporal |
+| Vector | Reusar código después de aprobación/rechazo |
+| Impacto | Vinculación fraudulenta de dispositivo |
+| Mitigación | Estado terminal `authorized/rejected/expired`, código hasheado, límite de intentos |
+| Test | `apps/api/tests/agent.test.ts`, `apps/local-agent/tests/pairing.test.ts` |
+| Riesgo residual | Bajo |
+
+### A-17: Robo o reutilización de refresh token del Local Agent
+
+| Campo | Valor |
+|---|---|
+| Activo | Credenciales del dispositivo |
+| Actor | Malware local o atacante con copia de credenciales |
+| Vector | Reutilizar refresh token ya rotado |
+| Impacto | Sesión persistente no autorizada |
+| Mitigación | Refresh rotatorio, hash server-side, detección de reutilización y revocación del dispositivo |
+| Test | `apps/api/tests/agent.test.ts`, `apps/local-agent/tests/tokens.test.ts` |
+| Riesgo residual | Medio hasta integrar keychain nativo |
+
+### A-18: Comando arbitrario desde Service hacia Local Agent
+
+| Campo | Valor |
+|---|---|
+| Activo | Equipo corporativo donde corre el agente |
+| Actor | Service comprometido o job malicioso |
+| Vector | Enviar binario, argumentos o ruta local arbitraria |
+| Impacto | Ejecución remota o exfiltración |
+| Mitigación | El agente acepta solo `operationId` registrado, opciones JSON validadas y referencias temporales; no acepta rutas ni nombres de binario |
+| Test | `apps/local-agent/tests/operations.test.ts`, `apps/local-agent/tests/consent.test.ts` |
+| Riesgo residual | Bajo |
+
 ### A-07: Escape de tenant / workspace
 
 | Campo | Valor |

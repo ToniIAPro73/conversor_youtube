@@ -95,11 +95,11 @@ export class PostgresJobRepository implements JobRepository {
     assertValidTransition(current.status, t.to);
 
     const now = new Date();
-    const extra: Record<string, unknown> = {};
-    if (t.to === "queued") extra.queued_at = now;
-    if (t.to === "processing") extra.started_at = now;
+    const queuedAt = t.to === "queued" ? now : null;
+    const startedAt = t.to === "processing" ? now : null;
+    let completedAt: Date | null = null;
     if (["completed", "partial_failure", "failed", "cancelled"].includes(t.to)) {
-      extra.completed_at = now;
+      completedAt = now;
     }
 
     const rows = await this.sql`
@@ -111,9 +111,9 @@ export class PostgresJobRepository implements JobRepository {
         output_path   = COALESCE(${t.outputPath ?? null}, output_path),
         sha256_input  = COALESCE(${t.sha256Input ?? null}, sha256_input),
         sha256_output = COALESCE(${t.sha256Output ?? null}, sha256_output),
-        queued_at     = COALESCE(${extra.queued_at ?? null}, queued_at),
-        started_at    = COALESCE(${extra.started_at ?? null}, started_at),
-        completed_at  = COALESCE(${extra.completed_at ?? null}, completed_at)
+        queued_at     = COALESCE(${queuedAt}, queued_at),
+        started_at    = COALESCE(${startedAt}, started_at),
+        completed_at  = COALESCE(${completedAt}, completed_at)
       WHERE id = ${id}
       RETURNING *
     `;

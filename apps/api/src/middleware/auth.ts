@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
 import { createMiddleware } from "hono/factory";
-import { importSPKI, jwtVerify, errors as joseErrors, type JWTPayload } from "jose";
+import { importSPKI, jwtVerify, errors as joseErrors, type JWTPayload, type KeyLike } from "jose";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -14,9 +14,9 @@ export interface AuthContext {
   claims: ServiceClaims;
 }
 
-const _keyCache = new Map<string, Promise<CryptoKey>>();
+const _keyCache = new Map<string, Promise<CryptoKey | KeyLike>>();
 
-async function resolveKey(kid: string | undefined, keysPath: string): Promise<CryptoKey> {
+async function resolveKey(kid: string | undefined, keysPath: string): Promise<CryptoKey | KeyLike> {
   const files = readdirSync(keysPath).filter((f) => f.endsWith(".pem"));
   const candidates = kid ? files.filter((f) => f.startsWith(kid)) : files;
   if (candidates.length === 0) {
