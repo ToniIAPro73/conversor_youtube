@@ -15,8 +15,10 @@ Branch: `build/anclora-filestudio-portables`
 | Linux runtime smoke (9/9) | PASS |
 | Windows build script (complete rewrite) | Done |
 | Windows artifact (zip + sha256) | Done (250MB) |
-| Windows structural smoke (20/20) | PASS |
-| Windows runtime smoke | Pending (requires Windows) |
+| Windows structural smoke (31/31) | PASS |
+| Windows runtime smoke | PASS |
+| Windows path-with-spaces startup regression | PASS |
+| Windows BAT startup from Downloads path with spaces | PASS |
 | Docs (7 markdown files) | Done |
 
 ## Linux artifact
@@ -48,12 +50,39 @@ Runtime smoke results:
 ```text
 dist/windows/Anclora-FileStudio-Windows-x64-Core.zip  (250 MB)
 dist/windows/Anclora-FileStudio-Windows-x64-Core.zip.sha256
-SHA-256: 08ff9c809ea3c7637de9776c82c5cac5982b4f241799646defb6d0620d136518
+SHA-256: 43f999863a5686c3ebeb5e97766aa1a018cdf893b3183d9178d4e0315036fe4c
 ```
 
 Bundled Node.js v24.16.0 (ABI 137, win-x64) — no system Node required.
 
-Structural verify: 80/80 PASS. Structural smoke: 26/26 PASS. Native acceptance: PASS.
+Structural verify: 80/80 PASS. Structural smoke: 31/31 PASS. Native acceptance: PASS.
+
+### Windows launcher path-with-spaces fix
+
+**Root cause:** `start-anclora-filestudio.ps1` passed the absolute
+`<portable>\app\server.js` path via `Start-Process -ArgumentList`. In Windows
+PowerShell 5.1 this is converted into a command-line string, so paths such as
+`C:\Users\...\Downloads\Prueba Anclora Windows ...\app\server.js` can be split
+and Node receives only `C:\Users\...\Downloads\Prueba`.
+
+**Fix:** The launcher now validates the absolute file path but starts Node with:
+
+```text
+WorkingDirectory = <portable>\app
+ArgumentList = server.js
+```
+
+The PowerShell launcher also accepts `-SkipBrowser` for automation and no longer
+calls `Read-Host`, which is incompatible with the BAT's `-NonInteractive`
+PowerShell invocation. Error paths return `exit 1`; only the BAT can pause.
+
+**Regression coverage:** `smoke-windows-portable.ps1` now extracts the package
+to `%TEMP%\Prueba Anclora FileStudio Windows <id>`, launches
+`internal\start-anclora-filestudio.ps1 -SkipBrowser`, validates the PID belongs
+to the bundled `runtime\node.exe`, checks `/api/health` via `127.0.0.1`, asserts
+`error.log` has no `MODULE_NOT_FOUND`, and stops the recorded PID. The shell
+smoke also blocks `Read-Host`, `ArgumentList = @($ServerJs)`, and global Node
+termination patterns.
 
 ### semver root cause and fix
 
@@ -71,6 +100,12 @@ Tests executed via `powershell.exe` from WSL. ZIP is copied to Windows TEMP firs
 | SQLITE_OK (CREATE/INSERT/SELECT/close) | PASS |
 | SHARP_OK (sharp=0.35.1 vips=8.18.3) | PASS |
 | WEBP_OK (68 bytes, RIFF/WEBP magic) | PASS |
+| Launcher from Windows TEMP path with spaces | PASS |
+| PID belongs to bundled `runtime\node.exe` | PASS |
+| Health via `http://127.0.0.1:<port>/api/health` | PASS |
+| `error.log` has no `MODULE_NOT_FOUND` | PASS |
+| Stop script releases port and leaves no server process | PASS |
+| `INICIAR_ANCLORA_FILESTUDIO.bat` from Downloads path with spaces | PASS |
 | NATIVE_ACCEPTANCE_WINDOWS_PASS | PASS |
 
 ## Security constraints met
@@ -136,5 +171,6 @@ the `.node` file) is also absent from the standalone. Both are explicitly restor
 
 ## Pending work
 
-- Windows runtime smoke test (requires Windows — PowerShell/cmd.exe)
-- Update `docs/implementation/anclora-filestudio-portables/test-matrix.md` after Windows runtime test
+- Manual UI acceptance from a double-clicked BAT can still be repeated before a
+  public release, but automated native startup coverage now exercises the same
+  internal launcher from a Windows-local path with spaces.

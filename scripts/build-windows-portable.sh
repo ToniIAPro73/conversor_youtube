@@ -519,7 +519,9 @@ if [[ ! -f "$INTERNAL_DIR/start-anclora-filestudio.ps1" ]]; then
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $NodeExe = Join-Path $Root "runtime\node.exe"
-$ServerJs = Join-Path $Root "app\server.js"
+$AppDir = Join-Path $Root "app"
+$ServerJs = Join-Path $AppDir "server.js"
+$ServerEntry = "server.js"
 $PidFile = Join-Path $Root "anclora-filestudio.pid"
 $LogFile = Join-Path $Root "logs\app.log"
 
@@ -540,12 +542,10 @@ $env:PATH = (Join-Path $Root "tools\yt-dlp") + ";" + (Join-Path $Root "tools\ffm
             (Join-Path $Root "tools\pandoc") + ";" + (Join-Path $Root "tools\qpdf") + ";" + `
             (Join-Path $Root "tools\sevenzip") + ";" + $env:PATH
 
-Push-Location (Join-Path $Root "app")
-$proc = Start-Process -FilePath $NodeExe -ArgumentList $ServerJs `
+$proc = Start-Process -FilePath $NodeExe -ArgumentList @($ServerEntry) -WorkingDirectory $AppDir `
         -RedirectStandardOutput $LogFile -RedirectStandardError $LogFile `
         -WindowStyle Hidden -PassThru
 $proc.Id | Out-File -FilePath $PidFile -Encoding ascii
-Pop-Location
 
 Write-Host "Anclora FileStudio started (PID $($proc.Id)) on http://127.0.0.1:3847"
 Start-Sleep 3

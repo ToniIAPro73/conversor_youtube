@@ -5,8 +5,10 @@
 # =============================================================================
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$BaseDir
+    [Parameter(Mandatory = $true)]
+    [string]$BaseDir,
+
+    [switch]$SkipBrowser
 )
 
 Set-StrictMode -Version Latest
@@ -14,7 +16,9 @@ $ErrorActionPreference = 'Stop'
 
 # - Rutas absolutas derivadas de BaseDir ------------------
 $NodeExe      = Join-Path $BaseDir 'runtime\node.exe'
-$ServerJs     = Join-Path $BaseDir 'app\server.js'
+$AppDir       = Join-Path $BaseDir 'app'
+$ServerJs     = Join-Path $AppDir 'server.js'
+$ServerEntry  = 'server.js'
 $YtdlpExe     = Join-Path $BaseDir 'tools\yt-dlp\yt-dlp.exe'
 function Resolve-ToolPath([string[]]$Candidates) {
     foreach ($candidate in $Candidates) {
@@ -70,6 +74,40 @@ function Write-Err([string]$msg) {
 function Write-Warn([string]$msg) {
     Write-Host "  [WARN] $msg" -ForegroundColor Yellow
 }
+function Clear-ServerState {
+    Remove-Item $PidFile  -Force -ErrorAction SilentlyContinue
+    Remove-Item $PortFile -Force -ErrorAction SilentlyContinue
+}
+function Get-NormalizedPath([string]$path) {
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        return ''
+    }
+    return [System.IO.Path]::GetFullPath($path).TrimEnd('\')
+}
+function Test-PortableNodeProcess([System.Diagnostics.Process]$Process) {
+    if ($null -eq $Process) {
+        return $false
+    }
+    if ($Process.Name -notmatch '^node$') {
+        return $false
+    }
+    try {
+        $processPath = Get-NormalizedPath $Process.Path
+        $expectedPath = Get-NormalizedPath $NodeExe
+        return $processPath.Equals($expectedPath, [System.StringComparison]::OrdinalIgnoreCase)
+    } catch {
+        return $false
+    }
+}
+function Show-ErrorLogTail {
+    param([int]$Lines = 10)
+    if (Test-Path $ErrorLog) {
+        Write-Host ""
+        Write-Host "  --- Ultimas lineas del log ---" -ForegroundColor DarkGray
+        Get-Content $ErrorLog -Tail $Lines -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+    }
+}
 
 Write-Host ""
 Write-Host "  Anclora FileStudio - Iniciando..." -ForegroundColor White
@@ -87,7 +125,6 @@ foreach ($f in $criticalFiles) {
 if ($criticalMissing.Count -gt 0) {
     Write-Err "Archivos criticos no encontrados:"
     foreach ($f in $criticalMissing) { Write-Host "    $f" -ForegroundColor Red }
-    Read-Host "  Pulsa Enter para cerrar"
     exit 1
 }
 Write-Ok "Archivos criticos verificados"
@@ -137,7 +174,7 @@ if (Test-Path $PidFile) {
     $existingPid = $existingPid.Trim()
     if ($existingPid -match '^\d+$') {
         $proc = Get-Process -Id ([int]$existingPid) -ErrorAction SilentlyContinue
-        if ($proc -ne $null -and $proc.Name -match 'node') {
+        if (Test-PortableNodeProcess $proc) {
             $existingPort = ''
             if (Test-Path $PortFile) {
                 $existingPort = (Get-Content $PortFile -Raw -ErrorAction SilentlyContinue).Trim()
@@ -145,12 +182,13 @@ if (Test-Path $PidFile) {
             $url = if ($existingPort) { "http://127.0.0.1:$existingPort" } else { "http://127.0.0.1:3456" }
             Write-Host ""
             Write-Host "  La aplicacion ya esta en ejecucion (PID $existingPid)." -ForegroundColor Green
-            Write-Host "  Abriendo navegador en $url ..." -ForegroundColor Cyan
-            Start-Process $url
+            if (-not $SkipBrowser) {
+                Write-Host "  Abriendo navegador en $url ..." -ForegroundColor Cyan
+                Start-Process $url
+            }
             exit 0
         } else {
-            Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
-            Remove-Item $PortFile -Force -ErrorAction SilentlyContinue
+            Clear-ServerState
         }
     }
 }
@@ -175,7 +213,6 @@ foreach ($p in @($defaultPort,3457,3458,3459,3460,3000,3001,3002,3003,3004)) {
 if ($null -eq $selectedPort) {
     Write-Err "No se ha encontrado un puerto libre."
     Write-Host "  Cierra otras aplicaciones y vuelve a intentarlo." -ForegroundColor Yellow
-    Read-Host "  Pulsa Enter para cerrar"
     exit 1
 }
 Write-Ok "Puerto seleccionado: $selectedPort"
@@ -228,8 +265,8 @@ Write-Step "Iniciando servidor (puerto $selectedPort)..."
 
 $procArgs = @{
     FilePath               = $NodeExe
-    ArgumentList           = @($ServerJs)
-    WorkingDirectory       = (Join-Path $BaseDir 'app')
+    ArgumentList           = @($ServerEntry)
+    WorkingDirectory       = $AppDir
     RedirectStandardOutput = $ServerLog
     RedirectStandardError  = $ErrorLog
     WindowStyle            = 'Hidden'
@@ -241,13 +278,25 @@ try {
 } catch {
     Write-Err "No se pudo iniciar el servidor: $_"
     Write-Host "  Consulta: $ErrorLog" -ForegroundColor Yellow
-    Read-Host "  Pulsa Enter para cerrar"
+    Show-ErrorLogTail
     exit 1
 }
 
 # Guardar PID y puerto
+$serverProc = Get-Process -Id $serverProc.Id -ErrorAction SilentlyContinue
+if (-not (Test-PortableNodeProcess $serverProc)) {
+    Write-Err "El proceso iniciado no corresponde al runtime incluido."
+    Write-Host "  Esperado: $NodeExe" -ForegroundColor Yellow
+    if ($serverProc -ne $null) {
+        Stop-Process -Id $serverProc.Id -Force -ErrorAction SilentlyContinue
+    }
+    Clear-ServerState
+    Show-ErrorLogTail
+    exit 1
+}
+
 $serverProc.Id | Out-File $PidFile -Encoding ascii -NoNewline
-"$selectedPort"  | Out-File $PortFile -Encoding ascii -NoNewline
+"$selectedPort" | Out-File $PortFile -Encoding ascii -NoNewline
 
 # - Esperar hasta que /api/health responda ------------------
 Write-Step "Esperando que el servidor arranque..."
@@ -265,14 +314,8 @@ while ($waited -lt $maxWaitSec) {
     if ($null -eq $aliveCheck) {
         Write-Err "El servidor se ha cerrado inesperadamente."
         Write-Host "  Consulta el log de error: $ErrorLog" -ForegroundColor Yellow
-        if (Test-Path $ErrorLog) {
-            Write-Host ""
-            Write-Host "  --- Ultimas lineas del log ---" -ForegroundColor DarkGray
-            Get-Content $ErrorLog -Tail 10 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
-        }
-        Remove-Item $PidFile  -Force -ErrorAction SilentlyContinue
-        Remove-Item $PortFile -Force -ErrorAction SilentlyContinue
-        Read-Host "  Pulsa Enter para cerrar"
+        Show-ErrorLogTail
+        Clear-ServerState
         exit 1
     }
 
@@ -291,17 +334,18 @@ if (-not $ready) {
     Write-Err "El servidor no arranco en $maxWaitSec segundos."
     Write-Host "  Consulta el log de error: $ErrorLog" -ForegroundColor Yellow
     Stop-Process -Id $serverProc.Id -Force -ErrorAction SilentlyContinue
-    Remove-Item $PidFile  -Force -ErrorAction SilentlyContinue
-    Remove-Item $PortFile -Force -ErrorAction SilentlyContinue
-    Read-Host "  Pulsa Enter para cerrar"
+    Clear-ServerState
+    Show-ErrorLogTail
     exit 1
 }
 
 Write-Ok "Servidor listo en http://127.0.0.1:$selectedPort"
 
 # - Abrir navegador -----------------------------
-Write-Step "Abriendo navegador..."
-Start-Process "http://127.0.0.1:$selectedPort"
+if (-not $SkipBrowser) {
+    Write-Step "Abriendo navegador..."
+    Start-Process "http://127.0.0.1:$selectedPort"
+}
 
 Write-Host ""
 Write-Host "  Anclora FileStudio esta ejecutandose en http://127.0.0.1:$selectedPort" -ForegroundColor Green

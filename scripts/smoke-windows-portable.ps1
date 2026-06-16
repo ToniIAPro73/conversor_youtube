@@ -12,8 +12,9 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $Id       = [System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss")
-$SmokeDir = Join-Path $TempBase ("Anclora-FileStudio-Windows-Smoke-" + $Id)
+$SmokeDir = Join-Path $TempBase ("Prueba Anclora FileStudio Windows " + $Id)
 $ExitCode = 0
+$PkgDir = $null
 
 try {
     if (-not (Test-Path $ZipPath)) {
@@ -33,11 +34,21 @@ try {
     $PkgDir  = Join-Path $SmokeDir "Anclora-FileStudio-Windows-x64-Core"
     $NodeExe = Join-Path $PkgDir "runtime\node.exe"
     $AppDir  = Join-Path $PkgDir "app"
+    $ServerJs = Join-Path $AppDir "server.js"
+    $StartScript = Join-Path $PkgDir "internal\start-anclora-filestudio.ps1"
+    $StopScript = Join-Path $PkgDir "internal\stop-anclora-filestudio.ps1"
+    $PidFile = Join-Path $PkgDir "data\anclora-filestudio.pid"
+    $PortFile = Join-Path $PkgDir "data\anclora-filestudio.port"
+    $ErrorLog = Join-Path $PkgDir "logs\error.log"
 
     if (-not (Test-Path $PkgDir))  { throw ("Package root not found: " + $PkgDir)  }
     if (-not (Test-Path $NodeExe)) { throw ("node.exe not found: " + $NodeExe) }
     if (-not (Test-Path $AppDir))  { throw ("app dir not found: " + $AppDir) }
+    if (-not (Test-Path $ServerJs)) { throw ("server.js not found: " + $ServerJs) }
+    if (-not (Test-Path $StartScript)) { throw ("start script not found: " + $StartScript) }
+    if (-not (Test-Path $StopScript)) { throw ("stop script not found: " + $StopScript) }
     Write-Host "[OK]  Extracted"
+    Write-Host "[PASS] server.js exists"
 
     # JS paths use forward slashes to avoid PS escape issues
     $AppDirFwd = $AppDir -replace "\\", "/"
@@ -56,6 +67,38 @@ try {
             throw ("FAIL: " + $Label)
         }
         return $o
+    }
+    function Get-NormalizedPath {
+        param([string]$Path)
+        if ([string]::IsNullOrWhiteSpace($Path)) {
+            return ""
+        }
+        return [System.IO.Path]::GetFullPath($Path).TrimEnd("\")
+    }
+    function Test-TcpPortOpen {
+        param([int]$Port)
+        $client = New-Object System.Net.Sockets.TcpClient
+        try {
+            $client.Connect("127.0.0.1", $Port)
+            return $true
+        } catch {
+            return $false
+        } finally {
+            if ($client.Connected) {
+                $client.Close()
+            }
+        }
+    }
+    function Stop-PortableIfNeeded {
+        param([string]$PackageDir)
+        if ([string]::IsNullOrWhiteSpace($PackageDir)) {
+            return
+        }
+        $stopScript = Join-Path $PackageDir "internal\stop-anclora-filestudio.ps1"
+        if (Test-Path $stopScript) {
+            & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass `
+                -File $stopScript -BaseDir $PackageDir | Out-Null
+        }
     }
 
     # ── 2. Runtime ────────────────────────────────────────────────────────────
@@ -144,6 +187,94 @@ try {
 
     Write-Host ""
     Write-Host "[PASS] SHARP_OK sharp=0.35.1 vips=8.18.3"
+
+    # ── 5. Launcher regression: path with spaces + relative server.js ────────
+    Write-Host "[INFO] Checking launcher from a Windows-local path with spaces..."
+    if ($SmokeDir -notmatch "\s.*\s") {
+        throw ("Smoke path must include at least two spaces: " + $SmokeDir)
+    }
+
+    $launcherSource = [System.IO.File]::ReadAllText($StartScript)
+    if ($launcherSource -match 'ArgumentList\s*=\s*@\(\s*\$ServerJs\s*\)') {
+        throw "Launcher regression: ArgumentList must not pass absolute `$ServerJs"
+    }
+    if ($launcherSource -notmatch 'ArgumentList\s*=\s*@\(\s*\$ServerEntry\s*\)') {
+        throw "Launcher regression: ArgumentList must pass `$ServerEntry"
+    }
+    if ($launcherSource -notmatch "\`$ServerEntry\s*=\s*'server\.js'") {
+        throw "Launcher regression: `$ServerEntry must be 'server.js'"
+    }
+    if ($launcherSource -notmatch 'WorkingDirectory\s*=\s*\$AppDir') {
+        throw "Launcher regression: WorkingDirectory must be `$AppDir"
+    }
+    Write-Host "[PASS] Launcher uses relative server.js with app WorkingDirectory"
+
+    & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass `
+        -File $StartScript -BaseDir $PkgDir -SkipBrowser
+    $startExit = $LASTEXITCODE
+    if ($startExit -ne 0) {
+        throw ("Launcher failed with exit " + $startExit)
+    }
+
+    if (-not (Test-Path $PidFile)) { throw ("PID file not found: " + $PidFile) }
+    if (-not (Test-Path $PortFile)) { throw ("Port file not found: " + $PortFile) }
+    $pidStr = (Get-Content $PidFile -Raw).Trim()
+    $portStr = (Get-Content $PortFile -Raw).Trim()
+    if ($pidStr -notmatch "^\d+$") { throw ("Invalid PID: " + $pidStr) }
+    if ($portStr -notmatch "^\d+$") { throw ("Invalid port: " + $portStr) }
+    $serverPid = [int]$pidStr
+    $serverPort = [int]$portStr
+
+    $serverProcess = Get-Process -Id $serverPid -ErrorAction SilentlyContinue
+    if ($null -eq $serverProcess) { throw ("Server process not found: " + $serverPid) }
+    $actualNode = Get-NormalizedPath $serverProcess.Path
+    $expectedNode = Get-NormalizedPath $NodeExe
+    if (-not $actualNode.Equals($expectedNode, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw ("PID does not belong to bundled node.exe. expected=" + $expectedNode + " actual=" + $actualNode)
+    }
+    Write-Host ("[PASS] PID belongs to runtime\node.exe (" + $serverPid + ")")
+
+    $healthUrl = "http://127.0.0.1:" + $serverPort + "/api/health"
+    $healthResp = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+    if ($healthResp.StatusCode -ne 200) {
+        throw ("Health status is not 200: " + $healthResp.StatusCode)
+    }
+    $health = $healthResp.Content | ConvertFrom-Json
+    if ($health.runtime.platform -ne "win32") {
+        throw ("Health runtime platform is not win32: " + $health.runtime.platform)
+    }
+    if ($health.runtime.arch -ne "x64") {
+        throw ("Health runtime arch is not x64: " + $health.runtime.arch)
+    }
+    Write-Host ("[PASS] /api/health OK via " + $healthUrl)
+
+    Start-Sleep -Seconds 2
+    $serverProcess = Get-Process -Id $serverPid -ErrorAction SilentlyContinue
+    if ($null -eq $serverProcess) {
+        throw "Server terminated prematurely after health check"
+    }
+    Write-Host "[PASS] Server remains alive after health check"
+
+    if (Test-Path $ErrorLog) {
+        $errorText = Get-Content $ErrorLog -Raw -ErrorAction SilentlyContinue
+        if ($errorText -match "MODULE_NOT_FOUND") {
+            throw "error.log contains MODULE_NOT_FOUND"
+        }
+    }
+    Write-Host "[PASS] error.log has no MODULE_NOT_FOUND"
+
+    & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass `
+        -File $StopScript -BaseDir $PkgDir | Out-Null
+    Start-Sleep -Seconds 2
+    if (Test-TcpPortOpen -Port $serverPort) {
+        throw ("Port still open after stop: " + $serverPort)
+    }
+    $serverProcess = Get-Process -Id $serverPid -ErrorAction SilentlyContinue
+    if ($null -ne $serverProcess) {
+        throw ("Server PID still alive after stop: " + $serverPid)
+    }
+    Write-Host "[PASS] Stop script releases port and leaves no server process"
+
     Write-Host ""
     Write-Host "=== NATIVE_ACCEPTANCE_WINDOWS_PASS ==="
     $ExitCode = 0
@@ -155,6 +286,9 @@ catch {
     $ExitCode = 1
 }
 finally {
+    if (Get-Command Stop-PortableIfNeeded -ErrorAction SilentlyContinue) {
+        Stop-PortableIfNeeded -PackageDir $PkgDir
+    }
     if (Test-Path $SmokeDir) {
         Remove-Item -Recurse -Force $SmokeDir -ErrorAction SilentlyContinue
     }

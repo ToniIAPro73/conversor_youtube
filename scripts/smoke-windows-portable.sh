@@ -140,6 +140,51 @@ if [[ -n "$SEVENZIP" ]]; then
     PASS=$((PASS+1))
   fi
 
+  START_PS1="$PKG/internal/start-anclora-filestudio.ps1"
+  STOP_PS1="$PKG/internal/stop-anclora-filestudio.ps1"
+
+  if grep -q 'Read-Host' "$START_PS1"; then
+    echo "[FAIL] start launcher contains Read-Host despite -NonInteractive BAT"
+    FAIL=$((FAIL+1))
+  else
+    echo "[PASS] start launcher has no Read-Host"
+    PASS=$((PASS+1))
+  fi
+
+  if grep -q 'ArgumentList[[:space:]]*=[[:space:]]*@(\$ServerJs)' "$START_PS1"; then
+    echo "[FAIL] start launcher passes absolute ServerJs through ArgumentList"
+    FAIL=$((FAIL+1))
+  else
+    echo "[PASS] start launcher does not pass absolute ServerJs"
+    PASS=$((PASS+1))
+  fi
+
+  if grep -q "\$ServerEntry[[:space:]]*=[[:space:]]*'server.js'" "$START_PS1" \
+     && grep -q 'ArgumentList[[:space:]]*=[[:space:]]*@(\$ServerEntry)' "$START_PS1" \
+     && grep -q 'WorkingDirectory[[:space:]]*=[[:space:]]*\$AppDir' "$START_PS1"; then
+    echo "[PASS] start launcher uses relative server.js with app WorkingDirectory"
+    PASS=$((PASS+1))
+  else
+    echo "[FAIL] start launcher missing relative server.js/app WorkingDirectory contract"
+    FAIL=$((FAIL+1))
+  fi
+
+  if grep -q '\[switch\]\$SkipBrowser' "$START_PS1"; then
+    echo "[PASS] start launcher supports -SkipBrowser"
+    PASS=$((PASS+1))
+  else
+    echo "[FAIL] start launcher missing -SkipBrowser"
+    FAIL=$((FAIL+1))
+  fi
+
+  if grep -qE 'Stop-Process[[:space:]]+-Name|taskkill[[:space:]]+/IM[[:space:]]+node\.exe' "$STOP_PS1"; then
+    echo "[FAIL] stop launcher contains global node termination"
+    FAIL=$((FAIL+1))
+  else
+    echo "[PASS] stop launcher only targets recorded PID"
+    PASS=$((PASS+1))
+  fi
+
   echo ""
   echo "--- Structural: $PASS PASS, $FAIL FAIL ---"
 else
@@ -164,7 +209,7 @@ else
   fi
 
   SMOKE_ID="$(date +%s)"
-  WIN_SMOKE_COPY="${WIN_TEMP}\\Anclora-WinSmoke-${SMOKE_ID}"
+  WIN_SMOKE_COPY="${WIN_TEMP}\\Prueba Anclora WinSmoke ${SMOKE_ID}"
 
   # Convert WSL ZIP path to Windows UNC for copy operation only
   WIN_ZIP_SRC="$(wslpath -w "$ZIP" 2>/dev/null || true)"
