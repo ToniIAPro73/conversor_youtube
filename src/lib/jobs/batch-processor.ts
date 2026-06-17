@@ -7,6 +7,10 @@ import { getDb } from "../infrastructure/db/database";
 import { jobManager } from "./job-manager";
 import { processUniversalJob } from "./universal-job-processor";
 import { createAppError } from "../errors/error-codes";
+import {
+  extractEngineIdFromCapabilityId,
+  extractOutputFormatFromCapabilityId,
+} from "./capability-routing";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -297,34 +301,8 @@ async function processBatchAsync(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function extractEngineIdFromCapabilityId(capabilityId: string): string {
-  const ENGINE_PREFIXES = [
-    "sharp-image",
-    "libreoffice",
-    "sevenzip",
-    "data-ts",
-    "pandoc",
-    "qpdf",
-    "calibre",
-    "tesseract",
-  ];
-
-  for (const prefix of ENGINE_PREFIXES) {
-    if (capabilityId.startsWith(prefix + "-") || capabilityId === prefix) {
-      return prefix;
-    }
-  }
-
-  return capabilityId.split("-")[0] ?? capabilityId;
-}
-
-function extractOutputFormatFromCapabilityId(capabilityId: string): string | null {
-  const parts = capabilityId.split("-");
-  // For patterns like "calibre-{id}-epub-mobi", the last part is the output format
-  const last = parts[parts.length - 1];
-  if (last && /^[a-z0-9]{2,5}$/.test(last)) return last;
-  return null;
-}
+// extractEngineIdFromCapabilityId and extractOutputFormatFromCapabilityId
+// are imported from ./capability-routing
 
 function guessCategory(ext: string): string {
   const CATEGORIES: Record<string, string> = {

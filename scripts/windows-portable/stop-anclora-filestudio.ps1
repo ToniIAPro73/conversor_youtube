@@ -13,6 +13,29 @@ $ErrorActionPreference = 'Stop'
 
 $PidFile  = Join-Path $BaseDir 'data\anclora-filestudio.pid'
 $PortFile = Join-Path $BaseDir 'data\anclora-filestudio.port'
+$NodeExe  = Join-Path $BaseDir 'runtime\node.exe'
+
+function Get-NormalizedPath([string]$path) {
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        return ''
+    }
+    return [System.IO.Path]::GetFullPath($path).TrimEnd('\')
+}
+function Test-PortableNodeProcess([System.Diagnostics.Process]$Process) {
+    if ($null -eq $Process) {
+        return $false
+    }
+    if ($Process.Name -notmatch '^node$') {
+        return $false
+    }
+    try {
+        $processPath = Get-NormalizedPath $Process.Path
+        $expectedPath = Get-NormalizedPath $NodeExe
+        return $processPath.Equals($expectedPath, [System.StringComparison]::OrdinalIgnoreCase)
+    } catch {
+        return $false
+    }
+}
 
 Write-Host ""
 Write-Host "  Anclora FileStudio - Cerrando..." -ForegroundColor White
@@ -44,9 +67,9 @@ if ($null -eq $proc) {
     exit 0
 }
 
-# Verificar que el proceso es node.exe (no otro proceso con ese PID)
-if ($proc.Name -notmatch '^node') {
-    Write-Host "  El proceso PID $targetPid no es node.exe (es $($proc.Name)). No se cerrara." -ForegroundColor Red
+# Verificar que el proceso es el node.exe incluido en este portable.
+if (-not (Test-PortableNodeProcess $proc)) {
+    Write-Host "  El proceso PID $targetPid no corresponde al runtime incluido. No se cerrara." -ForegroundColor Red
     Remove-Item $PidFile  -Force -ErrorAction SilentlyContinue
     Remove-Item $PortFile -Force -ErrorAction SilentlyContinue
     exit 1

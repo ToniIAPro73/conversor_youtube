@@ -5,49 +5,40 @@
 # =============================================================================
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$BaseDir
+    [Parameter(Mandatory = $true)]
+    [string]$BaseDir,
+
+    [switch]$SkipBrowser
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+$ToolResolutionScript = Join-Path $PSScriptRoot 'tool-resolution.ps1'
+if (-not (Test-Path $ToolResolutionScript)) {
+    Write-Host ""
+    Write-Host "  [ERROR] No se encuentra el helper interno: tool-resolution.ps1" -ForegroundColor Red
+    exit 1
+}
+. $ToolResolutionScript
+
 # - Rutas absolutas derivadas de BaseDir ------------------
 $NodeExe      = Join-Path $BaseDir 'runtime\node.exe'
-$ServerJs     = Join-Path $BaseDir 'app\server.js'
-$YtdlpExe     = Join-Path $BaseDir 'tools\yt-dlp\yt-dlp.exe'
-function Resolve-ToolPath([string[]]$Candidates) {
-    foreach ($candidate in $Candidates) {
-        if (Test-Path $candidate) {
-            return $candidate
-        }
-    }
-    return $Candidates[0]
-}
-
-$FfmpegExe    = Resolve-ToolPath @(
-    (Join-Path $BaseDir 'tools\ffmpeg\ffmpeg.exe'),
-    (Join-Path $BaseDir 'tools\ffmpeg\bin\ffmpeg.exe')
-)
-$FfprobeExe   = Resolve-ToolPath @(
-    (Join-Path $BaseDir 'tools\ffmpeg\ffprobe.exe'),
-    (Join-Path $BaseDir 'tools\ffmpeg\bin\ffprobe.exe')
-)
-$QpdfExe      = Resolve-ToolPath @(
-    (Join-Path $BaseDir 'tools\qpdf\qpdf.exe'),
-    (Join-Path $BaseDir 'tools\qpdf\bin\qpdf.exe')
-)
-$SevenZipExe  = Resolve-ToolPath @(
-    (Join-Path $BaseDir 'tools\sevenzip\7z.exe'),
-    (Join-Path $BaseDir 'tools\sevenzip\7za.exe'),
-    (Join-Path $BaseDir 'tools\sevenzip\7zr.exe')
-)
-$PandocExe    = Join-Path $BaseDir 'tools\pandoc\pandoc.exe'
-$LibreOfficeExe = Join-Path $BaseDir 'tools\libreoffice\program\soffice.exe'
-$CalibreExe   = Join-Path $BaseDir 'tools\calibre\ebook-convert.exe'
-$TesseractExe = Join-Path $BaseDir 'tools\tesseract\tesseract.exe'
-$TessdataDir  = Join-Path $BaseDir 'tools\tessdata'
-$PopplerDir   = Join-Path $BaseDir 'tools\poppler'
+$AppDir       = Join-Path $BaseDir 'app'
+$ServerJs     = Join-Path $AppDir 'server.js'
+$ServerEntry  = 'server.js'
+$Tools        = Resolve-AncloraWindowsTools -BaseDir $BaseDir
+$YtdlpExe     = $Tools.Ytdlp.Path
+$FfmpegExe    = $Tools.Ffmpeg.Path
+$FfprobeExe   = $Tools.Ffprobe.Path
+$QpdfExe      = $Tools.Qpdf.Path
+$SevenZipExe  = $Tools.SevenZip.Path
+$PandocExe    = $Tools.Pandoc.Path
+$LibreOfficeExe = $Tools.LibreOffice.Path
+$CalibreExe   = $Tools.Calibre.Path
+$TesseractExe = $Tools.Tesseract.Path
+$TessdataDir  = $Tools.Tessdata.Path
+$PopplerBaseDir = Join-Path $BaseDir 'tools\poppler'
 $DataDir      = Join-Path $BaseDir 'data'
 $TempDir      = Join-Path $BaseDir 'temp'
 $LogDir       = Join-Path $BaseDir 'logs'
@@ -70,6 +61,40 @@ function Write-Err([string]$msg) {
 function Write-Warn([string]$msg) {
     Write-Host "  [WARN] $msg" -ForegroundColor Yellow
 }
+function Clear-ServerState {
+    Remove-Item $PidFile  -Force -ErrorAction SilentlyContinue
+    Remove-Item $PortFile -Force -ErrorAction SilentlyContinue
+}
+function Get-NormalizedPath([string]$path) {
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        return ''
+    }
+    return [System.IO.Path]::GetFullPath($path).TrimEnd('\')
+}
+function Test-PortableNodeProcess([System.Diagnostics.Process]$Process) {
+    if ($null -eq $Process) {
+        return $false
+    }
+    if ($Process.Name -notmatch '^node$') {
+        return $false
+    }
+    try {
+        $processPath = Get-NormalizedPath $Process.Path
+        $expectedPath = Get-NormalizedPath $NodeExe
+        return $processPath.Equals($expectedPath, [System.StringComparison]::OrdinalIgnoreCase)
+    } catch {
+        return $false
+    }
+}
+function Show-ErrorLogTail {
+    param([int]$Lines = 10)
+    if (Test-Path $ErrorLog) {
+        Write-Host ""
+        Write-Host "  --- Ultimas lineas del log ---" -ForegroundColor DarkGray
+        Get-Content $ErrorLog -Tail $Lines -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+    }
+}
 
 Write-Host ""
 Write-Host "  Anclora FileStudio - Iniciando..." -ForegroundColor White
@@ -87,7 +112,6 @@ foreach ($f in $criticalFiles) {
 if ($criticalMissing.Count -gt 0) {
     Write-Err "Archivos criticos no encontrados:"
     foreach ($f in $criticalMissing) { Write-Host "    $f" -ForegroundColor Red }
-    Read-Host "  Pulsa Enter para cerrar"
     exit 1
 }
 Write-Ok "Archivos criticos verificados"
@@ -95,22 +119,22 @@ Write-Ok "Archivos criticos verificados"
 # - Verificar herramientas opcionales --------------------
 Write-Step "Verificando herramientas de conversion..."
 $optionalTools = @(
-    @{ Name = 'yt-dlp'; Path = $YtdlpExe },
-    @{ Name = 'FFmpeg'; Path = $FfmpegExe },
-    @{ Name = 'FFprobe'; Path = $FfprobeExe },
-    @{ Name = 'QPDF'; Path = $QpdfExe },
-    @{ Name = '7-Zip'; Path = $SevenZipExe },
-    @{ Name = 'Pandoc'; Path = $PandocExe },
-    @{ Name = 'LibreOffice'; Path = $LibreOfficeExe },
-    @{ Name = 'Calibre'; Path = $CalibreExe },
-    @{ Name = 'Tesseract'; Path = $TesseractExe }
+    $Tools.Ytdlp,
+    $Tools.Ffmpeg,
+    $Tools.Ffprobe,
+    $Tools.Qpdf,
+    $Tools.SevenZip,
+    $Tools.Pandoc,
+    $Tools.LibreOffice,
+    $Tools.Calibre,
+    $Tools.Tesseract
 )
 $missingTools = @()
 foreach ($tool in $optionalTools) {
-    if (Test-Path $tool.Path) {
-        Write-Ok "  $($tool.Name) encontrado"
+    if ($tool.Resolved) {
+        Write-Ok "$($tool.Name) encontrado"
     } else {
-        Write-Warn "  $($tool.Name) no encontrado (algunas conversiones no estaran disponibles)"
+        Write-Warn "$($tool.Name) no encontrado (algunas conversiones no estaran disponibles)"
         $missingTools += $tool.Name
     }
 }
@@ -119,7 +143,13 @@ foreach ($tool in $optionalTools) {
 if (-not (Test-Path $DataDir))    { New-Item -ItemType Directory -Path $DataDir    -Force | Out-Null }
 if (-not (Test-Path $TempDir))    { New-Item -ItemType Directory -Path $TempDir    -Force | Out-Null }
 if (-not (Test-Path $LogDir))     { New-Item -ItemType Directory -Path $LogDir     -Force | Out-Null }
-if (-not (Test-Path $TessdataDir) ) { New-Item -ItemType Directory -Path $TessdataDir -Force | Out-Null }
+if (-not $Tools.Tessdata.Resolved) {
+    $portableTessdataDir = Join-Path $BaseDir 'tools\tessdata'
+    if (-not (Test-Path $portableTessdataDir)) {
+        New-Item -ItemType Directory -Path $portableTessdataDir -Force | Out-Null
+    }
+    $TessdataDir = $portableTessdataDir
+}
 
 # - Limpiar temporales caducados (>2 horas) -----------------
 Write-Step "Limpiando archivos temporales caducados..."
@@ -137,7 +167,7 @@ if (Test-Path $PidFile) {
     $existingPid = $existingPid.Trim()
     if ($existingPid -match '^\d+$') {
         $proc = Get-Process -Id ([int]$existingPid) -ErrorAction SilentlyContinue
-        if ($proc -ne $null -and $proc.Name -match 'node') {
+        if (Test-PortableNodeProcess $proc) {
             $existingPort = ''
             if (Test-Path $PortFile) {
                 $existingPort = (Get-Content $PortFile -Raw -ErrorAction SilentlyContinue).Trim()
@@ -145,12 +175,13 @@ if (Test-Path $PidFile) {
             $url = if ($existingPort) { "http://127.0.0.1:$existingPort" } else { "http://127.0.0.1:3456" }
             Write-Host ""
             Write-Host "  La aplicacion ya esta en ejecucion (PID $existingPid)." -ForegroundColor Green
-            Write-Host "  Abriendo navegador en $url ..." -ForegroundColor Cyan
-            Start-Process $url
+            if (-not $SkipBrowser) {
+                Write-Host "  Abriendo navegador en $url ..." -ForegroundColor Cyan
+                Start-Process $url
+            }
             exit 0
         } else {
-            Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
-            Remove-Item $PortFile -Force -ErrorAction SilentlyContinue
+            Clear-ServerState
         }
     }
 }
@@ -175,7 +206,6 @@ foreach ($p in @($defaultPort,3457,3458,3459,3460,3000,3001,3002,3003,3004)) {
 if ($null -eq $selectedPort) {
     Write-Err "No se ha encontrado un puerto libre."
     Write-Host "  Cierra otras aplicaciones y vuelve a intentarlo." -ForegroundColor Yellow
-    Read-Host "  Pulsa Enter para cerrar"
     exit 1
 }
 Write-Ok "Puerto seleccionado: $selectedPort"
@@ -197,7 +227,9 @@ $env:ANCLORA_FILESTUDIO_LIBREOFFICE_PATH   = $LibreOfficeExe
 $env:ANCLORA_FILESTUDIO_CALIBRE_PATH       = $CalibreExe
 $env:ANCLORA_FILESTUDIO_TESSERACT_PATH     = $TesseractExe
 $env:ANCLORA_FILESTUDIO_TESSDATA_PREFIX    = $TessdataDir
-$env:ANCLORA_FILESTUDIO_POPPLER_PATH       = $PopplerDir
+# Resolve the Poppler directory: set ANCLORA_FILESTUDIO_POPPLER_PATH to the
+# base tools\poppler dir. The Node.js app searches Library\bin\, bin\, and root.
+$env:ANCLORA_FILESTUDIO_POPPLER_PATH       = $PopplerBaseDir
 $env:ANCLORA_FILESTUDIO_DATA_DIR           = $DataDir
 $env:ANCLORA_FILESTUDIO_TEMP_DIR           = $TempDir
 
@@ -211,16 +243,22 @@ $env:MAX_CONCURRENT_JOBS           = '1'
 $env:MAX_ACTIVE_JOBS_PER_CLIENT    = '1'
 
 # Add bundled tool directories to PATH for DLL lookup and fallback discovery.
+# Poppler: check all common Windows distribution subdirectory layouts.
+$popplerBinDirs = @(
+    (Join-Path $PopplerBaseDir 'Library\bin'),
+    (Join-Path $PopplerBaseDir 'bin'),
+    $PopplerBaseDir
+) | Where-Object { $_ -and (Test-Path $_) }
+
 $toolPathParts = @(
     (Split-Path -Parent $FfmpegExe),
     (Split-Path -Parent $QpdfExe),
     (Split-Path -Parent $SevenZipExe),
     (Split-Path -Parent $PandocExe),
     (Split-Path -Parent $TesseractExe),
-    $PopplerDir,
     (Split-Path -Parent $CalibreExe),
     (Split-Path -Parent $LibreOfficeExe)
-) | Where-Object { $_ -and (Test-Path $_) }
+) + $popplerBinDirs | Where-Object { $_ -and (Test-Path $_) }
 $env:PATH = "$($toolPathParts -join ';');$env:PATH"
 
 # - Lanzar servidor en segundo plano ---------------------
@@ -228,8 +266,8 @@ Write-Step "Iniciando servidor (puerto $selectedPort)..."
 
 $procArgs = @{
     FilePath               = $NodeExe
-    ArgumentList           = @($ServerJs)
-    WorkingDirectory       = (Join-Path $BaseDir 'app')
+    ArgumentList           = @($ServerEntry)
+    WorkingDirectory       = $AppDir
     RedirectStandardOutput = $ServerLog
     RedirectStandardError  = $ErrorLog
     WindowStyle            = 'Hidden'
@@ -241,13 +279,25 @@ try {
 } catch {
     Write-Err "No se pudo iniciar el servidor: $_"
     Write-Host "  Consulta: $ErrorLog" -ForegroundColor Yellow
-    Read-Host "  Pulsa Enter para cerrar"
+    Show-ErrorLogTail
     exit 1
 }
 
 # Guardar PID y puerto
+$serverProc = Get-Process -Id $serverProc.Id -ErrorAction SilentlyContinue
+if (-not (Test-PortableNodeProcess $serverProc)) {
+    Write-Err "El proceso iniciado no corresponde al runtime incluido."
+    Write-Host "  Esperado: $NodeExe" -ForegroundColor Yellow
+    if ($serverProc -ne $null) {
+        Stop-Process -Id $serverProc.Id -Force -ErrorAction SilentlyContinue
+    }
+    Clear-ServerState
+    Show-ErrorLogTail
+    exit 1
+}
+
 $serverProc.Id | Out-File $PidFile -Encoding ascii -NoNewline
-"$selectedPort"  | Out-File $PortFile -Encoding ascii -NoNewline
+"$selectedPort" | Out-File $PortFile -Encoding ascii -NoNewline
 
 # - Esperar hasta que /api/health responda ------------------
 Write-Step "Esperando que el servidor arranque..."
@@ -265,14 +315,8 @@ while ($waited -lt $maxWaitSec) {
     if ($null -eq $aliveCheck) {
         Write-Err "El servidor se ha cerrado inesperadamente."
         Write-Host "  Consulta el log de error: $ErrorLog" -ForegroundColor Yellow
-        if (Test-Path $ErrorLog) {
-            Write-Host ""
-            Write-Host "  --- Ultimas lineas del log ---" -ForegroundColor DarkGray
-            Get-Content $ErrorLog -Tail 10 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
-        }
-        Remove-Item $PidFile  -Force -ErrorAction SilentlyContinue
-        Remove-Item $PortFile -Force -ErrorAction SilentlyContinue
-        Read-Host "  Pulsa Enter para cerrar"
+        Show-ErrorLogTail
+        Clear-ServerState
         exit 1
     }
 
@@ -291,17 +335,18 @@ if (-not $ready) {
     Write-Err "El servidor no arranco en $maxWaitSec segundos."
     Write-Host "  Consulta el log de error: $ErrorLog" -ForegroundColor Yellow
     Stop-Process -Id $serverProc.Id -Force -ErrorAction SilentlyContinue
-    Remove-Item $PidFile  -Force -ErrorAction SilentlyContinue
-    Remove-Item $PortFile -Force -ErrorAction SilentlyContinue
-    Read-Host "  Pulsa Enter para cerrar"
+    Clear-ServerState
+    Show-ErrorLogTail
     exit 1
 }
 
 Write-Ok "Servidor listo en http://127.0.0.1:$selectedPort"
 
 # - Abrir navegador -----------------------------
-Write-Step "Abriendo navegador..."
-Start-Process "http://127.0.0.1:$selectedPort"
+if (-not $SkipBrowser) {
+    Write-Step "Abriendo navegador..."
+    Start-Process "http://127.0.0.1:$selectedPort"
+}
 
 Write-Host ""
 Write-Host "  Anclora FileStudio esta ejecutandose en http://127.0.0.1:$selectedPort" -ForegroundColor Green

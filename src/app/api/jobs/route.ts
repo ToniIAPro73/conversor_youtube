@@ -8,8 +8,12 @@ import { CONFIG } from "@/lib/config";
 import { ERROR_CODES, ERROR_MESSAGES } from "@/lib/errors";
 import { normalizeYoutubeUrl } from "@/lib/youtube/normalize-url";
 import { getVideoMetadata } from "@/lib/media/metadata";
-import { ALL_ALLOWED_EXTENSIONS, FORMAT_BY_EXTENSION } from "@/lib/domain/format-catalog";
+import { ALL_ALLOWED_EXTENSIONS } from "@/lib/domain/format-catalog";
 import { buildDescriptor } from "@/lib/detection/file-detector";
+import {
+  extractEngineIdFromCapabilityId,
+  extractOutputFormatFromCapabilityId,
+} from "@/lib/jobs/capability-routing";
 import { getDb } from "@/lib/infrastructure/db/database";
 import type { JobRow } from "@/lib/infrastructure/db/job-repository";
 import path from "path";
@@ -296,47 +300,8 @@ function handleLegacyMediaJob(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/**
- * Extract engine ID from a conversion capability ID.
- * Convention: the capability ID starts with the engine's ID prefix.
- */
-function extractEngineIdFromCapabilityId(capabilityId: string): string {
-  const ENGINE_PREFIXES = [
-    "sharp-image",
-    "libreoffice",
-    "sevenzip",
-    "data-ts",
-    "pandoc",
-    "qpdf",
-    "calibre",
-    "tesseract",
-  ];
-
-  for (const prefix of ENGINE_PREFIXES) {
-    if (capabilityId.startsWith(prefix + "-") || capabilityId === prefix) {
-      return prefix;
-    }
-  }
-
-  return capabilityId.split("-")[0] ?? capabilityId;
-}
-
-/**
- * Extract the output format from a conversion capability ID.
- * This is a best-effort heuristic; the actual output format is provided by the client.
- */
-function extractOutputFormatFromCapabilityId(capabilityId: string): string | null {
-  const parts = capabilityId.split("-");
-  const last = parts[parts.length - 1];
-  if (last && ALL_ALLOWED_EXTENSIONS.has(last)) return last;
-
-  if (parts.length >= 2) {
-    const candidate = parts[parts.length - 1];
-    if (candidate && FORMAT_BY_EXTENSION.has(candidate)) return candidate;
-  }
-
-  return null;
-}
+// extractEngineIdFromCapabilityId and extractOutputFormatFromCapabilityId
+// are imported from @/lib/jobs/capability-routing
 
 interface InputInfo {
   localPath: string;

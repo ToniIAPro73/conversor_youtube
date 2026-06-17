@@ -9,8 +9,8 @@ const identity: StoredAgentIdentity = {
   privateKeyPem: "fixture-private-key-material",
   credentials: {
     deviceId: "dev_test",
-    accessToken: "access_secret",
-    refreshToken: "refresh_secret",
+    accessToken: "access_fixture",
+    refreshToken: "refresh_fixture",
     accessTokenExpiresAt: Date.now() + 1_000,
     refreshTokenExpiresAt: Date.now() + 10_000,
     serverBaseUrl: "https://filestudio.example.test",
@@ -33,8 +33,8 @@ describe("CredentialStore", () => {
     await store.save(identity);
 
     const raw = readFileSync(file, "utf8");
-    expect(raw).not.toContain("access_secret");
-    expect(raw).not.toContain("refresh_secret");
+    expect(raw).not.toContain("access_fixture");
+    expect(raw).not.toContain("refresh_fixture");
     expect(raw).not.toContain("fixture-private-key-material");
     expect(statSync(file).mode & 0o777).toBe(0o600);
     expect(await store.load()).toEqual(identity);

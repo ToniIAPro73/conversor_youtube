@@ -14,6 +14,7 @@ import { ensurePathSafety } from "../security/path-safety";
 import { sanitizeFilename } from "../security/sanitize-filename";
 import { FORMAT_BY_EXTENSION } from "../domain/format-catalog";
 import { createAppError, type AppError, type ErrorCode } from "../errors/error-codes";
+import { extractEngineIdFromCapabilityId } from "./capability-routing";
 import { checkDiskSpace } from "./disk-space-check";
 import { coordinatedCleanup } from "./coordinated-cleanup";
 
@@ -138,7 +139,7 @@ export async function processUniversalJob(jobId: string): Promise<void> {
     }
 
     // 4. Resolve engine from the registry via conversion_id
-    const engineId = extractEngineIdFromConversionId(conversionId);
+    const engineId = extractEngineIdFromCapabilityId(conversionId);
     const engine = getEngine(engineId);
     if (!engine) {
       throw createAppError("ENGINE_NOT_FOUND", `Engine not found for capability`, {
@@ -378,46 +379,8 @@ function resolveInputPath(inputReference: string, inputKind: string): string {
   return inputReference;
 }
 
-/**
- * Extract engine ID from a conversion capability ID.
- * Convention: the capability ID starts with the engine's ID prefix.
- * e.g. "sharp-image-xxx-jpeg" → "sharp-image"
- *      "data-ts-xxx-json-yaml" → "data-ts"
- *      "qpdf-xxx-linearize" → "qpdf"
- *      "sevenzip-xxx-repack-zip" → "sevenzip"
- *      "pandoc-xxx-markdown-html" → "pandoc"
- *      "libreoffice-xxx-docx-pdf" → "libreoffice"
- */
-function extractEngineIdFromConversionId(conversionId: string): string {
-  // Known engine prefixes (ordered longest-first to avoid partial matches)
-  const ENGINE_PREFIXES = [
-    "sharp-image",
-    "libreoffice",
-    "sevenzip",
-    "data-ts",
-    "pandoc",
-    "qpdf",
-    "calibre",
-    "tesseract",
-  ];
-
-  for (const prefix of ENGINE_PREFIXES) {
-    if (conversionId.startsWith(prefix + "-") || conversionId === prefix) {
-      return prefix;
-    }
-  }
-
-  // Fallback: return everything before the first dash that matches a known engine
-  const knownEngines = new Set(ENGINE_PREFIXES);
-  const parts = conversionId.split("-");
-  for (let i = 1; i <= parts.length; i++) {
-    const candidate = parts.slice(0, i).join("-");
-    if (knownEngines.has(candidate)) return candidate;
-  }
-
-  // Last resort: return first part
-  return conversionId.split("-")[0] ?? conversionId;
-}
+// extractEngineIdFromCapabilityId (used as extractEngineIdFromConversionId below)
+// is imported from ./capability-routing
 
 /**
  * Deep output validation beyond engine checks:
@@ -537,4 +500,4 @@ async function resolveLossProfile(
 }
 
 // Exported for testing
-export { extractEngineIdFromConversionId, validateOutputArtifact, getOutputMimeType, detectOutputMime };
+export { validateOutputArtifact, getOutputMimeType, detectOutputMime };

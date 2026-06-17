@@ -119,12 +119,13 @@ export class SharpEngine implements ConversionEngine {
       // Dynamic import — sharp may not be present in all environments
       const sharp = (await import("sharp")).default;
       const versions = sharp.versions;
-      const version = versions?.vips ?? "unknown";
+      const sharpVersion = versions?.sharp ?? "unknown";
+      const vipsVersion = versions?.vips ?? "unknown";
       const formats = Object.keys(sharp.format ?? {});
       this._probeResult = {
         available: true,
-        version: `sharp@${version}`,
-        binaryPath: "sharp (npm)",
+        version: sharpVersion,
+        binaryPath: `sharp@${sharpVersion} (libvips ${vipsVersion})`,
         capabilities: formats,
       };
     } catch (err) {

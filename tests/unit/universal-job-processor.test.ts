@@ -3,54 +3,59 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  extractEngineIdFromConversionId,
   validateOutputArtifact,
   getOutputMimeType,
   detectOutputMime,
 } from "../../src/lib/jobs/universal-job-processor";
+import { extractEngineIdFromCapabilityId } from "../../src/lib/jobs/capability-routing";
 import fs from "fs";
 import path from "path";
 import os from "os";
 
-// ── extractEngineIdFromConversionId ────────────────────────────────────────
+// ── extractEngineIdFromCapabilityId (covers extractEngineIdFromConversionId) ──
 
-describe("extractEngineIdFromConversionId", () => {
-  it("extracts sharp-image from sharp-image capability IDs", () => {
-    expect(extractEngineIdFromConversionId("sharp-image-abc123-jpeg")).toBe("sharp-image");
-    expect(extractEngineIdFromConversionId("sharp-image-xyz-png")).toBe("sharp-image");
+describe("extractEngineIdFromCapabilityId — real ID formats", () => {
+  it("extracts sharp-image from sharp-convert capability IDs", () => {
+    expect(extractEngineIdFromCapabilityId("sharp-convert-abc123-jpeg")).toBe("sharp-image");
+    expect(extractEngineIdFromCapabilityId("sharp-convert-xyz-webp")).toBe("sharp-image");
+  });
+
+  it("extracts ffmpeg-media from ffmpeg-convert capability IDs", () => {
+    expect(extractEngineIdFromCapabilityId("ffmpeg-convert-abc123-wav-mp3")).toBe("ffmpeg-media");
+    expect(extractEngineIdFromCapabilityId("ffmpeg-normalize-abc123-wav-mp3")).toBe("ffmpeg-media");
   });
 
   it("extracts data-ts from data-ts capability IDs", () => {
-    expect(extractEngineIdFromConversionId("data-ts-abc123-json-yaml")).toBe("data-ts");
-    expect(extractEngineIdFromConversionId("data-ts-xyz-xml-json")).toBe("data-ts");
+    expect(extractEngineIdFromCapabilityId("data-ts-abc123-json-yaml")).toBe("data-ts");
+    expect(extractEngineIdFromCapabilityId("data-ts-xyz-xml-json")).toBe("data-ts");
   });
 
   it("extracts qpdf from qpdf capability IDs", () => {
-    expect(extractEngineIdFromConversionId("qpdf-abc123-linearize")).toBe("qpdf");
-    expect(extractEngineIdFromConversionId("qpdf-xyz-extract-pages")).toBe("qpdf");
+    expect(extractEngineIdFromCapabilityId("qpdf-abc123-linearize")).toBe("qpdf");
+    expect(extractEngineIdFromCapabilityId("qpdf-xyz-extract-pages")).toBe("qpdf");
   });
 
   it("extracts sevenzip from sevenzip capability IDs", () => {
-    expect(extractEngineIdFromConversionId("sevenzip-abc123-repack-zip")).toBe("sevenzip");
-    expect(extractEngineIdFromConversionId("sevenzip-xyz-blocked")).toBe("sevenzip");
+    expect(extractEngineIdFromCapabilityId("sevenzip-abc123-repack-zip")).toBe("sevenzip");
+    expect(extractEngineIdFromCapabilityId("sevenzip-xyz-blocked")).toBe("sevenzip");
   });
 
   it("extracts pandoc from pandoc capability IDs", () => {
-    expect(extractEngineIdFromConversionId("pandoc-abc123-markdown-html")).toBe("pandoc");
-    expect(extractEngineIdFromConversionId("pandoc-xyz-docx-markdown")).toBe("pandoc");
+    expect(extractEngineIdFromCapabilityId("pandoc-abc123-markdown-html")).toBe("pandoc");
+    expect(extractEngineIdFromCapabilityId("pandoc-xyz-docx-markdown")).toBe("pandoc");
   });
 
   it("extracts libreoffice from libreoffice capability IDs", () => {
-    expect(extractEngineIdFromConversionId("libreoffice-abc123-docx-pdf")).toBe("libreoffice");
-    expect(extractEngineIdFromConversionId("libreoffice-xyz-xlsx-pdf")).toBe("libreoffice");
+    expect(extractEngineIdFromCapabilityId("libreoffice-abc123-docx-pdf")).toBe("libreoffice");
+    expect(extractEngineIdFromCapabilityId("libreoffice-xyz-xlsx-pdf")).toBe("libreoffice");
   });
 
   it("handles unknown engine prefixes gracefully", () => {
-    expect(extractEngineIdFromConversionId("unknown-abc123")).toBe("unknown");
+    expect(extractEngineIdFromCapabilityId("unknown-abc123")).toBe("unknown");
   });
 
   it("handles exact engine ID match without suffix", () => {
-    expect(extractEngineIdFromConversionId("qpdf")).toBe("qpdf");
+    expect(extractEngineIdFromCapabilityId("qpdf")).toBe("qpdf");
   });
 });
 
@@ -249,7 +254,7 @@ describe("processUniversalJob — mocked engine execution", () => {
   // These tests mock the engine registry and job manager to test the
   // orchestration logic without requiring actual engines.
 
-  it("extractEngineIdFromConversionId handles all registered engine IDs", () => {
+  it("extractEngineIdFromCapabilityId handles all registered engine IDs", () => {
     const engineIds = [
       "sharp-image",
       "data-ts",
@@ -260,7 +265,7 @@ describe("processUniversalJob — mocked engine execution", () => {
     ];
 
     for (const id of engineIds) {
-      const result = extractEngineIdFromConversionId(`${id}-test-capability`);
+      const result = extractEngineIdFromCapabilityId(`${id}-test-capability`);
       expect(result).toBe(id);
     }
   });

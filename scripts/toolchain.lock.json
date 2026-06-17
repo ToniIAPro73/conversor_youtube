@@ -2,227 +2,219 @@
   "$schema": "https://anclora.dev/schemas/toolchain-lock/v1",
   "lockedAt": "2026-06-16",
   "lockedBy": "anclora-filestudio",
+  "runtimes": {
+    "linux-x64": {
+      "engine": "node",
+      "version": "22.22.1",
+      "abi": "127",
+      "sourceUrl": "https://nodejs.org/dist/v22.22.1/node-v22.22.1-linux-x64.tar.gz",
+      "sha256": "07c8aafa60644fb81adefa1ee7da860eb1920851ffdc9a37020ab0be47fbc10e",
+      "license": "MIT",
+      "binaryPath": "bin/node"
+    },
+    "win-x64": {
+      "engine": "node",
+      "version": "24.16.0",
+      "abi": "137",
+      "sourceUrl": "https://nodejs.org/dist/v24.16.0/node-v24.16.0-win-x64.zip",
+      "sha256": "edaca9bd58ec8e92037dac4e877d52f6b8f430b81c18b57e264b4e2fb111cd56",
+      "license": "MIT",
+      "binaryPath": "node.exe"
+    }
+  },
+  "nativeModules": {
+    "better-sqlite3-win32-x64": {
+      "package": "better-sqlite3",
+      "version": "12.10.1",
+      "abi": "137",
+      "platform": "win32",
+      "arch": "x64",
+      "sourceUrl": "https://github.com/WiseLibs/better-sqlite3/releases/download/v12.10.1/better-sqlite3-v12.10.1-node-v137-win32-x64.tar.gz",
+      "sha256": "dea89f4ddf89244d8c6565224d5acd43afb3aad623b04de6fb831c310bb1cb60",
+      "license": "MIT"
+    },
+    "sharp-win32-x64": {
+      "package": "@img/sharp-win32-x64",
+      "version": "0.35.1",
+      "platform": "win32",
+      "arch": "x64",
+      "sourceUrl": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.35.1.tgz",
+      "sha256": "0f2db56bdc93ea0bf23afb7ef322806cc9456324d34db1f9d5643d2c64986f36",
+      "license": "Apache-2.0",
+      "note": "sha256 will be computed on first download"
+    }
+  },
   "tools": [
     {
       "id": "node",
       "displayName": "Node.js",
-      "version": ">=20.0.0",
       "platform": "all",
       "arch": "x64",
-      "sourceUrl": "https://nodejs.org/dist/",
-      "sha256": null,
       "license": "MIT",
       "licenseUrl": "https://github.com/nodejs/node/blob/main/LICENSE",
-      "binaryRelativePath": "runtime/node",
-      "versionArgs": ["--version"],
-      "versionPattern": "v(\\d+\\.\\d+\\.\\d+)",
-      "requiredFor": ["runtime"],
+      "requiredFor": [
+        "runtime"
+      ],
       "redistribution": "bundled",
-      "notes": "Bundled in portable distribution. Version >= 20 required."
+      "versions": {
+        "linux-x64": "22.22.1",
+        "win-x64": "24.16.0"
+      }
     },
     {
       "id": "ffmpeg",
       "displayName": "FFmpeg",
-      "version": "4.4.2",
-      "platform": "linux",
+      "platform": "all",
       "arch": "x64",
-      "sourceUrl": "https://ffmpeg.org/download.html",
-      "sha256": null,
       "license": "GPL-2.0-or-later",
       "licenseUrl": "https://ffmpeg.org/legal.html",
-      "binaryRelativePath": "tools/ffmpeg/bin/ffmpeg",
-      "versionArgs": ["-version"],
-      "versionPattern": "ffmpeg version (\\S+)",
-      "requiredFor": ["audio", "video", "gif", "thumbnail", "subtitle"],
+      "requiredFor": [
+        "audio",
+        "video",
+        "gif",
+        "thumbnail",
+        "subtitle"
+      ],
       "redistribution": "bundled",
-      "notes": "GPL build. Requires source code link or inclusion in distribution."
-    },
-    {
-      "id": "ffprobe",
-      "displayName": "FFprobe",
-      "version": "4.4.2",
-      "platform": "linux",
-      "arch": "x64",
-      "sourceUrl": "https://ffmpeg.org/download.html",
-      "sha256": null,
-      "license": "GPL-2.0-or-later",
-      "licenseUrl": "https://ffmpeg.org/legal.html",
-      "binaryRelativePath": "tools/ffmpeg/bin/ffprobe",
-      "versionArgs": ["-version"],
-      "versionPattern": "ffprobe version (\\S+)",
-      "requiredFor": ["media-analysis"],
-      "redistribution": "bundled",
-      "notes": "Distributed alongside FFmpeg."
+      "versions": {
+        "linux": {
+          "version": "4.4.2",
+          "source": "system-apt",
+          "sha256": null
+        },
+        "win-x64": {
+          "version": "BtbN-master-latest",
+          "provider": "https://github.com/BtbN/FFmpeg-Builds",
+          "sourceUrl": "https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip",
+          "sha256": "239cb6c6e4a39c53a51040b51baf7d744d4a57341101431a06dd4f8181bc1800",
+          "note": "BtbN builds are rolling. SHA recorded at lockfile time 2026-06-16."
+        }
+      }
     },
     {
       "id": "ytdlp",
       "displayName": "yt-dlp",
-      "version": "latest-stable",
       "platform": "all",
       "arch": "x64",
-      "sourceUrl": "https://github.com/yt-dlp/yt-dlp/releases/latest",
-      "sha256": null,
       "license": "Unlicense",
       "licenseUrl": "https://github.com/yt-dlp/yt-dlp/blob/master/LICENSE",
-      "binaryRelativePath": "tools/ytdlp/yt-dlp",
-      "versionArgs": ["--version"],
-      "versionPattern": "(\\d{4}\\.\\d{2}\\.\\d{2})",
-      "requiredFor": ["youtube-download"],
+      "requiredFor": [
+        "youtube-download"
+      ],
       "redistribution": "bundled",
-      "notes": "Update frequently — YouTube changes API. Use ACTUALIZAR_YTDLP.bat."
+      "versions": {
+        "linux": {
+          "version": "2026.06.09",
+          "sourceUrl": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp",
+          "sha256": "e5d57466682cfa9d61e9cf7c8a4f09b00f4a62af37d3bbdc4bcffdf63615feac"
+        },
+        "win-x64": {
+          "version": "2026.06.09",
+          "sourceUrl": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.09/yt-dlp.exe",
+          "sha256": "3a48cb955d55c8821b60ccbdbbc6f61bc958f2f3d3b7ad5eaf3d83a543293a27"
+        }
+      }
     },
     {
       "id": "qpdf",
       "displayName": "QPDF",
-      "version": "10.6.3",
-      "platform": "linux",
+      "platform": "all",
       "arch": "x64",
-      "sourceUrl": "https://github.com/qpdf/qpdf/releases",
-      "sha256": null,
       "license": "Apache-2.0",
       "licenseUrl": "https://github.com/qpdf/qpdf/blob/main/LICENSE.txt",
-      "binaryRelativePath": "tools/qpdf/bin/qpdf",
-      "versionArgs": ["--version"],
-      "versionPattern": "qpdf version (\\d+\\.\\d+\\.\\d+)",
-      "requiredFor": ["pdf"],
+      "requiredFor": [
+        "pdf"
+      ],
       "redistribution": "bundled",
-      "notes": "Apache-2.0 — freely redistributable."
+      "versions": {
+        "linux": {
+          "version": "10.6.3",
+          "source": "system-apt",
+          "sha256": null
+        },
+        "win-x64": {
+          "version": "11.10.0",
+          "sourceUrl": "https://github.com/qpdf/qpdf/releases/download/v11.10.0/qpdf-11.10.0-msvc64.zip",
+          "sha256": "bae68538ba4f35a5b66d02677e4b5834e6e4e4013cdba6f6b022b46d6066595d"
+        }
+      }
     },
     {
       "id": "sevenzip",
       "displayName": "7-Zip",
-      "version": "26.01",
-      "platform": "linux",
+      "platform": "all",
       "arch": "x64",
-      "sourceUrl": "https://7-zip.org/download.html",
-      "sha256": null,
       "license": "LGPL-2.1",
       "licenseUrl": "https://7-zip.org/license.txt",
-      "binaryRelativePath": "tools/7zip/7zz",
-      "versionArgs": ["i"],
-      "versionPattern": "7-Zip \\([az]\\) (\\d+\\.\\d+)",
-      "requiredFor": ["archive"],
+      "requiredFor": [
+        "archive"
+      ],
       "redistribution": "bundled",
-      "notes": "LGPL core — binary redistribution allowed. unRAR code not included."
+      "versions": {
+        "linux": {
+          "version": "26.01",
+          "source": "system",
+          "sha256": null
+        },
+        "win-x64": {
+          "version": "26.01",
+          "sourceUrl": "https://www.7-zip.org/a/7z2601-extra.7z",
+          "sha256": null,
+          "note": "sha256 computed on demand from cache"
+        }
+      }
     },
     {
       "id": "pandoc",
       "displayName": "Pandoc",
-      "version": "2.9.2.1",
-      "platform": "linux",
+      "platform": "all",
       "arch": "x64",
-      "sourceUrl": "https://github.com/jgm/pandoc/releases",
-      "sha256": null,
       "license": "GPL-2.0-or-later",
       "licenseUrl": "https://github.com/jgm/pandoc/blob/main/COPYING.md",
-      "binaryRelativePath": "tools/pandoc/bin/pandoc",
-      "versionArgs": ["--version"],
-      "versionPattern": "pandoc (\\d+\\.\\d+\\.\\d+)",
-      "requiredFor": ["document"],
+      "requiredFor": [
+        "document"
+      ],
       "redistribution": "optional-pack",
-      "notes": "GPL-2. Binary redistribution with notice. Included in Office Pack."
-    },
-    {
-      "id": "libreoffice",
-      "displayName": "LibreOffice",
-      "version": "7.3.7.2",
-      "platform": "linux",
-      "arch": "x64",
-      "sourceUrl": "https://www.libreoffice.org/download/download-libreoffice/",
-      "sha256": null,
-      "license": "LGPL-3.0",
-      "licenseUrl": "https://www.libreoffice.org/about-us/licenses/",
-      "binaryRelativePath": "tools/libreoffice/program/soffice",
-      "versionArgs": ["--version"],
-      "versionPattern": "LibreOffice (\\d+\\.\\d+\\.\\d+)",
-      "requiredFor": ["office-to-pdf", "office-conversion"],
-      "redistribution": "optional-pack",
-      "notes": "LGPL-3. Large footprint (~300 MB). Included in Office Pack."
-    },
-    {
-      "id": "calibre",
-      "displayName": "Calibre",
-      "version": "9.9.0",
-      "platform": "linux",
-      "arch": "x64",
-      "sourceUrl": "https://calibre-ebook.com/download_linux",
-      "sha256": null,
-      "license": "GPL-3.0",
-      "licenseUrl": "https://github.com/kovidgoyal/calibre/blob/master/LICENSE",
-      "binaryRelativePath": "tools/calibre/calibredb",
-      "versionArgs": ["--version"],
-      "versionPattern": "calibre (\\d+\\.\\d+\\.\\d+)",
-      "requiredFor": ["ebook"],
-      "redistribution": "optional-pack",
-      "notes": "GPL-3. Included in Ebook Pack. Not in Core distribution."
+      "versions": {
+        "win-x64": {
+          "version": "3.6.4",
+          "sourceUrl": "https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-windows-x86_64.zip",
+          "sha256": "a9e5feb3d56d2fb0e3e765d1c33b8ee6b72e6963d7de31504edeec8cd1be34b1"
+        }
+      }
     },
     {
       "id": "tesseract",
       "displayName": "Tesseract OCR",
-      "version": "4.1.1",
-      "platform": "linux",
+      "platform": "all",
       "arch": "x64",
-      "sourceUrl": "https://github.com/tesseract-ocr/tesseract",
-      "sha256": null,
       "license": "Apache-2.0",
       "licenseUrl": "https://github.com/tesseract-ocr/tesseract/blob/main/LICENSE",
-      "binaryRelativePath": "tools/tesseract/bin/tesseract",
-      "versionArgs": ["--version"],
-      "versionPattern": "tesseract (\\d+\\.\\d+\\.\\d+)",
-      "requiredFor": ["ocr-image", "ocr-pdf"],
+      "requiredFor": [
+        "ocr-image",
+        "ocr-pdf"
+      ],
       "redistribution": "bundled",
-      "notes": "Apache-2.0 — freely redistributable. Requires language packs."
-    },
-    {
-      "id": "tesseract-spa",
-      "displayName": "Tesseract — datos español",
-      "version": "4.1.0",
-      "platform": "linux",
-      "arch": "all",
-      "sourceUrl": "https://github.com/tesseract-ocr/tessdata_fast",
-      "sha256": null,
-      "license": "Apache-2.0",
-      "licenseUrl": "https://github.com/tesseract-ocr/tessdata_fast/blob/main/LICENSE",
-      "binaryRelativePath": "tools/tesseract/tessdata/spa.traineddata",
-      "versionArgs": null,
-      "versionPattern": null,
-      "requiredFor": ["ocr-spa"],
-      "redistribution": "bundled",
-      "notes": "Apache-2.0 — freely redistributable."
-    },
-    {
-      "id": "tesseract-eng",
-      "displayName": "Tesseract — datos inglés",
-      "version": "4.1.0",
-      "platform": "linux",
-      "arch": "all",
-      "sourceUrl": "https://github.com/tesseract-ocr/tessdata_fast",
-      "sha256": null,
-      "license": "Apache-2.0",
-      "licenseUrl": "https://github.com/tesseract-ocr/tessdata_fast/blob/main/LICENSE",
-      "binaryRelativePath": "tools/tesseract/tessdata/eng.traineddata",
-      "versionArgs": null,
-      "versionPattern": null,
-      "requiredFor": ["ocr-eng"],
-      "redistribution": "bundled",
-      "notes": "Apache-2.0 — freely redistributable."
+      "versions": {
+        "linux": {
+          "version": "4.1.1",
+          "source": "system-apt",
+          "sha256": null
+        }
+      }
     },
     {
       "id": "poppler",
       "displayName": "Poppler (pdftoppm)",
-      "version": "22.02.0",
-      "platform": "linux",
+      "platform": "all",
       "arch": "x64",
-      "sourceUrl": "https://poppler.freedesktop.org/",
-      "sha256": null,
       "license": "GPL-2.0",
       "licenseUrl": "https://gitlab.freedesktop.org/poppler/poppler/-/blob/master/COPYING",
-      "binaryRelativePath": "tools/poppler/bin/pdftoppm",
-      "versionArgs": ["-v"],
-      "versionPattern": "pdftoppm version (\\d+\\.\\d+\\.\\d+)",
-      "requiredFor": ["ocr-pdf", "pdf-to-image"],
-      "redistribution": "optional-pack",
-      "notes": "GPL-2. Required for PDF OCR pipeline. Included in OCR Pack."
+      "requiredFor": [
+        "ocr-pdf",
+        "pdf-to-image"
+      ],
+      "redistribution": "optional-pack"
     }
   ]
 }

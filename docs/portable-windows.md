@@ -28,16 +28,54 @@ Doble clic en `INICIAR_ANCLORA_FILESTUDIO.bat`
 
 El script:
 
-1. Selecciona un puerto libre en el rango 3847-3947
+1. Selecciona un puerto libre desde `3456`
 2. Configura las variables de entorno `ANCLORA_FILESTUDIO_*`
 3. Crea el archivo PID para control del proceso
 4. Arranca el servidor Node.js
 5. Verifica `/api/health` antes de abrir el navegador
 6. Abre `http://127.0.0.1:<puerto>` en el navegador predeterminado
 
+El launcher interno usa `WorkingDirectory = app` y pasa `server.js` como
+entrypoint relativo a Node.js. Esto evita que Windows PowerShell 5.1 divida
+rutas absolutas con espacios al usar `Start-Process -ArgumentList`.
+
+El BAT se puede ejecutar desde carpetas locales con espacios, por ejemplo:
+
+```text
+C:\Users\antonio.ballesterosa\Downloads\Prueba Anclora Windows Arranque Final
+```
+
+El script PowerShell interno no solicita entrada interactiva. En errores sale
+con código distinto de cero; la única pausa de usuario vive en el BAT.
+
+### Detección de herramientas externas
+
+El launcher y el diagnóstico resuelven herramientas en este orden:
+
+1. Ruta incluida en el portable.
+2. Variable de entorno `ANCLORA_FILESTUDIO_*` válida.
+3. Ruta estándar de Windows en `C:\Program Files`.
+4. `Get-Command` / `PATH`.
+
+Las rutas estándar soportadas son:
+
+```text
+C:\Program Files\LibreOffice\program\soffice.exe
+C:\Program Files\Calibre2\ebook-convert.exe
+C:\Program Files\Tesseract-OCR\tesseract.exe
+C:\Program Files\Tesseract-OCR\tessdata
+```
+
+Si Tesseract se resuelve desde una instalación completa, el launcher configura
+también `ANCLORA_FILESTUDIO_TESSDATA_PREFIX` hacia el directorio `tessdata`.
+
 ### Parada
 
 Doble clic en `CERRAR_ANCLORA_FILESTUDIO.bat`
+
+El cierre usa el PID registrado en `data/anclora-filestudio.pid` y valida que
+corresponde al `runtime\node.exe` incluido en ese portable. No realiza búsquedas
+globales ni termina otros procesos Node del usuario.
 
 ### Diagnóstico
 

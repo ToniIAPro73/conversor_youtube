@@ -1,957 +1,351 @@
 #!/usr/bin/env bash
 # =============================================================================
 # build-windows-portable.sh
-# Construye la distribución portable de Anclora FileStudio para Windows x64.
-# Incluye 9 motores de conversión: FFmpeg, Sharp, QPDF, 7-Zip, Data Engine,
-# Pandoc, LibreOffice, Calibre, Tesseract.
-# Uso: bash scripts/build-windows-portable.sh
+# Builds the Windows x64 portable distribution of Anclora FileStudio.
+# ALL versions, URLs, and SHA-256 hashes are read from scripts/toolchain.lock.json.
+# No dynamic version resolution (no "latest", no API calls, no mutable URLs).
+# Usage: bash scripts/build-windows-portable.sh
 # =============================================================================
 
 set -euo pipefail
 
-# ── Colores ──────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
-info()    { echo -e "${CYAN}[INFO]${NC}  $*"; }
-ok()      { echo -e "${GREEN}[OK]${NC}    $*"; }
-warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
-error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
-die()     { error "$*"; exit 1; }
+info()  { echo -e "${CYAN}[INFO]${NC}  $*"; }
+ok()    { echo -e "${GREEN}[OK]${NC}    $*"; }
+warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
+die()   { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
-# ── Rutas ────────────────────────────────────────────────────────────────────
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPTS_DIR="$REPO_ROOT/scripts"
-CACHE_DIR="$SCRIPTS_DIR/.cache/windows-portable"
-STAGING_BASE="$SCRIPTS_DIR/.staging"
+# ── Paths ────────────────────────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+LOCKFILE="$SCRIPT_DIR/toolchain.lock.json"
+CACHE_DIR="$SCRIPT_DIR/.cache/windows-portable"
+STAGING_BASE="$SCRIPT_DIR/.staging"
 STAGING_DIR="$STAGING_BASE/Anclora-FileStudio-Windows-x64-Core"
-OUT_ZIP="$REPO_ROOT/dist/windows/Anclora-FileStudio-Windows-x64-Core.zip"
-OUT_SHA="$REPO_ROOT/dist/windows/Anclora-FileStudio-Windows-x64-Core.zip.sha256"
-
-# ── Versiones (sobreescribibles por env) ─────────────────────────────────────
-# Medios (original)
-NODE_WINDOWS_VERSION="${NODE_WINDOWS_VERSION:-}"
-NODE_MODULES_ABI="${NODE_MODULES_ABI:-}"
-YTDLP_WINDOWS_VERSION="${YTDLP_WINDOWS_VERSION:-}"
-FFMPEG_WINDOWS_VERSION="${FFMPEG_WINDOWS_VERSION:-}"
-SQLITE3_WINDOWS_VERSION="${SQLITE3_WINDOWS_VERSION:-}"
-
-# Universales
-PANDOC_VERSION="${PANDOC_VERSION:-3.6.4}"
-SEVENZIP_VERSION="${SEVENZIP_VERSION:-2601}"
-SEVENZIP_TAG="${SEVENZIP_TAG:-26.01}"
-QPDF_VERSION="${QPDF_VERSION:-11.10.0}"
-TESSERACT_VERSION="${TESSERACT_VERSION:-5.4.0.20240606}"
-POPPLER_VERSION="${POPPLER_VERSION:-24.08.0-0}"
-
-# Calibre y LibreOffice son muy grandes (~100MB y ~400MB), por defecto se omiten
-# Pon INCLUDE_CALIBRE=1 o INCLUDE_LIBREOFFICE=1 para incluirlos
-INCLUDE_CALIBRE="${INCLUDE_CALIBRE:-0}"
-INCLUDE_LIBREOFFICE="${INCLUDE_LIBREOFFICE:-0}"
-CALIBRE_VERSION="${CALIBRE_VERSION:-7.26.0}"
-LIBREOFFICE_VERSION="${LIBREOFFICE_VERSION:-24.8.5}"
+OUT_DIR="$REPO_ROOT/dist/windows"
+OUT_ZIP="$OUT_DIR/Anclora-FileStudio-Windows-x64-Core.zip"
+OUT_SHA="$OUT_DIR/Anclora-FileStudio-Windows-x64-Core.zip.sha256"
+STANDALONE="$REPO_ROOT/.next/standalone"
+STATIC_DIR="$REPO_ROOT/.next/static"
+PUBLIC_DIR="$REPO_ROOT/public"
 
 BUILD_DATE_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 APP_VERSION="0.1.0"
 
-# ── Helpers para descarga con caché ──────────────────────────────────────────
-download_cached() {
-  local url="$1" dest="$2"
+[[ -f "$LOCKFILE" ]] || die "toolchain.lock.json not found: $LOCKFILE"
+[[ -f "$REPO_ROOT/package.json" ]] || die "Run from the repository root"
+cd "$REPO_ROOT"
+
+# ── Section 1: Read ALL versions and hashes from toolchain.lock.json ─────────
+info "Reading toolchain.lock.json..."
+
+read_lock() {
+  # read_lock <python_expression> — evaluates against the loaded JSON
+  python3 -c "import json; d=json.load(open('$LOCKFILE')); print($1)"
+}
+
+NODE_WIN_VERSION="$(read_lock "d['runtimes']['win-x64']['version']")"
+NODE_WIN_ABI="$(read_lock "d['runtimes']['win-x64']['abi']")"
+NODE_WIN_URL="$(read_lock "d['runtimes']['win-x64']['sourceUrl']")"
+NODE_WIN_SHA256="$(read_lock "d['runtimes']['win-x64']['sha256']")"
+
+BS3_VERSION="$(read_lock "d['nativeModules']['better-sqlite3-win32-x64']['version']")"
+BS3_URL="$(read_lock "d['nativeModules']['better-sqlite3-win32-x64']['sourceUrl']")"
+BS3_SHA256="$(read_lock "d['nativeModules']['better-sqlite3-win32-x64']['sha256']")"
+
+SHARP_VERSION="$(read_lock "d['nativeModules']['sharp-win32-x64']['version']")"
+SHARP_URL="$(read_lock "d['nativeModules']['sharp-win32-x64']['sourceUrl']")"
+SHARP_SHA256="$(read_lock "d['nativeModules']['sharp-win32-x64']['sha256']")"
+
+YTDLP_VERSION="$(read_lock "next(t for t in d['tools'] if t['id']=='ytdlp')['versions']['win-x64']['version']")"
+YTDLP_URL="$(read_lock "next(t for t in d['tools'] if t['id']=='ytdlp')['versions']['win-x64']['sourceUrl']")"
+YTDLP_SHA256="$(read_lock "next(t for t in d['tools'] if t['id']=='ytdlp')['versions']['win-x64']['sha256']")"
+
+FFMPEG_URL="$(read_lock "next(t for t in d['tools'] if t['id']=='ffmpeg')['versions']['win-x64']['sourceUrl']")"
+FFMPEG_SHA256="$(read_lock "next(t for t in d['tools'] if t['id']=='ffmpeg')['versions']['win-x64']['sha256']")"
+
+PANDOC_VERSION="$(read_lock "next(t for t in d['tools'] if t['id']=='pandoc')['versions']['win-x64']['version']")"
+PANDOC_URL="$(read_lock "next(t for t in d['tools'] if t['id']=='pandoc')['versions']['win-x64']['sourceUrl']")"
+PANDOC_SHA256="$(read_lock "next(t for t in d['tools'] if t['id']=='pandoc')['versions']['win-x64']['sha256']")"
+
+QPDF_VERSION="$(read_lock "next(t for t in d['tools'] if t['id']=='qpdf')['versions']['win-x64']['version']")"
+QPDF_URL="$(read_lock "next(t for t in d['tools'] if t['id']=='qpdf')['versions']['win-x64']['sourceUrl']")"
+QPDF_SHA256="$(read_lock "next(t for t in d['tools'] if t['id']=='qpdf')['versions']['win-x64']['sha256']")"
+
+ok "Toolchain read:"
+ok "  Node.js v${NODE_WIN_VERSION} (ABI ${NODE_WIN_ABI})"
+ok "  yt-dlp ${YTDLP_VERSION}"
+ok "  better-sqlite3 v${BS3_VERSION} (node-v${NODE_WIN_ABI}-win32-x64)"
+ok "  @img/sharp-win32-x64 v${SHARP_VERSION}"
+ok "  Pandoc ${PANDOC_VERSION}  QPDF ${QPDF_VERSION}"
+
+# ── Section 2: Download all binaries to cache (before staging wipe) ──────────
+mkdir -p "$CACHE_DIR"
+
+verify_sha256() {
+  local file="$1" expected="$2" label="$3"
+  local actual
+  actual="$(sha256sum "$file" | awk '{print $1}')"
+  if [[ "$actual" != "$expected" ]]; then
+    die "SHA-256 mismatch for $label\n  expected: $expected\n  actual:   $actual"
+  fi
+  ok "SHA-256 OK: $label"
+}
+
+download_verify() {
+  local url="$1" dest="$2" expected_sha256="$3" label="$4"
   if [[ -f "$dest" ]]; then
-    ok "Cacheado: $(basename "$dest")"
+    verify_sha256 "$dest" "$expected_sha256" "$label (cached)"
     return 0
   fi
-  info "Descargando $(basename "$dest") ..."
+  info "Downloading $label..."
   curl --fail --location --retry 3 --progress-bar -o "$dest" "$url" \
-    || { rm -f "$dest"; die "No se pudo descargar desde $url"; }
+    || { rm -f "$dest"; die "Download failed: $url"; }
+  verify_sha256 "$dest" "$expected_sha256" "$label"
 }
 
-# ── 1. Verificar directorio de ejecución ─────────────────────────────────────
-info "Verificando directorio de trabajo..."
-[[ -f "$REPO_ROOT/package.json" ]] || die "Ejecuta desde la raíz del repositorio: bash scripts/build-windows-portable.sh"
-cd "$REPO_ROOT"
-ok "Directorio: $REPO_ROOT"
+# Node.js win-x64
+NODE_ZIP="node-v${NODE_WIN_VERSION}-win-x64.zip"
+NODE_CACHE="$CACHE_DIR/$NODE_ZIP"
+download_verify "$NODE_WIN_URL" "$NODE_CACHE" "$NODE_WIN_SHA256" "Node.js v${NODE_WIN_VERSION} win-x64"
 
-# ── 2. Verificar herramientas ────────────────────────────────────────────────
-info "Verificando herramientas requeridas..."
+# yt-dlp.exe
+YTDLP_CACHE="$CACHE_DIR/yt-dlp-${YTDLP_VERSION}.exe"
+download_verify "$YTDLP_URL" "$YTDLP_CACHE" "$YTDLP_SHA256" "yt-dlp ${YTDLP_VERSION} win-x64"
+
+# FFmpeg win-x64
+FFMPEG_CACHE="$CACHE_DIR/ffmpeg-master-latest-win64-gpl.zip"
+download_verify "$FFMPEG_URL" "$FFMPEG_CACHE" "$FFMPEG_SHA256" "FFmpeg win64-gpl"
+
+# better-sqlite3 win32-x64
+BS3_ASSET="better-sqlite3-v${BS3_VERSION}-node-v${NODE_WIN_ABI}-win32-x64.tar.gz"
+BS3_CACHE="$CACHE_DIR/$BS3_ASSET"
+download_verify "$BS3_URL" "$BS3_CACHE" "$BS3_SHA256" "better-sqlite3 v${BS3_VERSION} win32-x64"
+
+# @img/sharp-win32-x64
+SHARP_TGZ="sharp-win32-x64-${SHARP_VERSION}.tgz"
+SHARP_CACHE="$CACHE_DIR/$SHARP_TGZ"
+download_verify "$SHARP_URL" "$SHARP_CACHE" "$SHARP_SHA256" "@img/sharp-win32-x64 v${SHARP_VERSION}"
+
+# Pandoc
+PANDOC_CACHE="$CACHE_DIR/pandoc-${PANDOC_VERSION}-windows-x86_64.zip"
+download_verify "$PANDOC_URL" "$PANDOC_CACHE" "$PANDOC_SHA256" "Pandoc ${PANDOC_VERSION}"
+
+# QPDF
+QPDF_CACHE="$CACHE_DIR/qpdf-${QPDF_VERSION}-msvc64.zip"
+download_verify "$QPDF_URL" "$QPDF_CACHE" "$QPDF_SHA256" "QPDF ${QPDF_VERSION}"
+
+# ── Section 3: Install deps, lint, typecheck, tests, build ───────────────────
+info "Verifying required system tools..."
 for tool in node pnpm curl unzip sha256sum python3; do
-  command -v "$tool" >/dev/null 2>&1 || die "Herramienta no encontrada: $tool"
+  command -v "$tool" >/dev/null 2>&1 || die "Tool not found: $tool"
 done
-ok "Todas las herramientas disponibles"
+ok "System tools OK"
 
-# ── 3. Limpiar staging anterior ──────────────────────────────────────────────
-info "Limpiando staging anterior..."
-rm -rf "$STAGING_DIR"
-mkdir -p "$STAGING_DIR"
-mkdir -p "$CACHE_DIR"
-mkdir -p "$STAGING_DIR/licenses"
-ok "Staging limpio: $STAGING_DIR"
-
-# ── 4. Instalar dependencias ─────────────────────────────────────────────────
-info "Instalando dependencias (frozen-lockfile)..."
+info "Installing dependencies (frozen-lockfile)..."
 pnpm install --frozen-lockfile
-ok "Dependencias instaladas"
+ok "Dependencies installed"
 
-# ── 5. Lint ──────────────────────────────────────────────────────────────────
-info "Ejecutando lint..."
-pnpm lint || { warn "Lint reportó advertencias (no bloqueante)"; }
+info "Running lint..."
+pnpm lint || warn "Lint reported warnings (non-blocking)"
 
-# ── 6. Typecheck ─────────────────────────────────────────────────────────────
-info "Ejecutando typecheck..."
-pnpm typecheck || die "Typecheck falló"
+info "Running typecheck..."
+pnpm typecheck || die "Typecheck failed"
 ok "Typecheck OK"
 
-# ── 7. Tests ─────────────────────────────────────────────────────────────────
-info "Ejecutando tests..."
-pnpm test || { warn "Tests no disponibles o fallaron (revisión manual requerida)"; }
+info "Running tests..."
+pnpm test || warn "Tests not available or failed — manual review required"
 
-# ── 8. Build Next.js standalone ──────────────────────────────────────────────
-info "Ejecutando pnpm build (modo standalone)..."
+info "Building Next.js standalone..."
 NEXT_TELEMETRY_DISABLED=1 pnpm build
-[[ -f ".next/standalone/server.js" ]] || die ".next/standalone/server.js no encontrado tras el build"
-ok "Build completado"
+[[ -f "$STANDALONE/server.js" ]] || die "Standalone build missing: $STANDALONE/server.js"
+ok "Next.js build complete"
 
-# ── 9. Copiar aplicación al staging ──────────────────────────────────────────
-info "Copiando aplicación al staging..."
+# ── Section 4: Create clean staging ─────────────────────────────────────────
+info "Creating clean staging directory..."
+rm -rf "$STAGING_DIR"
+mkdir -p "$STAGING_DIR"/{app,runtime,tools,data,temp,logs,licenses,internal}
+mkdir -p "$OUT_DIR"
+ok "Staging: $STAGING_DIR"
+
+# ── Section 5: Copy application (whitelist — not full standalone mirror) ──────
+# The .next/standalone dir mirrors outputFileTracingRoot (the entire repo root).
+# We only copy the files the runtime actually needs.
+info "Copying application (whitelist copy)..."
 
 APP_DIR="$STAGING_DIR/app"
-mkdir -p "$APP_DIR"
 
-cp -a .next/standalone/. "$APP_DIR/"
-find "$APP_DIR" -maxdepth 1 -type f ! -name "server.js" ! -name "package.json" -delete 2>/dev/null || true
-ok "Archivos no pertenecientes a la app eliminados de app/ raíz"
+# server.js — the Next.js standalone entry point
+cp "$STANDALONE/server.js" "$APP_DIR/server.js"
 
-info "Podando archivos de desarrollo trazados por Next.js..."
-rm -rf \
-  "$APP_DIR/.git" \
-  "$APP_DIR/.next/cache" \
-  "$APP_DIR/.tmp" \
-  "$APP_DIR/docs" \
-  "$APP_DIR/scripts" \
-  "$APP_DIR/src" \
-  "$APP_DIR/tests" \
-  "$APP_DIR/data" \
-  "$APP_DIR/tsconfig.tsbuildinfo" \
-  "$APP_DIR/Anclora-FileStudio-Windows-x64-Core.zip" \
-  "$APP_DIR/Anclora-FileStudio-Windows-x64-Core.zip.sha256" 2>/dev/null || true
-ok "Fuentes, tests, scripts y datos de desarrollo excluidos del runtime portable"
-
-mkdir -p "$APP_DIR/.next/static"
-cp -a .next/static/. "$APP_DIR/.next/static/"
-
-if [[ -d "public" ]]; then
-  cp -a public/. "$APP_DIR/public/"
+# node_modules — standalone traces only what it needs (a subset)
+if [[ -d "$STANDALONE/node_modules" ]]; then
+  cp -r "$STANDALONE/node_modules" "$APP_DIR/node_modules"
 fi
 
-ok "Aplicación copiada"
-
-# ── 10. Descargar Node.js para Windows x64 ───────────────────────────────────
-info "Preparando Node.js para Windows x64..."
-
-resolve_node_version() {
-  curl -fsSL "https://nodejs.org/dist/index.json" \
-    | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-lts = [v for v in data if v.get('lts')]
-print(lts[0]['version'])
-" 2>/dev/null || echo "v22.16.0"
-}
-
-if [[ -z "$NODE_WINDOWS_VERSION" ]]; then
-  info "Resolviendo versión LTS de Node.js..."
-  NODE_WINDOWS_VERSION="$(resolve_node_version)"
-  info "Versión Node.js resuelta: $NODE_WINDOWS_VERSION"
+# .next build output: copy everything except build cache.
+# IMPORTANT: Do NOT exclude .next/node_modules/ — Turbopack places external
+# module stubs there (better-sqlite3-<hash>, sharp-<hash>) required at runtime.
+mkdir -p "$APP_DIR/.next"
+if [[ -d "$STANDALONE/.next" ]]; then
+  find "$STANDALONE/.next" -mindepth 1 -maxdepth 1 \
+    ! -name "cache" | while read -r item; do
+    cp -r "$item" "$APP_DIR/.next/"
+  done
 fi
 
-if [[ -z "$NODE_MODULES_ABI" ]]; then
-  NODE_MAJOR="${NODE_WINDOWS_VERSION#v}"
-  NODE_MAJOR="${NODE_MAJOR%%.*}"
-  case "$NODE_MAJOR" in
-    20) NODE_MODULES_ABI="115" ;;
-    22) NODE_MODULES_ABI="127" ;;
-    23) NODE_MODULES_ABI="131" ;;
-    24) NODE_MODULES_ABI="137" ;;
-    *) NODE_MODULES_ABI="127" ; warn "ABI desconocido para Node.js $NODE_MAJOR, usando 127" ;;
-  esac
-  info "Node.js module ABI: $NODE_MODULES_ABI"
+# Static assets (client-side JS/CSS)
+if [[ -d "$STATIC_DIR" ]]; then
+  rm -rf "$APP_DIR/.next/static"
+  cp -r "$STATIC_DIR" "$APP_DIR/.next/static"
 fi
 
-NODE_ZIP="node-${NODE_WINDOWS_VERSION}-win-x64.zip"
-NODE_URL="https://nodejs.org/dist/${NODE_WINDOWS_VERSION}/${NODE_ZIP}"
-NODE_CACHE="$CACHE_DIR/$NODE_ZIP"
+# Public directory
+if [[ -d "$PUBLIC_DIR" ]]; then
+  cp -r "$PUBLIC_DIR" "$APP_DIR/public"
+else
+  mkdir -p "$APP_DIR/public"
+fi
 
-download_cached "$NODE_URL" "$NODE_CACHE"
-NODE_SHA256="$(sha256sum "$NODE_CACHE" | awk '{print $1}')"
-ok "Node.js: $NODE_WINDOWS_VERSION (SHA256: ${NODE_SHA256:0:16}...)"
+ok "Application copied (whitelist)"
 
-info "Extrayendo node.exe..."
-RUNTIME_DIR="$STAGING_DIR/runtime"
-mkdir -p "$RUNTIME_DIR"
-TMP_NODE_EXTRACT="$CACHE_DIR/.tmp_node_extract"
+# ── Section 6: Node.js win-x64 runtime ───────────────────────────────────────
+info "Extracting node.exe..."
+TMP_NODE_EXTRACT="$(mktemp -d)"
+unzip -q "$NODE_CACHE" "node-v${NODE_WIN_VERSION}-win-x64/node.exe" -d "$TMP_NODE_EXTRACT" \
+  || die "Failed to extract node.exe"
+cp "$TMP_NODE_EXTRACT/node-v${NODE_WIN_VERSION}-win-x64/node.exe" "$STAGING_DIR/runtime/node.exe"
 rm -rf "$TMP_NODE_EXTRACT"
-mkdir -p "$TMP_NODE_EXTRACT"
-unzip -q "$NODE_CACHE" "node-${NODE_WINDOWS_VERSION}-win-x64/node.exe" -d "$TMP_NODE_EXTRACT" \
-  || die "No se pudo extraer node.exe del ZIP"
-cp "$TMP_NODE_EXTRACT/node-${NODE_WINDOWS_VERSION}-win-x64/node.exe" "$RUNTIME_DIR/node.exe"
-rm -rf "$TMP_NODE_EXTRACT"
-[[ -f "$RUNTIME_DIR/node.exe" ]] || die "node.exe no encontrado tras la extracción"
-ok "node.exe extraído"
+[[ -f "$STAGING_DIR/runtime/node.exe" ]] || die "node.exe not found after extraction"
+ok "node.exe extracted (v${NODE_WIN_VERSION})"
 
-# ── 10b. Descargar better-sqlite3 Windows nativo ─────────────────────────────
-info "Resolviendo versión de better-sqlite3..."
-if [[ -z "$SQLITE3_WINDOWS_VERSION" ]]; then
-  SQLITE3_WINDOWS_VERSION="$(node -e "const p=require('./node_modules/better-sqlite3/package.json');console.log(p.version);" 2>/dev/null \
-    || python3 -c "
-import json, re, pathlib
-txt = pathlib.Path('package.json').read_text()
-data = json.loads(txt)
-ver = data.get('dependencies', {}).get('better-sqlite3', '12.10.1')
-print(re.sub(r'^[\^~]', '', ver))
-")"
-fi
-info "better-sqlite3: v${SQLITE3_WINDOWS_VERSION} (node-v${NODE_MODULES_ABI})"
+# ── Section 7: Remove Linux native modules, install Windows native modules ────
+info "Removing Linux native modules..."
 
-SQLITE3_ASSET="better-sqlite3-v${SQLITE3_WINDOWS_VERSION}-node-v${NODE_MODULES_ABI}-win32-x64.tar.gz"
-SQLITE3_URL="https://github.com/WiseLibs/better-sqlite3/releases/download/v${SQLITE3_WINDOWS_VERSION}/${SQLITE3_ASSET}"
-SQLITE3_CACHE="$CACHE_DIR/$SQLITE3_ASSET"
+# Remove Linux ELF .node files from app/
+find "$APP_DIR" \
+  \( -path "*/@next/swc-*" \
+  -o -path "*/@img/sharp-linux-*" \
+  -o -path "*/@img/sharp-darwin-*" \) \
+  -name "*.node" -delete 2>/dev/null || true
 
-download_cached "$SQLITE3_URL" "$SQLITE3_CACHE"
-SQLITE3_SHA256="$(sha256sum "$SQLITE3_CACHE" | awk '{print $1}')"
-ok "better-sqlite3 cacheado (SHA256: ${SQLITE3_SHA256:0:16}...)"
+find "$APP_DIR" -name "better_sqlite3.node" -delete 2>/dev/null || true
+find "$APP_DIR" -name "sharp*.node" -delete 2>/dev/null || true
+find "$APP_DIR" -name "*.so" -delete 2>/dev/null || true
 
-# ── 11. Descargar yt-dlp.exe ────────────────────────────────────────────────
-info "Preparando yt-dlp.exe..."
+ok "Linux binaries removed"
 
-resolve_ytdlp_version() {
-  curl -fsSL "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest" \
-    | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])" 2>/dev/null \
-    || find "$CACHE_DIR" -maxdepth 1 -name 'yt-dlp-*.exe' -printf '%f\n' 2>/dev/null \
-      | sed -E 's/^yt-dlp-(.*)\.exe$/\1/' \
-      | sort -V \
-      | tail -1 \
-    || echo "2026.06.09"
-}
+# Install better_sqlite3.node (win32-x64, ABI ${NODE_WIN_ABI})
+info "Installing better_sqlite3.node (win32-x64)..."
+BS3_TARGET="$APP_DIR/node_modules/better-sqlite3/build/Release"
+mkdir -p "$BS3_TARGET"
 
-if [[ -z "$YTDLP_WINDOWS_VERSION" ]]; then
-  info "Resolviendo versión estable de yt-dlp..."
-  YTDLP_WINDOWS_VERSION="$(resolve_ytdlp_version)"
-  info "Versión yt-dlp resuelta: $YTDLP_WINDOWS_VERSION"
-fi
+TMP_BS3="$(mktemp -d)"
+tar -xzf "$BS3_CACHE" -C "$TMP_BS3" \
+  || die "Failed to decompress $BS3_ASSET"
+BS3_NODE="$(find "$TMP_BS3" -name "better_sqlite3.node" | head -1)"
+[[ -n "$BS3_NODE" ]] || die "better_sqlite3.node not found in tarball"
+cp "$BS3_NODE" "$BS3_TARGET/better_sqlite3.node"
+rm -rf "$TMP_BS3"
+ok "better_sqlite3.node installed (win32-x64, node-v${NODE_WIN_ABI})"
 
-YTDLP_CACHE="$CACHE_DIR/yt-dlp-${YTDLP_WINDOWS_VERSION}.exe"
-YTDLP_URL="https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_WINDOWS_VERSION}/yt-dlp.exe"
+# Install @img/sharp-win32-x64
+info "Installing @img/sharp-win32-x64 v${SHARP_VERSION}..."
+SHARP_TARGET="$APP_DIR/node_modules/@img/sharp-win32-x64"
+mkdir -p "$SHARP_TARGET"
 
-download_cached "$YTDLP_URL" "$YTDLP_CACHE"
-YTDLP_SHA256="$(sha256sum "$YTDLP_CACHE" | awk '{print $1}')"
-ok "yt-dlp.exe: $YTDLP_WINDOWS_VERSION (SHA256: ${YTDLP_SHA256:0:16}...)"
+TMP_SHARP="$(mktemp -d)"
+tar -xzf "$SHARP_CACHE" -C "$TMP_SHARP" \
+  || die "Failed to decompress sharp-win32-x64 tgz"
+# npm tarballs unpack into a 'package/' subdirectory
+SHARP_PKG="$(find "$TMP_SHARP" -maxdepth 1 -type d | tail -1)"
+cp -r "$SHARP_PKG/." "$SHARP_TARGET/"
+rm -rf "$TMP_SHARP"
+ok "@img/sharp-win32-x64 v${SHARP_VERSION} installed"
 
+# ── Section 8: Tools ──────────────────────────────────────────────────────────
 TOOLS_DIR="$STAGING_DIR/tools"
+
+# yt-dlp
+info "Installing yt-dlp..."
 mkdir -p "$TOOLS_DIR/yt-dlp"
 cp "$YTDLP_CACHE" "$TOOLS_DIR/yt-dlp/yt-dlp.exe"
+ok "yt-dlp.exe installed (${YTDLP_VERSION})"
 
-# ── 12. Descargar FFmpeg para Windows x64 ────────────────────────────────────
-info "Preparando FFmpeg para Windows x64..."
-
-resolve_ffmpeg_version() {
-  curl -fsSL "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest" \
-    | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])" 2>/dev/null \
-    || echo "autobuild-2025-01-10-12-58"
-}
-
-if [[ -z "$FFMPEG_WINDOWS_VERSION" ]]; then
-  info "Resolviendo versión de FFmpeg (BtbN builds)..."
-  FFMPEG_WINDOWS_VERSION="$(resolve_ffmpeg_version)"
-  info "Versión FFmpeg tag: $FFMPEG_WINDOWS_VERSION"
-fi
-
-FFMPEG_ASSET="ffmpeg-master-latest-win64-gpl.zip"
-FFMPEG_URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/${FFMPEG_WINDOWS_VERSION}/${FFMPEG_ASSET}"
-FFMPEG_CACHE="$CACHE_DIR/ffmpeg-${FFMPEG_WINDOWS_VERSION}-win64-gpl.zip"
-
-if [[ ! -f "$FFMPEG_CACHE" ]]; then
-  download_cached "$FFMPEG_URL" "$FFMPEG_CACHE" || {
-    warn "Intentando FFmpeg latest..."
-    FFMPEG_URL_LATEST="https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/${FFMPEG_ASSET}"
-    curl --fail --location --retry 3 --progress-bar -o "$FFMPEG_CACHE" "$FFMPEG_URL_LATEST" \
-      || die "No se pudo descargar FFmpeg"
-  }
-fi
-
-FFMPEG_SHA256="$(sha256sum "$FFMPEG_CACHE" | awk '{print $1}')"
-ok "FFmpeg (SHA256: ${FFMPEG_SHA256:0:16}...)"
-
-info "Extrayendo ffmpeg.exe y ffprobe.exe..."
+# FFmpeg
+info "Extracting FFmpeg..."
 mkdir -p "$TOOLS_DIR/ffmpeg"
-TMP_FF_EXTRACT="$CACHE_DIR/.tmp_ff_extract"
-rm -rf "$TMP_FF_EXTRACT"
-mkdir -p "$TMP_FF_EXTRACT"
-unzip -q "$FFMPEG_CACHE" -d "$TMP_FF_EXTRACT" || die "No se pudo descomprimir el ZIP de FFmpeg"
-FFMPEG_EXE="$(find "$TMP_FF_EXTRACT" -name "ffmpeg.exe" | head -1)"
-FFPROBE_EXE="$(find "$TMP_FF_EXTRACT" -name "ffprobe.exe" | head -1)"
-[[ -n "$FFMPEG_EXE" ]] || die "ffmpeg.exe no encontrado en el ZIP"
-[[ -n "$FFPROBE_EXE" ]] || die "ffprobe.exe no encontrado en el ZIP"
+TMP_FF="$(mktemp -d)"
+unzip -q "$FFMPEG_CACHE" -d "$TMP_FF" || die "Failed to decompress FFmpeg ZIP"
+FFMPEG_EXE="$(find "$TMP_FF" -name "ffmpeg.exe" | head -1)"
+FFPROBE_EXE="$(find "$TMP_FF" -name "ffprobe.exe" | head -1)"
+[[ -n "$FFMPEG_EXE" ]] || die "ffmpeg.exe not found in ZIP"
+[[ -n "$FFPROBE_EXE" ]] || die "ffprobe.exe not found in ZIP"
 cp "$FFMPEG_EXE" "$TOOLS_DIR/ffmpeg/ffmpeg.exe"
 cp "$FFPROBE_EXE" "$TOOLS_DIR/ffmpeg/ffprobe.exe"
-rm -rf "$TMP_FF_EXTRACT"
-ok "ffmpeg.exe y ffprobe.exe extraídos"
+rm -rf "$TMP_FF"
+ok "ffmpeg.exe + ffprobe.exe extracted"
 
-# ── 13. Descargar 7-Zip (standalone console) ────────────────────────────────
-info "Preparando 7-Zip standalone..."
+# Pandoc
+info "Extracting Pandoc ${PANDOC_VERSION}..."
+mkdir -p "$TOOLS_DIR/pandoc"
+TMP_PANDOC="$(mktemp -d)"
+unzip -q "$PANDOC_CACHE" -d "$TMP_PANDOC" || die "Failed to decompress Pandoc ZIP"
+PANDOC_EXE="$(find "$TMP_PANDOC" -name "pandoc.exe" | head -1)"
+[[ -n "$PANDOC_EXE" ]] || die "pandoc.exe not found in ZIP"
+cp "$PANDOC_EXE" "$TOOLS_DIR/pandoc/pandoc.exe"
+rm -rf "$TMP_PANDOC"
+ok "pandoc.exe extracted (${PANDOC_VERSION})"
 
-SEVENZIP_CACHE="$CACHE_DIR/7z${SEVENZIP_VERSION}-extra.7z"
-SEVENZIP_RUNTIME_VERSION="$SEVENZIP_VERSION"
-# Primero intentar GitHub (ip7z/7zip), luego 7-zip.org, luego SourceForge
-SEVENZIP_URL_GITHUB="https://github.com/ip7z/7zip/releases/download/${SEVENZIP_TAG}/7z${SEVENZIP_VERSION}-extra.7z"
-SEVENZIP_URL_OFFICIAL="https://www.7-zip.org/a/7z${SEVENZIP_VERSION}-extra.7z"
-SEVENZIP_URL_SF="https://downloads.sourceforge.net/project/sevenzip/7-Zip/24.09/7z2409-extra.7z"
-
-if [[ ! -f "$SEVENZIP_CACHE" ]]; then
-  download_cached "$SEVENZIP_URL_GITHUB" "$SEVENZIP_CACHE" || {
-    warn "GitHub download falló, intentando 7-zip.org..."
-    rm -f "$SEVENZIP_CACHE"
-    download_cached "$SEVENZIP_URL_OFFICIAL" "$SEVENZIP_CACHE" || {
-      warn "7-zip.org falló, intentando SourceForge..."
-      rm -f "$SEVENZIP_CACHE"
-      SEVENZIP_CACHE="$CACHE_DIR/7z2409-extra.7z"
-      download_cached "$SEVENZIP_URL_SF" "$SEVENZIP_CACHE" || warn "7-Zip no se pudo descargar — se necesitará instalar manualmente"
-    }
-  }
+# QPDF
+info "Extracting QPDF ${QPDF_VERSION}..."
+mkdir -p "$TOOLS_DIR/qpdf"
+TMP_QPDF="$(mktemp -d)"
+unzip -q "$QPDF_CACHE" -d "$TMP_QPDF" || die "Failed to decompress QPDF ZIP"
+QPDF_BIN="$(find "$TMP_QPDF" -type d -name "bin" | head -1)"
+if [[ -n "$QPDF_BIN" ]]; then
+  cp "$QPDF_BIN/"*.exe "$TOOLS_DIR/qpdf/" 2>/dev/null || true
+  cp "$QPDF_BIN/"*.dll "$TOOLS_DIR/qpdf/" 2>/dev/null || true
+else
+  QPDF_EXE="$(find "$TMP_QPDF" -name "qpdf.exe" | head -1)"
+  [[ -n "$QPDF_EXE" ]] || die "qpdf.exe not found in ZIP"
+  cp "$(dirname "$QPDF_EXE")/"*.exe "$TOOLS_DIR/qpdf/" 2>/dev/null || true
+  cp "$(dirname "$QPDF_EXE")/"*.dll "$TOOLS_DIR/qpdf/" 2>/dev/null || true
 fi
+rm -rf "$TMP_QPDF"
+ok "QPDF ${QPDF_VERSION} extracted"
 
+# 7-Zip — optional, no pinned SHA in lockfile, best-effort
+SEVENZIP_VERSION="${SEVENZIP_VERSION:-2601}"
+SEVENZIP_CACHE="$CACHE_DIR/7z${SEVENZIP_VERSION}-extra.7z"
+mkdir -p "$TOOLS_DIR/sevenzip"
+if [[ ! -f "$SEVENZIP_CACHE" ]]; then
+  info "Downloading 7-Zip (best-effort, no pinned SHA)..."
+  curl --fail --location --retry 3 --progress-bar \
+    -o "$SEVENZIP_CACHE" \
+    "https://www.7-zip.org/a/7z${SEVENZIP_VERSION}-extra.7z" 2>/dev/null \
+    || { rm -f "$SEVENZIP_CACHE"; warn "7-Zip download failed — archive conversion unavailable"; }
+fi
 if [[ -f "$SEVENZIP_CACHE" ]]; then
-  SEVENZIP_SHA256="$(sha256sum "$SEVENZIP_CACHE" | awk '{print $1}')"
-  info "Extrayendo 7za.exe..."
-  mkdir -p "$TOOLS_DIR/sevenzip"
-  # Usar 7z del sistema para extraer, o p7zip
   if command -v 7z >/dev/null 2>&1; then
     7z e -y -o"$TOOLS_DIR/sevenzip" "$SEVENZIP_CACHE" "7za.exe" "7za.dll" "7zxa.dll" 2>/dev/null || true
-    # También extraer 7zr.exe (reduced standalone) y 7z.dll si existen
     7z e -y -o"$TOOLS_DIR/sevenzip" "$SEVENZIP_CACHE" "7zr.exe" "7z.dll" 2>/dev/null || true
   elif command -v 7za >/dev/null 2>&1; then
     7za e -y -o"$TOOLS_DIR/sevenzip" "$SEVENZIP_CACHE" "7za.exe" "7za.dll" "7zxa.dll" 2>/dev/null || true
-    7za e -y -o"$TOOLS_DIR/sevenzip" "$SEVENZIP_CACHE" "7zr.exe" "7z.dll" 2>/dev/null || true
   else
-    if python3 -c "import py7zr" >/dev/null 2>&1; then
-      TMP_7Z="$CACHE_DIR/.tmp_7zip_py"
-      rm -rf "$TMP_7Z"
-      mkdir -p "$TMP_7Z"
-      if ! SEVENZIP_ARCHIVE="$SEVENZIP_CACHE" SEVENZIP_OUT="$TMP_7Z" python3 - << 'PYEOF'
-import os
-import py7zr
-
-with py7zr.SevenZipFile(os.environ["SEVENZIP_ARCHIVE"], mode="r") as archive:
-    archive.extractall(path=os.environ["SEVENZIP_OUT"])
-PYEOF
-      then
-        warn "py7zr no pudo extraer el paquete moderno de 7-Zip; usando fallback ZIP clásico"
-      fi
-      find "$TMP_7Z" -maxdepth 2 -type f \( -iname "7za.exe" -o -iname "7za.dll" -o -iname "7zxa.dll" -o -iname "7zr.exe" -o -iname "7z.dll" \) -exec cp {} "$TOOLS_DIR/sevenzip/" \; 2>/dev/null || true
-      rm -rf "$TMP_7Z"
-    else
-      warn "Se necesita 7z/p7zip o py7zr para extraer .7z — instala con: python3 -m pip install --user py7zr"
-    fi
+    warn "No 7z/7za available to extract 7-Zip — skipping"
   fi
-  if [[ ! -f "$TOOLS_DIR/sevenzip/7za.exe" ]] && [[ ! -f "$TOOLS_DIR/sevenzip/7zr.exe" ]]; then
-    warn "Usando 7za920.zip como fallback portable de 7-Zip"
-    SEVENZIP_RUNTIME_VERSION="9.20"
-    SEVENZIP_LEGACY_CACHE="$CACHE_DIR/7za920.zip"
-    SEVENZIP_LEGACY_URL="https://www.7-zip.org/a/7za920.zip"
-    download_cached "$SEVENZIP_LEGACY_URL" "$SEVENZIP_LEGACY_CACHE" || warn "No se pudo descargar fallback 7za920.zip"
-    if [[ -f "$SEVENZIP_LEGACY_CACHE" ]]; then
-      unzip -q -o "$SEVENZIP_LEGACY_CACHE" "7za.exe" -d "$TOOLS_DIR/sevenzip" \
-        || warn "No se pudo extraer 7za.exe del fallback ZIP"
-    fi
+  if [[ ! -f "$TOOLS_DIR/sevenzip/7z.exe" ]] && [[ -f "$TOOLS_DIR/sevenzip/7za.exe" ]]; then
+    cp "$TOOLS_DIR/sevenzip/7za.exe" "$TOOLS_DIR/sevenzip/7z.exe"
   fi
-  if [[ ! -f "$TOOLS_DIR/sevenzip/7z.exe" ]]; then
-    if [[ -f "$TOOLS_DIR/sevenzip/7za.exe" ]]; then
-      cp "$TOOLS_DIR/sevenzip/7za.exe" "$TOOLS_DIR/sevenzip/7z.exe"
-    elif [[ -f "$TOOLS_DIR/sevenzip/7zr.exe" ]]; then
-      cp "$TOOLS_DIR/sevenzip/7zr.exe" "$TOOLS_DIR/sevenzip/7z.exe"
-    fi
-  fi
-  ok "7-Zip procesado (SHA256: ${SEVENZIP_SHA256:0:16}...)"
-else
-  mkdir -p "$TOOLS_DIR/sevenzip"
-  warn "7-Zip no disponible — conversión de archivos comprimidos no funcionará"
+  [[ -f "$TOOLS_DIR/sevenzip/7z.exe" ]] && ok "7-Zip extracted" || warn "7-Zip exe not found after extraction"
 fi
 
-# ── 14. Descargar Pandoc ────────────────────────────────────────────────────
-info "Preparando Pandoc ${PANDOC_VERSION}..."
-
-PANDOC_CACHE="$CACHE_DIR/pandoc-${PANDOC_VERSION}-windows-x86_64.zip"
-PANDOC_URL="https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-windows-x86_64.zip"
-
-if [[ ! -f "$PANDOC_CACHE" ]]; then
-  download_cached "$PANDOC_URL" "$PANDOC_CACHE" || warn "Pandoc no se pudo descargar"
-fi
-
-if [[ -f "$PANDOC_CACHE" ]]; then
-  PANDOC_SHA256="$(sha256sum "$PANDOC_CACHE" | awk '{print $1}')"
-  info "Extrayendo pandoc.exe..."
-  mkdir -p "$TOOLS_DIR/pandoc"
-  TMP_PANDOC="$CACHE_DIR/.tmp_pandoc"
-  rm -rf "$TMP_PANDOC"
-  mkdir -p "$TMP_PANDOC"
-  unzip -q "$PANDOC_CACHE" -d "$TMP_PANDOC" || warn "No se pudo descomprimir Pandoc"
-  PANDOC_EXE="$(find "$TMP_PANDOC" -name "pandoc.exe" | head -1)"
-  if [[ -n "$PANDOC_EXE" ]]; then
-    cp "$PANDOC_EXE" "$TOOLS_DIR/pandoc/pandoc.exe"
-    ok "pandoc.exe extraído (SHA256: ${PANDOC_SHA256:0:16}...)"
-  else
-    warn "pandoc.exe no encontrado en el ZIP"
-  fi
-  rm -rf "$TMP_PANDOC"
-else
-  mkdir -p "$TOOLS_DIR/pandoc"
-  warn "Pandoc no disponible — conversión de documentos no funcionará"
-fi
-
-# ── 15. Descargar QPDF ──────────────────────────────────────────────────────
-info "Preparando QPDF ${QPDF_VERSION}..."
-
-QPDF_CACHE="$CACHE_DIR/qpdf-${QPDF_VERSION}-msvc64.zip"
-QPDF_URL="https://github.com/qpdf/qpdf/releases/download/v${QPDF_VERSION}/qpdf-${QPDF_VERSION}-msvc64.zip"
-
-if [[ ! -f "$QPDF_CACHE" ]]; then
-  download_cached "$QPDF_URL" "$QPDF_CACHE" || warn "QPDF no se pudo descargar"
-fi
-
-if [[ -f "$QPDF_CACHE" ]]; then
-  QPDF_SHA256="$(sha256sum "$QPDF_CACHE" | awk '{print $1}')"
-  info "Extrayendo qpdf.exe y DLLs..."
-  mkdir -p "$TOOLS_DIR/qpdf"
-  TMP_QPDF="$CACHE_DIR/.tmp_qpdf"
-  rm -rf "$TMP_QPDF"
-  mkdir -p "$TMP_QPDF"
-  unzip -q "$QPDF_CACHE" -d "$TMP_QPDF" || warn "No se pudo descomprimir QPDF"
-  # Buscar bin/ dentro del directorio extraído
-  QPDF_BIN="$(find "$TMP_QPDF" -type d -name "bin" | head -1)"
-  if [[ -n "$QPDF_BIN" ]]; then
-    cp "$QPDF_BIN/"*.exe "$TOOLS_DIR/qpdf/" 2>/dev/null || true
-    cp "$QPDF_BIN/"*.dll "$TOOLS_DIR/qpdf/" 2>/dev/null || true
-    ok "QPDF extraído (SHA256: ${QPDF_SHA256:0:16}...)"
-  else
-    # Puede que los archivos estén directamente
-    QPDF_EXE="$(find "$TMP_QPDF" -name "qpdf.exe" | head -1)"
-    if [[ -n "$QPDF_EXE" ]]; then
-      cp "$(dirname "$QPDF_EXE")/"*.exe "$TOOLS_DIR/qpdf/" 2>/dev/null || true
-      cp "$(dirname "$QPDF_EXE")/"*.dll "$TOOLS_DIR/qpdf/" 2>/dev/null || true
-      ok "QPDF extraído"
-    else
-      warn "qpdf.exe no encontrado en el ZIP"
-    fi
-  fi
-  rm -rf "$TMP_QPDF"
-else
-  mkdir -p "$TOOLS_DIR/qpdf"
-  warn "QPDF no disponible — operaciones PDF no funcionarán"
-fi
-
-# ── 16. Descargar Tesseract OCR ─────────────────────────────────────────────
-info "Preparando Tesseract OCR ${TESSERACT_VERSION}..."
-
-# Tesseract se distribuye como instalador NSIS .exe — se puede extraer con 7z
-TESSERACT_CACHE="$CACHE_DIR/tesseract-ocr-w64-setup-${TESSERACT_VERSION}.exe"
-# La URL de GitHub usa formato v5.4.0.20240606 en el tag
-TESSERACT_URL="https://github.com/UB-Mannheim/tesseract/releases/download/v${TESSERACT_VERSION}/tesseract-ocr-w64-setup-${TESSERACT_VERSION}.exe"
-
-mkdir -p "$TOOLS_DIR/tesseract"
-
-if [[ ! -f "$TESSERACT_CACHE" ]]; then
-  download_cached "$TESSERACT_URL" "$TESSERACT_CACHE" || {
-    warn "Tesseract no se pudo descargar"
-    TESSERACT_CACHE=""
-  }
-fi
-
-if [[ -n "$TESSERACT_CACHE" ]] && [[ -f "$TESSERACT_CACHE" ]]; then
-  TESSERACT_SHA256="$(sha256sum "$TESSERACT_CACHE" | awk '{print $1}')"
-  info "Extrayendo tesseract.exe del instalador NSIS..."
-  TMP_TESS="$CACHE_DIR/.tmp_tesseract"
-  rm -rf "$TMP_TESS"
-  mkdir -p "$TMP_TESS"
-  # Instaladores NSIS se pueden extraer con 7z
-  if command -v 7z >/dev/null 2>&1; then
-    7z e -y -o"$TMP_TESS" "$TESSERACT_CACHE" 2>/dev/null || true
-  elif command -v 7za >/dev/null 2>&1; then
-    7za e -y -o"$TMP_TESS" "$TESSERACT_CACHE" 2>/dev/null || true
-  else
-    warn "Se necesita 7z/7za para extraer el instalador de Tesseract"
-  fi
-  TESS_EXE="$(find "$TMP_TESS" -name "tesseract.exe" | head -1)"
-  if [[ -n "$TESS_EXE" ]]; then
-    cp "$TESS_EXE" "$TOOLS_DIR/tesseract/tesseract.exe"
-    # Copiar DLLs necesarias
-    find "$TMP_TESS" -name "*.dll" -exec cp {} "$TOOLS_DIR/tesseract/" \; 2>/dev/null || true
-    ok "tesseract.exe extraído (SHA256: ${TESSERACT_SHA256:0:16}...)"
-  else
-    # Si no encontramos tesseract.exe directamente, copiar todo el contenido
-    # NSIS installers often unpack to a different structure
-    warn "No se pudo extraer tesseract.exe directamente — copiando archivos del instalador..."
-    cp "$TMP_TESS/"*.exe "$TOOLS_DIR/tesseract/" 2>/dev/null || true
-    cp "$TMP_TESS/"*.dll "$TOOLS_DIR/tesseract/" 2>/dev/null || true
-    if [[ -f "$TOOLS_DIR/tesseract/tesseract.exe" ]]; then
-      ok "tesseract.exe extraído"
-    else
-      warn "No se pudo extraer tesseract.exe — instálalo manualmente en tools/tesseract/"
-    fi
-  fi
-  rm -rf "$TMP_TESS"
-else
-  warn "Tesseract no disponible — OCR no funcionará"
-fi
-
-# ── 16b. Descargar tessdata (inglés) ────────────────────────────────────────
-info "Descargando datos de idioma para Tesseract..."
-mkdir -p "$TOOLS_DIR/tessdata"
-TESSDATA_CACHE="$CACHE_DIR/eng.traineddata"
-TESSDATA_URL="https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata"
-
-download_cached "$TESSDATA_URL" "$TESSDATA_CACHE" || warn "tessdata no se pudo descargar"
-if [[ -f "$TESSDATA_CACHE" ]]; then
-  cp "$TESSDATA_CACHE" "$TOOLS_DIR/tessdata/eng.traineddata"
-  ok "eng.traineddata incluido"
-fi
-
-# ── 17. Descargar Poppler (para PDF→texto) ──────────────────────────────────
-info "Preparando Poppler ${POPPLER_VERSION}..."
-
-POPPLER_CACHE="$CACHE_DIR/poppler-${POPPLER_VERSION}-windows.zip"
-POPPLER_URL="https://github.com/oschwartz10612/poppler-windows/releases/download/v${POPPLER_VERSION}/Release-${POPPLER_VERSION}.zip"
-
-if [[ ! -f "$POPPLER_CACHE" ]]; then
-  download_cached "$POPPLER_URL" "$POPPLER_CACHE" || warn "Poppler no se pudo descargar"
-fi
-
-if [[ -f "$POPPLER_CACHE" ]]; then
-  POPPLER_SHA256="$(sha256sum "$POPPLER_CACHE" | awk '{print $1}')"
-  info "Extrayendo Poppler..."
-  mkdir -p "$TOOLS_DIR/poppler"
-  TMP_POPPLER="$CACHE_DIR/.tmp_poppler"
-  rm -rf "$TMP_POPPLER"
-  mkdir -p "$TMP_POPPLER"
-  unzip -q "$POPPLER_CACHE" -d "$TMP_POPPLER" || warn "No se pudo descomprimir Poppler"
-  # Buscar bin/ dentro del directorio extraído
-  POPPLER_BIN="$(find "$TMP_POPPLER" -type d -name "bin" | head -1)"
-  if [[ -n "$POPPLER_BIN" ]]; then
-    # Solo copiar los ejecutables de conversión más usados
-    for exe in pdftotext.exe pdftoppm.exe pdftocairo.exe pdfinfo.exe; do
-      [[ -f "$POPPLER_BIN/$exe" ]] && cp "$POPPLER_BIN/$exe" "$TOOLS_DIR/poppler/"
-    done
-    cp "$POPPLER_BIN/"*.dll "$TOOLS_DIR/poppler/" 2>/dev/null || true
-    ok "Poppler extraído (SHA256: ${POPPLER_SHA256:0:16}...)"
-  else
-    warn "Directorio bin/ de Poppler no encontrado"
-  fi
-  rm -rf "$TMP_POPPLER"
-else
-  mkdir -p "$TOOLS_DIR/poppler"
-  warn "Poppler no disponible — PDF→texto no funcionará"
-fi
-
-# ── 18. Descargar Calibre (opcional, ~100MB) ────────────────────────────────
-if [[ "$INCLUDE_CALIBRE" == "1" ]]; then
-  info "Preparando Calibre ${CALIBRE_VERSION}..."
-  CALIBRE_CACHE="$CACHE_DIR/calibre-${CALIBRE_VERSION}-win64.zip"
-  CALIBRE_URL="https://download.calibre-ebook.com/${CALIBRE_VERSION}/calibre-portable-installer-${CALIBRE_VERSION}.exe"
-
-  mkdir -p "$TOOLS_DIR/calibre"
-  if [[ ! -f "$CALIBRE_CACHE" ]]; then
-    download_cached "$CALIBRE_URL" "$CALIBRE_CACHE" || warn "Calibre no se pudo descargar"
-  fi
-  if [[ -f "$CALIBRE_CACHE" ]]; then
-    CALIBRE_SHA256="$(sha256sum "$CALIBRE_CACHE" | awk '{print $1}')"
-    ok "Calibre cacheado (SHA256: ${CALIBRE_SHA256:0:16}...) — instalar manualmente en Windows"
-  else
-    warn "Calibre no disponible — conversión de ebooks no funcionará"
-  fi
-else
-  mkdir -p "$TOOLS_DIR/calibre"
-  info "Calibre omitido (poner INCLUDE_CALIBRE=1 para incluir, ~100MB)"
-fi
-
-# ── 19. Descargar LibreOffice (opcional, ~400MB) ────────────────────────────
-if [[ "$INCLUDE_LIBREOFFICE" == "1" ]]; then
-  info "Preparando LibreOffice ${LIBREOFFICE_VERSION}..."
-  LIBREOFFICE_CACHE="$CACHE_DIR/libreoffice-${LIBREOFFICE_VERSION}-win-x64.msi"
-  LO_MAJOR="${LIBREOFFICE_VERSION%%.*}"
-  LO_MINOR="${LIBREOFFICE_VERSION#*.}"
-  LO_MINOR="${LO_MINOR%%.*}"
-  LO_PATCH="${LIBREOFFICE_VERSION##*.}"
-  LIBREOFFICE_URL="https://downloadarchive.documentfoundation.org/libreoffice/old/${LIBREOFFICE_VERSION}/win/x86_64/LibreOffice_${LIBREOFFICE_VERSION}_Win_x64.msi"
-
-  mkdir -p "$TOOLS_DIR/libreoffice"
-  if [[ ! -f "$LIBREOFFICE_CACHE" ]]; then
-    download_cached "$LIBREOFFICE_URL" "$LIBREOFFICE_CACHE" || warn "LibreOffice no se pudo descargar"
-  fi
-  if [[ -f "$LIBREOFFICE_CACHE" ]]; then
-    LIBREOFFICE_SHA256="$(sha256sum "$LIBREOFFICE_CACHE" | awk '{print $1}')"
-    ok "LibreOffice cacheado (SHA256: ${LIBREOFFICE_SHA256:0:16}...) — instalar manualmente en Windows"
-  else
-    warn "LibreOffice no disponible — conversión Office→PDF no funcionará"
-  fi
-else
-  mkdir -p "$TOOLS_DIR/libreoffice"
-  info "LibreOffice omitido (poner INCLUDE_LIBREOFFICE=1 para incluir, ~400MB)"
-fi
-
-# ── 20. Copiar scripts Windows ──────────────────────────────────────────────
-info "Copiando scripts de Windows..."
-
-INTERNAL_DIR="$STAGING_DIR/internal"
-mkdir -p "$INTERNAL_DIR"
-
-cp "$SCRIPTS_DIR/windows-portable/start-anclora-filestudio.ps1"     "$INTERNAL_DIR/" 2>/dev/null || warn "start-anclora-filestudio.ps1 no encontrado"
-cp "$SCRIPTS_DIR/windows-portable/stop-anclora-filestudio.ps1"      "$INTERNAL_DIR/" 2>/dev/null || warn "stop-anclora-filestudio.ps1 no encontrado"
-cp "$SCRIPTS_DIR/windows-portable/update-ytdlp.ps1"         "$INTERNAL_DIR/" 2>/dev/null || warn "update-ytdlp.ps1 no encontrado"
-cp "$SCRIPTS_DIR/windows-portable/diagnose-anclora-filestudio.ps1"  "$INTERNAL_DIR/" 2>/dev/null || warn "diagnose-anclora-filestudio.ps1 no encontrado"
-
-cp "$SCRIPTS_DIR/INICIAR_ANCLORA_FILESTUDIO.bat"   "$STAGING_DIR/" 2>/dev/null || warn "INICIAR_ANCLORA_FILESTUDIO.bat no encontrado"
-cp "$SCRIPTS_DIR/CERRAR_ANCLORA_FILESTUDIO.bat"    "$STAGING_DIR/" 2>/dev/null || warn "CERRAR_ANCLORA_FILESTUDIO.bat no encontrado"
-cp "$SCRIPTS_DIR/ACTUALIZAR_YTDLP.bat"     "$STAGING_DIR/" 2>/dev/null || warn "ACTUALIZAR_YTDLP.bat no encontrado"
-cp "$SCRIPTS_DIR/DIAGNOSTICO_ANCLORA_FILESTUDIO.bat" "$STAGING_DIR/" 2>/dev/null || warn "DIAGNOSTICO_ANCLORA_FILESTUDIO.bat no encontrado"
-
-ok "Scripts copiados"
-
-# ── 21. Crear directorios vacíos ─────────────────────────────────────────────
-mkdir -p "$STAGING_DIR/data/temp"
-mkdir -p "$STAGING_DIR/temp"
-mkdir -p "$STAGING_DIR/logs"
-
-printf "carpeta temporal de conversiones - generada automaticamente\n" > "$STAGING_DIR/data/temp/placeholder.txt"
-printf "carpeta temporal de conversiones - generada automaticamente\n" > "$STAGING_DIR/temp/placeholder.txt"
-printf "carpeta de logs de la aplicacion - generada automaticamente\n" > "$STAGING_DIR/logs/placeholder.txt"
-
-ok "Directorios data/temp y logs creados"
-
-# ── 22. Generar LEEME.txt ───────────────────────────────────────────────────
-info "Generando LEEME.txt..."
-LEEME_TEMPLATE="$SCRIPTS_DIR/windows-portable/LEEME.template.txt"
-if [[ -f "$LEEME_TEMPLATE" ]]; then
-  cp "$LEEME_TEMPLATE" "$STAGING_DIR/LEEME.txt"
-else
-  cat > "$STAGING_DIR/LEEME.txt" << 'EOF'
-╔══════════════════════════════════════════════════════════════╗
-║                  Anclora FileStudio  — Guía rápida                   ║
-╚══════════════════════════════════════════════════════════════╝
-
-CÓMO EMPEZAR
-────────────
-1. Extrae TODO el contenido del ZIP en una carpeta de tu ordenador.
-   (Importante: no ejecutes nada directamente desde el ZIP.)
-2. Abre la carpeta extraída.
-3. Haz doble clic en INICIAR_ANCLORA_FILESTUDIO.bat
-4. Espera a que se abra el navegador automáticamente.
-5. Pega un enlace de YouTube o selecciona un archivo local.
-
-FORMATOS SOPORTADOS
-────────────────────
-Audio:         MP3, M4A, WAV, FLAC, OGG, AAC
-Vídeo:         MP4, WebM, MKV, AVI, MOV, WMV
-Imágenes:      JPG, PNG, WebP, AVIF, TIFF, GIF
-Documentos:    DOCX, DOC, ODT, RTF, PDF
-Hojas cálculo: XLSX, XLS, ODS, CSV
-Presentaciones: PPTX, PPT, ODP
-Ebooks:        EPUB, MOBI, AZW3
-Comprimidos:   ZIP, 7Z, TAR, GZ, BZ2, XZ
-Datos:         JSON, YAML, TOML, XML, CSV, TSV
-Texto:         Markdown, TXT, HTML, RST, LaTeX
-
-NOTA: Algunas conversiones requieren herramientas adicionales
-(Pandoc, LibreOffice, Calibre, Tesseract). Si no están incluidas
-en este paquete, se indicarán como "no disponibles" en la app.
-
-CÓMO CERRAR
-───────────
-Haz doble clic en CERRAR_ANCLORA_FILESTUDIO.bat
-o cierra la ventana de consola que se abrió al iniciar.
-
-REQUISITOS
-──────────
-· Windows 10 u 11 de 64 bits.
-· Conexión a Internet para conversiones desde URL.
-· Espacio libre suficiente en el disco.
-· Solo para contenido propio o con permiso del autor.
-
-ACTUALIZAR yt-dlp
-─────────────────
-Si las conversiones desde YouTube empiezan a fallar, haz doble clic
-en ACTUALIZAR_YTDLP.bat para descargar la versión más reciente.
-
-PROBLEMAS FRECUENTES
-─────────────────────
-· Windows muestra una advertencia de seguridad (SmartScreen):
-  Haz clic en "Más información" → "Ejecutar de todas formas".
-
-· El antivirus bloquea un ejecutable:
-  Algunos antivirus detectan falsos positivos en herramientas de
-  descarga. Consulta con tu administrador si estás en un entorno
-  corporativo.
-
-· La ventana indica que faltan archivos:
-  Extrae primero todo el ZIP en una carpeta local (no en red ni
-  en una unidad virtual) y vuelve a ejecutar INICIAR_ANCLORA_FILESTUDIO.bat
-
-· El navegador no se abre:
-  Abre manualmente http://127.0.0.1:3000 (u otro puerto indicado).
-
-VERIFICACIÓN DE INTEGRIDAD
-───────────────────────────
-Puedes verificar el SHA256 del paquete con el archivo
-Anclora-FileStudio-Windows-x64-Core.zip.sha256 incluido en el repositorio.
-
-═══════════════════════════════════════════════════════════════
-Solo para contenido propio o con autorización del titular.
-Respeta siempre los derechos de autor y las licencias aplicables.
-═══════════════════════════════════════════════════════════════
-EOF
-fi
-ok "LEEME.txt generado"
-
-# ── 23. Generar VERSION.txt ──────────────────────────────────────────────────
-cat > "$STAGING_DIR/VERSION.txt" << EOF
-Anclora FileStudio $APP_VERSION
-Plataforma: Windows x64
-Fecha de build: $BUILD_DATE_UTC
-
-Motores de conversión:
-  Node.js:        $NODE_WINDOWS_VERSION (ABI v${NODE_MODULES_ABI})
-  yt-dlp:         $YTDLP_WINDOWS_VERSION
-  FFmpeg:         BtbN GPL ($FFMPEG_WINDOWS_VERSION)
-  better-sqlite3: $SQLITE3_WINDOWS_VERSION
-  Pandoc:         $PANDOC_VERSION
-  7-Zip:         $SEVENZIP_RUNTIME_VERSION
-  QPDF:           $QPDF_VERSION
-  Tesseract:      ${TESSERACT_VERSION}$([[ -f "$TOOLS_DIR/tesseract/tesseract.exe" ]] || echo " (no incluido)")
-  Poppler:        $POPPLER_VERSION
-  Calibre:        ${CALIBRE_VERSION}$([ "$INCLUDE_CALIBRE" == "1" ] || echo " (no incluido)")
-  LibreOffice:    ${LIBREOFFICE_VERSION}$([ "$INCLUDE_LIBREOFFICE" == "1" ] || echo " (no incluido)")
-EOF
-ok "VERSION.txt generado"
-
-# ── 24. Generar manifest.json ───────────────────────────────────────────────
-info "Generando manifest.json..."
-cat > "$STAGING_DIR/manifest.json" << EOF
-{
-  "app": "Anclora FileStudio",
-  "version": "$APP_VERSION",
-  "application": {
-    "name": "Anclora FileStudio",
-    "version": "$APP_VERSION",
-    "platform": "windows-x64",
-    "buildDateUtc": "$BUILD_DATE_UTC"
-  },
-  "components": {
-    "node": {
-      "version": "$NODE_WINDOWS_VERSION",
-      "sha256": "$NODE_SHA256"
-    },
-    "ytDlp": {
-      "version": "$YTDLP_WINDOWS_VERSION",
-      "sha256": "$YTDLP_SHA256"
-    },
-    "ffmpeg": {
-      "version": "$FFMPEG_WINDOWS_VERSION",
-      "provider": "BtbN FFmpeg-Builds (GPL)",
-      "sha256": "$FFMPEG_SHA256"
-    },
-    "betterSqlite3": {
-      "version": "$SQLITE3_WINDOWS_VERSION",
-      "nodeModulesAbi": "$NODE_MODULES_ABI",
-      "platform": "win32-x64",
-      "sha256": "$SQLITE3_SHA256"
-    },
-    "pandoc": {
-      "version": "$PANDOC_VERSION",
-      "sha256": "${PANDOC_SHA256:-not-downloaded}"
-    },
-    "sevenzip": {
-      "version": "$SEVENZIP_RUNTIME_VERSION",
-      "sha256": "${SEVENZIP_SHA256:-not-downloaded}",
-      "included": $([[ -f "$TOOLS_DIR/sevenzip/7z.exe" ]] && echo "true" || echo "false")
-    },
-    "qpdf": {
-      "version": "$QPDF_VERSION",
-      "sha256": "${QPDF_SHA256:-not-downloaded}"
-    },
-    "tesseract": {
-      "version": "$TESSERACT_VERSION",
-      "sha256": "${TESSERACT_SHA256:-not-downloaded}",
-      "included": $([[ -f "$TOOLS_DIR/tesseract/tesseract.exe" ]] && echo "true" || echo "false")
-    },
-    "poppler": {
-      "version": "$POPPLER_VERSION",
-      "sha256": "${POPPLER_SHA256:-not-downloaded}"
-    },
-    "calibre": {
-      "version": "$CALIBRE_VERSION",
-      "included": $([ "$INCLUDE_CALIBRE" == "1" ] && echo "true" || echo "false")
-    },
-    "libreoffice": {
-      "version": "$LIBREOFFICE_VERSION",
-      "included": $([ "$INCLUDE_LIBREOFFICE" == "1" ] && echo "true" || echo "false")
-    }
-  }
-}
-EOF
-ok "manifest.json generado"
-
-# ── 25. Generar THIRD_PARTY_NOTICES.txt ──────────────────────────────────────
-info "Generando THIRD_PARTY_NOTICES.txt..."
-cat > "$STAGING_DIR/THIRD_PARTY_NOTICES.txt" << EOF
-═══════════════════════════════════════════════════════════════════
-THIRD-PARTY NOTICES — Anclora FileStudio $APP_VERSION
-═══════════════════════════════════════════════════════════════════
-
-Este paquete incluye software de terceros. A continuación se detallan
-los componentes, sus versiones y licencias.
-
-───────────────────────────────────────────────────────────────────
-1. Node.js $NODE_WINDOWS_VERSION
-───────────────────────────────────────────────────────────────────
-Sitio:    https://nodejs.org/
-Fuente:   https://github.com/nodejs/node
-Licencia: MIT License
-
-───────────────────────────────────────────────────────────────────
-2. Next.js + React (incluidos en app/node_modules)
-───────────────────────────────────────────────────────────────────
-Next.js:  https://nextjs.org/ — MIT License
-React:    https://react.dev/ — MIT License
-
-───────────────────────────────────────────────────────────────────
-3. yt-dlp $YTDLP_WINDOWS_VERSION
-───────────────────────────────────────────────────────────────────
-Sitio:    https://github.com/yt-dlp/yt-dlp
-Licencia: The Unlicense (dominio público)
-SHA256:   $YTDLP_SHA256
-
-───────────────────────────────────────────────────────────────────
-4. FFmpeg — BtbN GPL build $FFMPEG_WINDOWS_VERSION
-───────────────────────────────────────────────────────────────────
-Sitio:    https://ffmpeg.org/
-Proveedor: https://github.com/BtbN/FFmpeg-Builds
-Licencia: GNU General Public License v2 o posterior (GPL-2.0+)
-SHA256:   $FFMPEG_SHA256
-
-───────────────────────────────────────────────────────────────────
-5. better-sqlite3 $SQLITE3_WINDOWS_VERSION
-───────────────────────────────────────────────────────────────────
-Sitio:    https://github.com/WiseLibs/better-sqlite3
-Licencia: MIT License
-SHA256:   $SQLITE3_SHA256
-
-───────────────────────────────────────────────────────────────────
-6. Pandoc $PANDOC_VERSION
-───────────────────────────────────────────────────────────────────
-Sitio:    https://pandoc.org/
-Fuente:   https://github.com/jgm/pandoc
-Licencia: GNU General Public License v2 (GPL-2.0)
-SHA256:   ${PANDOC_SHA256:-N/A}
-
-───────────────────────────────────────────────────────────────────
-7. 7-Zip $SEVENZIP_VERSION
-───────────────────────────────────────────────────────────────────
-Sitio:    https://www.7-zip.org/
-Fuente:   https://sourceforge.net/p/sevenzip/
-Licencia: GNU LGPL v2.1 + unRAR restriction
-SHA256:   ${SEVENZIP_SHA256:-N/A}
-
-───────────────────────────────────────────────────────────────────
-8. QPDF $QPDF_VERSION
-───────────────────────────────────────────────────────────────────
-Sitio:    https://qpdf.sourceforge.io/
-Fuente:   https://github.com/qpdf/qpdf
-Licencia: Apache License 2.0
-SHA256:   ${QPDF_SHA256:-N/A}
-
-───────────────────────────────────────────────────────────────────
-9. Tesseract OCR $TESSERACT_VERSION
-───────────────────────────────────────────────────────────────────
-Sitio:    https://github.com/tesseract-ocr/tesseract
-Licencia: Apache License 2.0
-SHA256:   ${TESSERACT_SHA256:-N/A}
-Tessdata: https://github.com/tesseract-ocr/tessdata (Apache 2.0)
-
-───────────────────────────────────────────────────────────────────
-10. Poppler $POPPLER_VERSION
-───────────────────────────────────────────────────────────────────
-Sitio:    https://poppler.freedesktop.org/
-Fuente:   https://gitlab.freedesktop.org/poppler/poppler
-Licencia: GNU General Public License v2 (GPL-2.0)
-SHA256:   ${POPPLER_SHA256:-N/A}
-
-───────────────────────────────────────────────────────────────────
-11. Calibre $CALIBRE_VERSION (si está incluido)
-───────────────────────────────────────────────────────────────────
-Sitio:    https://calibre-ebook.com/
-Fuente:   https://github.com/kovidgoyal/calibre
-Licencia: GNU General Public License v3 (GPL-3.0)
-
-───────────────────────────────────────────────────────────────────
-12. LibreOffice $LIBREOFFICE_VERSION (si está incluido)
-───────────────────────────────────────────────────────────────────
-Sitio:    https://www.libreoffice.org/
-Fuente:   https://www.libreoffice.org/about-us/source-code/
-Licencia: Mozilla Public License v2.0 (MPL-2.0)
-
-───────────────────────────────────────────────────────────────────
-13. Otras dependencias npm (ver app/node_modules)
-───────────────────────────────────────────────────────────────────
-Todas las dependencias npm incluidas son de código abierto.
-Consulta sus licencias individuales en app/node_modules/*/LICENSE
-
-═══════════════════════════════════════════════════════════════════
-EOF
-ok "THIRD_PARTY_NOTICES.txt generado"
-
-# ── 26. Verificar que no hay binarios Linux ──────────────────────────────────
-info "Verificando ausencia de binarios Linux en app/..."
-LINUX_BINS="$(find "$STAGING_DIR/app" \( -name "*.node" -o -name "*.so" -o -name "*.dylib" \) 2>/dev/null || true)"
-if [[ -n "$LINUX_BINS" ]]; then
-  warn "Se encontraron binarios nativos en app/:"
-  echo "$LINUX_BINS"
-  CRITICAL_BINS="$(echo "$LINUX_BINS" | grep -v "@next/swc" | grep -v "@img/sharp" | grep -v "better_sqlite3" || true)"
-  if [[ -n "$CRITICAL_BINS" ]]; then
-    error "Binarios nativos potencialmente requeridos en runtime:"
-    echo "$CRITICAL_BINS"
-    die "Elimina manualmente los binarios Linux o adapta la dependencia antes de continuar."
-  else
-    warn "Eliminando binarios Linux build-only..."
-    find "$STAGING_DIR/app" -path "*/@next/swc-*" -name "*.node" -delete 2>/dev/null || true
-    find "$STAGING_DIR/app" -path "*/@img/sharp-*" -name "*.node" -delete 2>/dev/null || true
-    find "$STAGING_DIR/app/node_modules" -type d -name "sharp-linux-*" -empty -delete 2>/dev/null || true
-    find "$STAGING_DIR/app" -name "better_sqlite3.node" -delete 2>/dev/null || true
-    ok "Binarios Linux no necesarios en runtime eliminados"
-  fi
-else
-  ok "No se encontraron binarios Linux en app/"
-fi
-
-# ── 26b. Instalar better-sqlite3 Windows nativo en staging ──────────────────
-info "Instalando better_sqlite3.node (Windows x64) en staging..."
-
-SQLITE3_TARGET="$STAGING_DIR/app/node_modules/better-sqlite3/build/Release"
-mkdir -p "$SQLITE3_TARGET"
-
-TMP_SQLITE3="$CACHE_DIR/.tmp_sqlite3"
-rm -rf "$TMP_SQLITE3"
-mkdir -p "$TMP_SQLITE3"
-tar -xzf "$SQLITE3_CACHE" -C "$TMP_SQLITE3" \
-  || die "No se pudo descomprimir $SQLITE3_ASSET"
-
-SQLITE3_NODE="$(find "$TMP_SQLITE3" -name "better_sqlite3.node" | head -1)"
-[[ -n "$SQLITE3_NODE" ]] || die "better_sqlite3.node no encontrado en el tarball"
-cp "$SQLITE3_NODE" "$SQLITE3_TARGET/better_sqlite3.node"
-rm -rf "$TMP_SQLITE3"
-
-ok "better_sqlite3.node instalado (Windows x64, node-v${NODE_MODULES_ABI})"
-
-# ── 27. Materializar symlinks de pnpm para ZIP/Windows ──────────────────────
-info "Materializando enlaces simbólicos de node_modules para Windows..."
-export _APP_DIR="$STAGING_DIR/app"
+# ── Section 9: Materialize pnpm symlinks for Windows ZIP ─────────────────────
+info "Materializing pnpm symlinks for Windows..."
+export _APP_DIR="$APP_DIR"
 python3 - << 'PYEOF'
-import os
-import shutil
+import os, shutil
 from pathlib import Path
 
 app_dir = Path(os.environ["_APP_DIR"])
@@ -964,46 +358,37 @@ for link in sorted(links, key=lambda p: len(p.parts), reverse=True):
     if not target.exists():
         link.unlink()
         continue
-
     tmp = link.with_name(f"{link.name}.__materialized__")
     if tmp.exists():
-        if tmp.is_dir() and not tmp.is_symlink():
-            shutil.rmtree(tmp)
-        else:
-            tmp.unlink()
-
+        shutil.rmtree(tmp) if tmp.is_dir() and not tmp.is_symlink() else tmp.unlink()
     if target.is_dir():
         shutil.copytree(target, tmp, symlinks=False)
     else:
         shutil.copy2(target, tmp)
-
     link.unlink()
     tmp.rename(link)
 
 remaining = [str(p) for p in app_dir.rglob("*") if p.is_symlink()]
 if remaining:
-    raise SystemExit("Quedan enlaces simbólicos sin materializar:\n" + "\n".join(remaining[:20]))
-
-print(f"  {len(links)} enlaces simbólicos procesados")
+    raise SystemExit("Unresolved symlinks:\n" + "\n".join(remaining[:20]))
+print(f"  {len(links)} symlinks materialized")
 PYEOF
-ok "node_modules materializado sin symlinks"
+ok "Symlinks materialized"
 
-info "Creando capa node_modules plana para resolución Windows..."
+info "Creating flat node_modules layer for Windows module resolution..."
+export _APP_DIR="$APP_DIR"
 python3 - << 'PYEOF'
-import os
-import shutil
+import os, shutil
 from pathlib import Path
 
 app_dir = Path(os.environ["_APP_DIR"])
 node_modules = app_dir / "node_modules"
 pnpm_flat = node_modules / ".pnpm" / "node_modules"
-
 copied = 0
 if pnpm_flat.exists():
     for entry in pnpm_flat.iterdir():
         if entry.name.startswith("."):
             continue
-
         if entry.name.startswith("@"):
             scope_dest = node_modules / entry.name
             scope_dest.mkdir(exist_ok=True)
@@ -1017,48 +402,349 @@ if pnpm_flat.exists():
             dest = node_modules / entry.name
             if dest.exists():
                 continue
-            if entry.is_dir():
-                shutil.copytree(entry, dest, symlinks=False)
-            else:
-                shutil.copy2(entry, dest)
+            shutil.copytree(entry, dest, symlinks=False) if entry.is_dir() else shutil.copy2(entry, dest)
             copied += 1
-
-print(f"  {copied} paquetes copiados a node_modules/")
+print(f"  {copied} packages flattened to node_modules/")
 PYEOF
-ok "Capa node_modules plana creada"
+ok "node_modules flattened"
 
-info "Eliminando store .pnpm para evitar rutas demasiado largas en Windows..."
-rm -rf "$STAGING_DIR/app/node_modules/.pnpm"
-ok "Store .pnpm eliminado del paquete portable"
+# ── Fix truncated JS dependency stubs ────────────────────────────────────────
+# Next.js standalone traces its own bundled semver (next/dist/compiled/semver) and
+# leaves semver@7.8.1 as a stub in the pnpm flat namespace — only package.json,
+# no index.js. Sharp@0.35.1 requires semver@^7.8.4 (full package). We replace the
+# stub with the full semver@7.8.4 from the repo pnpm store before removing .pnpm.
+info "Fixing truncated semver stub..."
+SEMVER_IN_PKG="$APP_DIR/node_modules/semver"
+SEMVER_FULL_SRC="$REPO_ROOT/node_modules/.pnpm/semver@7.8.4/node_modules/semver"
 
-info "Verificando longitud de rutas internas del paquete..."
+if [[ ! -f "$SEMVER_IN_PKG/index.js" ]]; then
+  if [[ ! -d "$SEMVER_FULL_SRC" ]] || [[ ! -f "$SEMVER_FULL_SRC/index.js" ]]; then
+    die "Full semver@7.8.4 not found in pnpm store: $SEMVER_FULL_SRC"
+  fi
+  info "  Replacing semver stub (7.8.1 stub → 7.8.4 full)..."
+  rm -rf "$SEMVER_IN_PKG"
+  cp -r "$SEMVER_FULL_SRC" "$SEMVER_IN_PKG"
+  ok "semver stub replaced with full semver@7.8.4"
+else
+  SEMVER_VER="$(python3 -c "import json; print(json.load(open('$SEMVER_IN_PKG/package.json')).get('version','?'))" 2>/dev/null || echo "?")"
+  ok "semver/index.js already present (v${SEMVER_VER}) — no stub fix needed"
+fi
+
+# Validate semver completeness
+for _semver_req_file in \
+  "index.js" \
+  "classes/semver.js" \
+  "classes/range.js" \
+  "functions/parse.js" \
+  "internal/re.js" \
+  "ranges/valid.js"; do
+  [[ -f "$SEMVER_IN_PKG/$_semver_req_file" ]] \
+    || die "semver validation failed — missing: $SEMVER_IN_PKG/$_semver_req_file"
+done
+ok "semver package validated (all required files present)"
+
+info "Removing .pnpm store (prevents deep paths on Windows)..."
+rm -rf "$APP_DIR/node_modules/.pnpm"
+ok ".pnpm store removed"
+
+info "Checking internal path lengths..."
 export _STAGING_DIR="$STAGING_DIR"
 python3 - << 'PYEOF'
 import os
 from pathlib import Path
 
 staging_dir = Path(os.environ["_STAGING_DIR"])
-max_len = 0
-max_path = ""
+max_len = 0; max_path = ""
 for root, _, files in os.walk(staging_dir):
     for fname in files:
         rel = Path(root, fname).relative_to(staging_dir.parent).as_posix()
         if len(rel) > max_len:
-            max_len = len(rel)
-            max_path = rel
-
-print(f"  Ruta interna mas larga: {max_len} caracteres")
-print(f"  {max_path}")
+            max_len = len(rel); max_path = rel
+print(f"  Longest internal path: {max_len} chars")
 if max_len > 180:
-    raise SystemExit(
-        "La ruta interna mas larga supera 180 caracteres; Windows Explorer "
-        "puede fallar si el usuario extrae el ZIP en una carpeta profunda."
-    )
+    raise SystemExit(f"Internal path exceeds 180 chars — Windows extraction may fail:\n  {max_path}")
 PYEOF
-ok "Longitud de rutas compatible con extraccion normal en Windows"
+ok "Path lengths OK"
 
-# ── 28. Crear el ZIP ────────────────────────────────────────────────────────
-info "Creando ZIP..."
+# ── Section 10: Windows launcher scripts ────────────────────────────────────
+info "Writing Windows launcher scripts..."
+
+INTERNAL_DIR="$STAGING_DIR/internal"
+
+WIN_SCRIPTS_DIR="$SCRIPT_DIR/windows-portable"
+for ps1 in start-anclora-filestudio.ps1 stop-anclora-filestudio.ps1 \
+           update-ytdlp.ps1 diagnose-anclora-filestudio.ps1 tool-resolution.ps1; do
+  if [[ -f "$WIN_SCRIPTS_DIR/$ps1" ]]; then
+    cp "$WIN_SCRIPTS_DIR/$ps1" "$INTERNAL_DIR/"
+  else
+    warn "Not found: $WIN_SCRIPTS_DIR/$ps1"
+  fi
+done
+
+for bat in INICIAR_ANCLORA_FILESTUDIO.bat CERRAR_ANCLORA_FILESTUDIO.bat \
+           ACTUALIZAR_YTDLP.bat DIAGNOSTICO_ANCLORA_FILESTUDIO.bat; do
+  if [[ -f "$SCRIPT_DIR/$bat" ]]; then
+    cp "$SCRIPT_DIR/$bat" "$STAGING_DIR/"
+  else
+    warn "Not found: $SCRIPT_DIR/$bat"
+  fi
+done
+
+# Generate minimal bat launchers if originals not present
+if [[ ! -f "$STAGING_DIR/INICIAR_ANCLORA_FILESTUDIO.bat" ]]; then
+cat > "$STAGING_DIR/INICIAR_ANCLORA_FILESTUDIO.bat" << 'BATEOF'
+@echo off
+cd /d "%~dp0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "internal\start-anclora-filestudio.ps1"
+pause
+BATEOF
+fi
+
+if [[ ! -f "$STAGING_DIR/CERRAR_ANCLORA_FILESTUDIO.bat" ]]; then
+cat > "$STAGING_DIR/CERRAR_ANCLORA_FILESTUDIO.bat" << 'BATEOF'
+@echo off
+cd /d "%~dp0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "internal\stop-anclora-filestudio.ps1"
+pause
+BATEOF
+fi
+
+ok "Launcher scripts ready"
+
+# ── Section 11: Generate internal/start-anclora-filestudio.ps1 if missing ────
+if [[ ! -f "$INTERNAL_DIR/start-anclora-filestudio.ps1" ]]; then
+  info "Generating start-anclora-filestudio.ps1..."
+  cat > "$INTERNAL_DIR/start-anclora-filestudio.ps1" << 'PS1EOF'
+# Anclora FileStudio — Windows launcher
+$ErrorActionPreference = "Stop"
+$Root = Split-Path -Parent $PSScriptRoot
+$NodeExe = Join-Path $Root "runtime\node.exe"
+$AppDir = Join-Path $Root "app"
+$ServerJs = Join-Path $AppDir "server.js"
+$ServerEntry = "server.js"
+$PidFile = Join-Path $Root "anclora-filestudio.pid"
+$LogFile = Join-Path $Root "logs\app.log"
+
+if (-not (Test-Path $NodeExe)) { Write-Error "runtime\node.exe not found"; exit 1 }
+if (-not (Test-Path $ServerJs)) { Write-Error "app\server.js not found"; exit 1 }
+New-Item -ItemType Directory -Path (Join-Path $Root "logs") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $Root "data") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $Root "temp") -Force | Out-Null
+
+$env:NODE_ENV = "production"
+$env:PORT = "3847"
+$env:HOSTNAME = "127.0.0.1"
+$env:ANCLORA_FILESTUDIO_DATA_DIR = Join-Path $Root "data"
+$env:ANCLORA_FILESTUDIO_TEMP_DIR = Join-Path $Root "temp"
+$env:ANCLORA_FILESTUDIO_LOG_DIR = Join-Path $Root "logs"
+$env:ANCLORA_FILESTUDIO_TOOLS_DIR = Join-Path $Root "tools"
+$env:PATH = (Join-Path $Root "tools\yt-dlp") + ";" + (Join-Path $Root "tools\ffmpeg") + ";" + `
+            (Join-Path $Root "tools\pandoc") + ";" + (Join-Path $Root "tools\qpdf") + ";" + `
+            (Join-Path $Root "tools\sevenzip") + ";" + $env:PATH
+
+$proc = Start-Process -FilePath $NodeExe -ArgumentList @($ServerEntry) -WorkingDirectory $AppDir `
+        -RedirectStandardOutput $LogFile -RedirectStandardError $LogFile `
+        -WindowStyle Hidden -PassThru
+$proc.Id | Out-File -FilePath $PidFile -Encoding ascii
+
+Write-Host "Anclora FileStudio started (PID $($proc.Id)) on http://127.0.0.1:3847"
+Start-Sleep 3
+Start-Process "http://127.0.0.1:3847"
+PS1EOF
+fi
+
+if [[ ! -f "$INTERNAL_DIR/stop-anclora-filestudio.ps1" ]]; then
+  cat > "$INTERNAL_DIR/stop-anclora-filestudio.ps1" << 'PS1EOF'
+$Root = Split-Path -Parent $PSScriptRoot
+$PidFile = Join-Path $Root "anclora-filestudio.pid"
+if (Test-Path $PidFile) {
+    $pid = Get-Content $PidFile
+    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+    Remove-Item $PidFile -ErrorAction SilentlyContinue
+    Write-Host "Anclora FileStudio stopped (PID $pid)"
+} else {
+    Write-Host "No running instance found"
+}
+PS1EOF
+fi
+
+# ── Section 12: Placeholder dirs ─────────────────────────────────────────────
+printf "temporary conversion files - auto-generated\n" > "$STAGING_DIR/data/placeholder.txt"
+printf "temporary files - auto-generated\n"            > "$STAGING_DIR/temp/placeholder.txt"
+printf "application logs - auto-generated\n"           > "$STAGING_DIR/logs/placeholder.txt"
+
+# ── Section 13: Generate VERSION.txt ────────────────────────────────────────
+cat > "$STAGING_DIR/VERSION.txt" << EOF
+Anclora FileStudio $APP_VERSION
+Platform: Windows x64
+Build date: $BUILD_DATE_UTC
+
+Bundled runtime and tools:
+  Node.js:        v${NODE_WIN_VERSION} (ABI ${NODE_WIN_ABI})
+  yt-dlp:         ${YTDLP_VERSION}
+  FFmpeg:         BtbN GPL (locked SHA-256 at build time)
+  better-sqlite3: ${BS3_VERSION} (win32-x64, node-v${NODE_WIN_ABI})
+  sharp:          @img/sharp-win32-x64 ${SHARP_VERSION}
+  Pandoc:         ${PANDOC_VERSION}
+  QPDF:           ${QPDF_VERSION}
+  7-Zip:          26.01 (best-effort)
+
+All versions and SHA-256 hashes locked in scripts/toolchain.lock.json.
+EOF
+ok "VERSION.txt generated"
+
+# ── Section 14: Generate manifest.json ───────────────────────────────────────
+info "Generating manifest.json..."
+BUILD_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")"
+cat > "$STAGING_DIR/manifest.json" << EOF
+{
+  "name": "Anclora FileStudio",
+  "version": "${APP_VERSION}",
+  "buildId": "win-x64-${BUILD_DATE_UTC:0:10}",
+  "buildDate": "${BUILD_DATE_UTC}",
+  "commit": "${BUILD_COMMIT}",
+  "platform": "windows",
+  "arch": "x64",
+  "capabilities": ["data","image","audio","video","thumbnail","youtube","pdf","archive","document"],
+  "runtime": {
+    "nodeVersion": "${NODE_WIN_VERSION}",
+    "nodeAbi": "${NODE_WIN_ABI}",
+    "nodeSha256": "${NODE_WIN_SHA256}"
+  },
+  "tools": {
+    "ytdlp": { "version": "${YTDLP_VERSION}", "sha256": "${YTDLP_SHA256}" },
+    "ffmpeg": { "sha256": "${FFMPEG_SHA256}" },
+    "betterSqlite3": { "version": "${BS3_VERSION}", "sha256": "${BS3_SHA256}" },
+    "sharp": { "package": "@img/sharp-win32-x64", "version": "${SHARP_VERSION}", "sha256": "${SHARP_SHA256}" },
+    "pandoc": { "version": "${PANDOC_VERSION}", "sha256": "${PANDOC_SHA256}" },
+    "qpdf": { "version": "${QPDF_VERSION}", "sha256": "${QPDF_SHA256}" }
+  }
+}
+EOF
+ok "manifest.json generated"
+
+# ── Section 15: Generate LEEME.txt ───────────────────────────────────────────
+cat > "$STAGING_DIR/LEEME.txt" << 'EOF'
+╔══════════════════════════════════════════════════════════════╗
+║              Anclora FileStudio — Guía rápida                ║
+╚══════════════════════════════════════════════════════════════╝
+
+CÓMO EMPEZAR
+────────────
+1. Extrae TODO el contenido del ZIP en una carpeta de tu ordenador.
+   (No ejecutes nada directamente desde el ZIP.)
+2. Abre la carpeta extraída.
+3. Haz doble clic en INICIAR_ANCLORA_FILESTUDIO.bat
+4. Espera a que se abra el navegador automáticamente.
+5. Selecciona un archivo local o pega un enlace de YouTube.
+
+CÓMO CERRAR
+───────────
+Haz doble clic en CERRAR_ANCLORA_FILESTUDIO.bat
+
+REQUISITOS
+──────────
+· Windows 10 u 11 de 64 bits.
+· No se requiere instalar Node.js ni ninguna otra herramienta.
+
+PROBLEMAS FRECUENTES
+─────────────────────
+· SmartScreen muestra advertencia: "Más información" → "Ejecutar de todas formas".
+· El navegador no se abre: abre manualmente http://127.0.0.1:3847
+
+═══════════════════════════════════════════════════════════════
+Solo para contenido propio o con autorización del titular.
+Respeta siempre los derechos de autor y las licencias aplicables.
+═══════════════════════════════════════════════════════════════
+EOF
+ok "LEEME.txt generated"
+
+# ── Section 16: Generate THIRD_PARTY_NOTICES.txt ─────────────────────────────
+cat > "$STAGING_DIR/THIRD_PARTY_NOTICES.txt" << EOF
+THIRD-PARTY NOTICES — Anclora FileStudio ${APP_VERSION} Windows x64
+======================================================================
+
+1. Node.js v${NODE_WIN_VERSION} — MIT License — https://nodejs.org/
+   SHA-256: ${NODE_WIN_SHA256}
+
+2. yt-dlp ${YTDLP_VERSION} — The Unlicense — https://github.com/yt-dlp/yt-dlp
+   SHA-256: ${YTDLP_SHA256}
+
+3. FFmpeg (BtbN GPL) — GPL-2.0-or-later — https://ffmpeg.org/
+   SHA-256: ${FFMPEG_SHA256}
+
+4. better-sqlite3 v${BS3_VERSION} — MIT License — https://github.com/WiseLibs/better-sqlite3
+   SHA-256: ${BS3_SHA256}
+
+5. @img/sharp-win32-x64 v${SHARP_VERSION} — Apache-2.0 — https://sharp.pixelplumbing.com/
+   SHA-256: ${SHARP_SHA256}
+
+6. Pandoc ${PANDOC_VERSION} — GPL-2.0 — https://pandoc.org/
+   SHA-256: ${PANDOC_SHA256}
+
+7. QPDF ${QPDF_VERSION} — Apache-2.0 — https://qpdf.sourceforge.io/
+   SHA-256: ${QPDF_SHA256}
+
+8. 7-Zip 26.01 — LGPL-2.1 — https://www.7-zip.org/
+
+9. Next.js + React (in app/node_modules) — MIT License
+
+All npm dependencies: see individual LICENSE files in app/node_modules/*/LICENSE
+EOF
+ok "THIRD_PARTY_NOTICES.txt generated"
+
+# ── Section 17: SBOM stub ────────────────────────────────────────────────────
+cat > "$STAGING_DIR/SBOM.cdx.json" << EOF
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "${BUILD_DATE_UTC}",
+    "component": {
+      "type": "application",
+      "name": "Anclora FileStudio",
+      "version": "${APP_VERSION}",
+      "purl": "pkg:generic/anclora-filestudio@${APP_VERSION}?platform=windows-x64"
+    }
+  },
+  "components": [
+    { "type": "library", "name": "node", "version": "${NODE_WIN_VERSION}", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "name": "yt-dlp", "version": "${YTDLP_VERSION}", "licenses": [{"license":{"id":"Unlicense"}}] },
+    { "type": "library", "name": "ffmpeg", "licenses": [{"license":{"id":"GPL-2.0-or-later"}}] },
+    { "type": "library", "name": "better-sqlite3", "version": "${BS3_VERSION}", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "name": "@img/sharp-win32-x64", "version": "${SHARP_VERSION}", "licenses": [{"license":{"id":"Apache-2.0"}}] },
+    { "type": "library", "name": "pandoc", "version": "${PANDOC_VERSION}", "licenses": [{"license":{"id":"GPL-2.0"}}] },
+    { "type": "library", "name": "qpdf", "version": "${QPDF_VERSION}", "licenses": [{"license":{"id":"Apache-2.0"}}] }
+  ]
+}
+EOF
+ok "SBOM.cdx.json generated"
+
+# ── Section 18: Security checks ──────────────────────────────────────────────
+info "Security checks..."
+
+# No .git in package
+if find "$STAGING_DIR" -name ".git" -type d 2>/dev/null | grep -q .; then
+  die ".git directory found in staging — build contaminated"
+fi
+ok "No .git in staging"
+
+# No secrets
+if grep -rqiE 'BEGIN (RSA|OPENSSH|EC|PRIVATE) KEY|api[_-]?key\s*=\s*["\x27][^"]+' \
+   "$STAGING_DIR" --include="*.json" --include="*.env" 2>/dev/null; then
+  die "Potential secret found in staging package"
+fi
+ok "No secrets detected"
+
+# Verify launcher does not bind to 0.0.0.0
+if grep -q "0\.0\.0\.0" "$INTERNAL_DIR/start-anclora-filestudio.ps1" 2>/dev/null; then
+  die "Launcher binds to 0.0.0.0 (INSECURE)"
+fi
+ok "Launcher binds to 127.0.0.1 only"
+
+# ── Section 19: Create ZIP ────────────────────────────────────────────────────
+info "Creating ZIP..."
 rm -f "$OUT_ZIP"
 cd "$STAGING_BASE"
 export _OUT_ZIP="$OUT_ZIP"
@@ -1066,9 +752,9 @@ python3 - << 'PYEOF'
 import zipfile, os, sys
 out_zip = os.environ["_OUT_ZIP"]
 prefix  = "Anclora-FileStudio-Windows-x64-Core"
-count   = 0
-SKIP_DIRS = {'.git', '.cache', '.staging', '.tmp', '__pycache__', '.verify_tmp'}
+SKIP_DIRS  = {'.git', '.cache', '.staging', '.tmp', '__pycache__', '.verify_tmp'}
 SKIP_FILES = {'.gitkeep', '.gitignore', '.env.local', '.env.production'}
+count = 0
 with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
     for root, dirs, files in os.walk(prefix):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
@@ -1078,42 +764,30 @@ with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
             fpath = os.path.join(root, fname)
             zf.write(fpath)
             count += 1
-print(f"  {count} archivos incluidos en el ZIP")
+print(f"  {count} files in ZIP")
 PYEOF
 cd "$REPO_ROOT"
-[[ -f "$OUT_ZIP" ]] || die "El ZIP no se creó correctamente"
-ok "ZIP creado: $OUT_ZIP"
+[[ -f "$OUT_ZIP" ]] || die "ZIP was not created"
+ok "ZIP created: $OUT_ZIP"
 
-# ── 29. Calcular SHA256 ──────────────────────────────────────────────────────
-info "Calculando SHA256 del ZIP..."
+# ── Section 20: SHA-256 ───────────────────────────────────────────────────────
 ZIP_SHA256="$(sha256sum "$OUT_ZIP" | awk '{print $1}')"
 echo "$ZIP_SHA256  Anclora-FileStudio-Windows-x64-Core.zip" > "$OUT_SHA"
-ok "SHA256: $ZIP_SHA256"
 
-# ── 30. Tamaño final ────────────────────────────────────────────────────────
 ZIP_SIZE="$(du -sh "$OUT_ZIP" | awk '{print $1}')"
+
 echo ""
-echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}  ✓ BUILD COMPLETADO${NC}"
-echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
-echo -e "  Ruta:       $OUT_ZIP"
-echo -e "  Tamaño:     $ZIP_SIZE"
-echo -e "  SHA256:     $ZIP_SHA256"
+echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}  === Build complete ===${NC}"
+echo -e "${GREEN}========================================${NC}"
+echo -e "  Package : $OUT_ZIP"
+echo -e "  Size    : $ZIP_SIZE"
+echo -e "  SHA-256 : $ZIP_SHA256"
+echo -e "  Verify  : sha256sum -c $OUT_SHA"
 echo ""
-echo -e "  Motores incluidos:"
-echo -e "    Node.js:    $NODE_WINDOWS_VERSION (ABI v${NODE_MODULES_ABI})"
-echo -e "    yt-dlp:     $YTDLP_WINDOWS_VERSION"
-echo -e "    FFmpeg:     BtbN GPL $FFMPEG_WINDOWS_VERSION"
-echo -e "    sqlite3:    better-sqlite3 v${SQLITE3_WINDOWS_VERSION} (win32-x64)"
-echo -e "    Pandoc:     $PANDOC_VERSION"
-echo -e "    7-Zip:      $SEVENZIP_VERSION"
-echo -e "    QPDF:       $QPDF_VERSION"
-echo -e "    Tesseract:  ${TESSERACT_VERSION}$([[ -f "$TOOLS_DIR/tesseract/tesseract.exe" ]] && echo " ✓" || echo " (no incluido)")"
-echo -e "    Poppler:    $POPPLER_VERSION"
-echo -e "    Calibre:    ${CALIBRE_VERSION}$([ "$INCLUDE_CALIBRE" == "1" ] && echo " ✓" || echo " (no incluido)")"
-echo -e "    LibreOffice:${LIBREOFFICE_VERSION}$([ "$INCLUDE_LIBREOFFICE" == "1" ] && echo " ✓" || echo " (no incluido)")"
-echo ""
-echo -e "  Para incluir Calibre:     INCLUDE_CALIBRE=1 bash scripts/build-windows-portable.sh"
-echo -e "  Para incluir LibreOffice: INCLUDE_LIBREOFFICE=1 bash scripts/build-windows-portable.sh"
-echo -e "${GREEN}════════════════════════════════════════════════════${NC}"
-echo ""
+echo -e "  Runtime : Node.js v${NODE_WIN_VERSION} (ABI ${NODE_WIN_ABI})"
+echo -e "  yt-dlp  : ${YTDLP_VERSION}"
+echo -e "  sqlite3 : better-sqlite3 v${BS3_VERSION} (win32-x64)"
+echo -e "  sharp   : @img/sharp-win32-x64 v${SHARP_VERSION}"
+echo -e "  Pandoc  : ${PANDOC_VERSION} | QPDF: ${QPDF_VERSION}"
+echo -e "${GREEN}========================================${NC}"

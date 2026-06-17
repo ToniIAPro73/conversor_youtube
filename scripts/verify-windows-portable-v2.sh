@@ -1,105 +1,95 @@
 #!/usr/bin/env bash
 # =============================================================================
 # verify-windows-portable-v2.sh
-# Verifica la integridad y contenido de la distribución portable de Anclora FileStudio.
-# Versión actualizada: verifica ANCLORA_FILESTUDIO_* env vars, manifest.json, VERSION.txt,
-# THIRD_PARTY_NOTICES.txt, y la nueva estructura de directorios con subdirectorios.
-# Uso: bash scripts/verify-windows-portable-v2.sh [staging-dir]
+# Verifies the integrity and content of the Anclora FileStudio Windows portable.
+# Usage: bash scripts/verify-windows-portable-v2.sh [staging-dir-or-zip]
 # =============================================================================
 
 set -euo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
-info() { echo -e "${CYAN}[CHECK]${NC} $*"; }
-ok()   { echo -e "${GREEN}[PASS]${NC}  $*"; }
-warn() { echo -e "${YELLOW}[WARN]${NC}  $*"; }
-fail() { echo -e "${RED}[FAIL]${NC}  $*"; FAILURES=$((FAILURES+1)); }
-skip() { echo -e "${YELLOW}[SKIP]${NC}  $*"; }
+info() { printf "%b %s\n" "${CYAN}[CHECK]${NC}" "$*"; }
+ok()   { printf "%b  %s\n" "${GREEN}[PASS]${NC}" "$*"; }
+warn() { printf "%b  %s\n" "${YELLOW}[WARN]${NC}" "$*"; }
+fail() { printf "%b  %s\n" "${RED}[FAIL]${NC}" "$*"; FAILURES=$((FAILURES+1)); }
 
-if REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"; then
-  :
+if REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"; then :
 else
   REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
-SCRIPTS_DIR="$REPO_ROOT/scripts"
 
-# Allow passing a staging directory directly, or extract from ZIP
-STAGING_ARG="${1:-}"
-ZIP_PATH="$SCRIPTS_DIR/Anclora FileStudio-Windows-x64.zip"
-SHA_PATH="$SCRIPTS_DIR/Anclora FileStudio-Windows-x64.zip.sha256"
-VERIFY_STAGING="$SCRIPTS_DIR/.staging/.verify_tmp"
+ZIP_PATH="$REPO_ROOT/dist/windows/Anclora-FileStudio-Windows-x64-Core.zip"
+SHA_PATH="$REPO_ROOT/dist/windows/Anclora-FileStudio-Windows-x64-Core.zip.sha256"
+VERIFY_STAGING="$REPO_ROOT/scripts/.staging/.verify_tmp_windows"
 FAILURES=0
+PASS=0
 
 echo ""
-echo -e "${CYAN}═══════════════════════════════════════════════════${NC}"
-echo -e "${CYAN}  Verificación del paquete portable Anclora FileStudio v2   ${NC}"
-echo -e "${CYAN}═══════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}══════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}  Verificación — Anclora FileStudio Windows portable  ${NC}"
+echo -e "${CYAN}══════════════════════════════════════════════════════${NC}"
 echo ""
 
-# ── Determine the extracted directory ────────────────────────────────────────
+# ── Determine extraction source ──────────────────────────────────────────────
+STAGING_ARG="${1:-}"
 EXTRACTED=""
+
 if [[ -n "$STAGING_ARG" ]]; then
   EXTRACTED="$STAGING_ARG"
-  info "Using provided staging directory: $EXTRACTED"
+  info "Usando directorio de staging: $EXTRACTED"
 elif [[ -f "$ZIP_PATH" ]]; then
-  # ── 1. Existe el ZIP ─────────────────────────────────────────────────────
-  info "Verificando existencia del ZIP..."
+  # ── 1. ZIP exists ───────────────────────────────────────────────────────────
+  info "Verificando ZIP..."
   ZIP_SIZE="$(du -sh "$ZIP_PATH" | awk '{print $1}')"
-  ok "ZIP encontrado: $ZIP_PATH ($ZIP_SIZE)"
+  ok "ZIP encontrado: $(basename "$ZIP_PATH") ($ZIP_SIZE)"
+  PASS=$((PASS+1))
 
-  # ── 2. Hash SHA256 ───────────────────────────────────────────────────────
-  info "Verificando SHA256..."
+  # ── 2. SHA-256 ─────────────────────────────────────────────────────────────
+  info "Verificando SHA-256..."
   if [[ -f "$SHA_PATH" ]]; then
-    if (cd "$SCRIPTS_DIR" && sha256sum -c "$(basename "$SHA_PATH")" --quiet 2>/dev/null); then
-      ok "SHA256 verificado"
+    if (cd "$(dirname "$ZIP_PATH")" && sha256sum -c "$(basename "$SHA_PATH")" --quiet 2>/dev/null); then
+      ok "SHA-256 verificado"
+      PASS=$((PASS+1))
     else
-      fail "SHA256 no coincide"
+      fail "SHA-256 no coincide"
     fi
   else
-    warn "Archivo .sha256 no encontrado — omitiendo verificación de hash"
+    fail "Archivo .sha256 no encontrado: $SHA_PATH"
   fi
 
-  # ── 3. Extraer en staging temporal ───────────────────────────────────────
-  info "Extrayendo ZIP en staging temporal..."
+  # ── 3. Extract ─────────────────────────────────────────────────────────────
+  info "Extrayendo ZIP..."
   rm -rf "$VERIFY_STAGING"
   mkdir -p "$VERIFY_STAGING"
-  unzip -q "$ZIP_PATH" -d "$VERIFY_STAGING" || { fail "No se pudo descomprimir el ZIP"; exit 1; }
-  EXTRACTED="$VERIFY_STAGING/Anclora FileStudio-Windows-x64"
-  [[ -d "$EXTRACTED" ]] || { fail "Directorio raíz Anclora FileStudio-Windows-x64 no encontrado en el ZIP"; exit 1; }
-  ok "ZIP extraído"
-else
-  # Check if staging directory exists from build
-  STAGING_DIR="$SCRIPTS_DIR/.staging/Anclora FileStudio-Windows-x64"
-  if [[ -d "$STAGING_DIR" ]]; then
-    EXTRACTED="$STAGING_DIR"
-    info "Using existing staging directory: $EXTRACTED"
-  else
-    fail "Ni ZIP ni directorio de staging encontrados"
-    echo -e "${RED}Ejecuta primero: bash scripts/build-windows-portable-v2.sh${NC}"
+  unzip -q "$ZIP_PATH" -d "$VERIFY_STAGING" || { fail "No se pudo extraer el ZIP"; exit 1; }
+  EXTRACTED="$VERIFY_STAGING/Anclora-FileStudio-Windows-x64-Core"
+  if [[ ! -d "$EXTRACTED" ]]; then
+    fail "Raíz 'Anclora-FileStudio-Windows-x64-Core' no encontrada en el ZIP"
     exit 1
   fi
+  ok "ZIP extraído en: $EXTRACTED"
+  PASS=$((PASS+1))
+else
+  fail "ZIP no encontrado: $ZIP_PATH"
+  echo -e "${RED}Ejecuta primero: pnpm build:portable:windows${NC}"
+  exit 1
 fi
 
-# ── 4. Directorios obligatorios ─────────────────────────────────────────────
+# ── 4. Required directories ──────────────────────────────────────────────────
 info "Verificando directorios obligatorios..."
 
 REQUIRED_DIRS=(
-  "licenses"
-  "runtime"
   "app"
   "app/.next"
-  "app/public"
+  "app/.next/static"
+  "app/node_modules"
+  "runtime"
   "tools"
   "tools/yt-dlp"
   "tools/ffmpeg"
   "tools/qpdf"
   "tools/sevenzip"
   "tools/pandoc"
-  "tools/libreoffice"
-  "tools/calibre"
-  "tools/tesseract"
-  "tools/tessdata"
-  "tools/poppler"
   "data"
   "temp"
   "logs"
@@ -109,12 +99,13 @@ REQUIRED_DIRS=(
 for d in "${REQUIRED_DIRS[@]}"; do
   if [[ -d "$EXTRACTED/$d" ]]; then
     ok "  Existe: $d/"
+    PASS=$((PASS+1))
   else
     fail "  Falta directorio: $d/"
   fi
 done
 
-# ── 5. Archivos obligatorios ────────────────────────────────────────────────
+# ── 5. Required files ────────────────────────────────────────────────────────
 info "Verificando archivos obligatorios..."
 
 REQUIRED_FILES=(
@@ -125,121 +116,195 @@ REQUIRED_FILES=(
   "LEEME.txt"
   "VERSION.txt"
   "THIRD_PARTY_NOTICES.txt"
+  "SBOM.cdx.json"
   "manifest.json"
   "app/server.js"
-  "app/package.json"
   "internal/start-anclora-filestudio.ps1"
   "internal/stop-anclora-filestudio.ps1"
   "internal/update-ytdlp.ps1"
   "internal/diagnose-anclora-filestudio.ps1"
+  "internal/tool-resolution.ps1"
+  "runtime/node.exe"
+  "tools/yt-dlp/yt-dlp.exe"
+  "tools/ffmpeg/ffmpeg.exe"
+  "tools/ffmpeg/ffprobe.exe"
+  "tools/pandoc/pandoc.exe"
+  "tools/qpdf/qpdf.exe"
 )
 
 for f in "${REQUIRED_FILES[@]}"; do
   if [[ -e "$EXTRACTED/$f" ]]; then
     ok "  Existe: $f"
+    PASS=$((PASS+1))
   else
     fail "  Falta: $f"
   fi
 done
 
-# ── 6. manifest.json es JSON válido ─────────────────────────────────────────
-info "Verificando manifest.json..."
-if [[ -f "$EXTRACTED/manifest.json" ]]; then
-  if node -e "JSON.parse(require('fs').readFileSync('$EXTRACTED/manifest.json','utf8'));process.exit(0)" 2>/dev/null; then
-    ok "manifest.json es JSON válido"
-    # Verify it has required fields
-    HAS_APP="$(node -e "const m=JSON.parse(require('fs').readFileSync('$EXTRACTED/manifest.json','utf8'));console.log(m.app&&m.version&&m.components?'yes':'no')" 2>/dev/null || echo 'no')"
-    if [[ "$HAS_APP" == "yes" ]]; then
-      ok "manifest.json tiene campos requeridos (app, version, components)"
-    else
-      fail "manifest.json no tiene todos los campos requeridos (app, version, components)"
-    fi
+# ── 6. Native modules ────────────────────────────────────────────────────────
+info "Verificando módulos nativos Windows..."
+
+NATIVE_FILES=(
+  "app/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+  "app/node_modules/@img/sharp-win32-x64/lib/sharp-win32-x64-0.35.1.node"
+  "app/node_modules/@img/sharp-win32-x64/lib/libvips-42.dll"
+  "app/node_modules/@img/sharp-win32-x64/lib/libvips-cpp-8.18.3.dll"
+)
+
+for f in "${NATIVE_FILES[@]}"; do
+  if [[ -f "$EXTRACTED/$f" ]]; then
+    SIZE="$(du -sh "$EXTRACTED/$f" | awk '{print $1}')"
+    ok "  Existe ($SIZE): $f"
+    PASS=$((PASS+1))
   else
-    fail "manifest.json no es JSON válido"
-  fi
-else
-  fail "manifest.json no encontrado"
-fi
-
-# ── 7. VERSION.txt existe y tiene contenido ─────────────────────────────────
-info "Verificando VERSION.txt..."
-if [[ -f "$EXTRACTED/VERSION.txt" ]]; then
-  VERSION_CONTENT="$(head -1 "$EXTRACTED/VERSION.txt" 2>/dev/null || true)"
-  if [[ -n "$VERSION_CONTENT" ]]; then
-    ok "VERSION.txt existe y tiene contenido: $VERSION_CONTENT"
-  else
-    fail "VERSION.txt está vacío"
-  fi
-else
-  fail "VERSION.txt no encontrado"
-fi
-
-# ── 8. THIRD_PARTY_NOTICES.txt existe ───────────────────────────────────────
-info "Verificando THIRD_PARTY_NOTICES.txt..."
-if [[ -f "$EXTRACTED/THIRD_PARTY_NOTICES.txt" ]]; then
-  LINES="$(wc -l < "$EXTRACTED/THIRD_PARTY_NOTICES.txt")"
-  ok "THIRD_PARTY_NOTICES.txt existe ($LINES líneas)"
-else
-  fail "THIRD_PARTY_NOTICES.txt no encontrado"
-fi
-
-# ── 9. No contiene archivos secretos ────────────────────────────────────────
-info "Verificando ausencia de secretos..."
-
-SECRET_PATTERNS=(".env.local" ".env.production" "*.pem" "*.key" "*.pfx" ".env")
-for pat in "${SECRET_PATTERNS[@]}"; do
-  FOUND="$(find "$EXTRACTED" -name "$pat" 2>/dev/null | head -3)"
-  if [[ -n "$FOUND" ]]; then
-    fail "  Encontrado archivo sensible: $FOUND"
-  else
-    ok "  Ausente: $pat"
+    fail "  Falta módulo nativo: $f"
   fi
 done
 
-# ── 10. No contiene .git ────────────────────────────────────────────────────
-info "Verificando ausencia de .git..."
-if [[ -d "$EXTRACTED/.git" ]] || find "$EXTRACTED" -name ".git" -type d 2>/dev/null | grep -q .; then
+# ── 7. semver — must NOT be a stub ───────────────────────────────────────────
+info "Verificando paquete semver completo..."
+
+if [[ -f "$EXTRACTED/app/node_modules/semver/index.js" ]]; then
+  SEMVER_VER="$(python3 -c "import json; print(json.load(open('$EXTRACTED/app/node_modules/semver/package.json')).get('version','?'))" 2>/dev/null || echo "?")"
+  ok "  semver/index.js presente (v${SEMVER_VER})"
+  PASS=$((PASS+1))
+else
+  fail "  semver/index.js AUSENTE — stub detectado (Sharp fallará al cargar)"
+fi
+
+SEMVER_REQUIRED_FILES=(
+  "app/node_modules/semver/index.js"
+  "app/node_modules/semver/classes/semver.js"
+  "app/node_modules/semver/classes/range.js"
+  "app/node_modules/semver/functions/parse.js"
+  "app/node_modules/semver/internal/re.js"
+  "app/node_modules/semver/ranges/valid.js"
+)
+SEMVER_OK=true
+for f in "${SEMVER_REQUIRED_FILES[@]}"; do
+  if [[ ! -f "$EXTRACTED/$f" ]]; then
+    fail "  Falta en semver: $f"
+    SEMVER_OK=false
+  fi
+done
+if [[ "$SEMVER_OK" == "true" ]]; then
+  ok "  semver package completo (6/6 archivos requeridos)"
+  PASS=$((PASS+1))
+fi
+
+# ── 8. manifest.json válido ──────────────────────────────────────────────────
+info "Verificando manifest.json..."
+if [[ -f "$EXTRACTED/manifest.json" ]]; then
+  if python3 -c "import json,sys; d=json.load(open('$EXTRACTED/manifest.json')); sys.exit(0)" 2>/dev/null; then
+    ok "  manifest.json es JSON válido"
+    PASS=$((PASS+1))
+  else
+    fail "  manifest.json no es JSON válido"
+  fi
+
+  PLATFORM="$(python3 -c "import json; print(json.load(open('$EXTRACTED/manifest.json')).get('platform',''))" 2>/dev/null || echo '')"
+  if [[ "$PLATFORM" == "windows" ]]; then
+    ok "  manifest.platform = windows"
+    PASS=$((PASS+1))
+  else
+    fail "  manifest.platform != windows (got: '$PLATFORM')"
+  fi
+
+  ARCH="$(python3 -c "import json; print(json.load(open('$EXTRACTED/manifest.json')).get('arch',''))" 2>/dev/null || echo '')"
+  if [[ "$ARCH" == "x64" ]]; then
+    ok "  manifest.arch = x64"
+    PASS=$((PASS+1))
+  else
+    fail "  manifest.arch != x64 (got: '$ARCH')"
+  fi
+
+  for field in name version capabilities runtime; do
+    HAS="$(python3 -c "import json; d=json.load(open('$EXTRACTED/manifest.json')); print('yes' if '$field' in d else 'no')" 2>/dev/null || echo 'no')"
+    if [[ "$HAS" == "yes" ]]; then
+      ok "  manifest.$field presente"
+      PASS=$((PASS+1))
+    else
+      fail "  manifest.$field AUSENTE"
+    fi
+  done
+else
+  fail "  manifest.json no encontrado"
+fi
+
+# ── 9. SBOM.cdx.json válido ──────────────────────────────────────────────────
+info "Verificando SBOM.cdx.json..."
+if [[ -f "$EXTRACTED/SBOM.cdx.json" ]]; then
+  if python3 -c "import json; json.load(open('$EXTRACTED/SBOM.cdx.json'))" 2>/dev/null; then
+    ok "  SBOM.cdx.json es JSON válido"
+    PASS=$((PASS+1))
+  else
+    fail "  SBOM.cdx.json no es JSON válido"
+  fi
+else
+  fail "  SBOM.cdx.json no encontrado"
+fi
+
+# ── 10. No Linux binaries in app ─────────────────────────────────────────────
+info "Verificando ausencia de binarios Linux en app/..."
+LINUX_BINS="$(find "$EXTRACTED/app" \( -name "*.so" -o -name "*.dylib" \) 2>/dev/null || true)"
+if [[ -n "$LINUX_BINS" ]]; then
+  fail "  Binarios Linux encontrados:"
+  echo "$LINUX_BINS" | head -5
+else
+  ok "  Sin binarios .so/.dylib en app/"
+  PASS=$((PASS+1))
+fi
+
+# ── 11. No secrets or .git ───────────────────────────────────────────────────
+info "Verificando ausencia de secretos y .git..."
+SECRET_PATTERNS=(".env.local" ".env.production" "*.pem" "*.key" "*.pfx")
+for pat in "${SECRET_PATTERNS[@]}"; do
+  FOUND="$(find "$EXTRACTED" -name "$pat" 2>/dev/null | head -3)"
+  if [[ -n "$FOUND" ]]; then
+    fail "  Archivo sensible encontrado: $FOUND"
+  else
+    ok "  Ausente: $pat"
+    PASS=$((PASS+1))
+  fi
+done
+
+if find "$EXTRACTED" -name ".git" -type d 2>/dev/null | grep -q .; then
   fail "  Directorio .git encontrado en el paquete"
 else
   ok "  Sin .git"
+  PASS=$((PASS+1))
 fi
 
-# ── 11. No contiene binarios Linux ──────────────────────────────────────────
-info "Verificando ausencia de binarios Linux..."
-LINUX_BINS="$(find "$EXTRACTED/app" \( -name "*.so" -o -name "*.dylib" \) 2>/dev/null || true)"
-if [[ -n "$LINUX_BINS" ]]; then
-  fail "  Binarios Linux encontrados en app/:"
-  echo "$LINUX_BINS"
-else
-  ok "  Sin binarios .so/.dylib en app/"
-fi
-
-# ── 12. No contiene rutas del desarrollador ─────────────────────────────────
+# ── 12. No developer paths in launchers ──────────────────────────────────────
 info "Verificando ausencia de rutas del desarrollador en BAT/PS1..."
-DEV_PATHS=("/home/toni" "/root" "/home/antonio" "C:\\Users\\antonio" "wsl.localhost" "/home/z/")
+DEV_PATHS=("/home/toni" "/root" "/home/antonio" "C:\\\\Users\\\\antonio" "wsl.localhost")
 for p in "${DEV_PATHS[@]}"; do
   FOUND="$(grep -rl "$p" "$EXTRACTED" --include="*.bat" --include="*.ps1" 2>/dev/null || true)"
   if [[ -n "$FOUND" ]]; then
     fail "  Ruta hardcodeada '$p' encontrada en: $FOUND"
   else
     ok "  Ruta '$p' no encontrada en scripts"
+    PASS=$((PASS+1))
   fi
 done
 
-# ── 13. .bat usa %~dp0 (rutas relativas) ───────────────────────────────────
-info "Verificando que los BAT usan %%~dp0 ..."
-BAT_FILES=("INICIAR_ANCLORA_FILESTUDIO.bat" "CERRAR_ANCLORA_FILESTUDIO.bat" "ACTUALIZAR_YTDLP.bat" "DIAGNOSTICO_ANCLORA_FILESTUDIO.bat")
-for bat in "${BAT_FILES[@]}"; do
-  if [[ -f "$EXTRACTED/$bat" ]] && grep -q "%~dp0" "$EXTRACTED/$bat" 2>/dev/null; then
-    ok "  $bat usa %%~dp0"
-  elif [[ -f "$EXTRACTED/$bat" ]]; then
-    fail "  $bat no usa %%~dp0 — las rutas pueden ser absolutas del dev"
+# ── 13. BATs use %~dp0 ───────────────────────────────────────────────────────
+info "Verificando que los BAT usan %%~dp0..."
+for bat in "INICIAR_ANCLORA_FILESTUDIO.bat" "CERRAR_ANCLORA_FILESTUDIO.bat" \
+           "ACTUALIZAR_YTDLP.bat" "DIAGNOSTICO_ANCLORA_FILESTUDIO.bat"; do
+  if [[ -f "$EXTRACTED/$bat" ]]; then
+    if grep -q "%~dp0" "$EXTRACTED/$bat" 2>/dev/null; then
+      ok "  $bat usa %%~dp0"
+      PASS=$((PASS+1))
+    else
+      fail "  $bat no usa %%~dp0"
+    fi
   fi
 done
 
-# ── 14. Launcher scripts set ANCLORA_FILESTUDIO_* env vars ──────────────────────────
-info "Verificando que start-anclora-filestudio.ps1 establece variables ANCLORA_FILESTUDIO_*..."
-
+# ── 14. start PS1 sets required ANCLORA_FILESTUDIO_* vars ────────────────────
+info "Verificando variables ANCLORA_FILESTUDIO_* en start PS1..."
+START_PS1="$EXTRACTED/internal/start-anclora-filestudio.ps1"
 REQUIRED_ENV_VARS=(
   "ANCLORA_FILESTUDIO_FFMPEG_PATH"
   "ANCLORA_FILESTUDIO_FFPROBE_PATH"
@@ -251,79 +316,91 @@ REQUIRED_ENV_VARS=(
   "ANCLORA_FILESTUDIO_CALIBRE_PATH"
   "ANCLORA_FILESTUDIO_TESSERACT_PATH"
   "ANCLORA_FILESTUDIO_TESSDATA_PREFIX"
-  "ANCLORA_FILESTUDIO_POPPLER_PATH"
   "ANCLORA_FILESTUDIO_DATA_DIR"
   "ANCLORA_FILESTUDIO_TEMP_DIR"
 )
-
-START_PS1="$EXTRACTED/internal/start-anclora-filestudio.ps1"
 if [[ -f "$START_PS1" ]]; then
   for var in "${REQUIRED_ENV_VARS[@]}"; do
     if grep -q "$var" "$START_PS1" 2>/dev/null; then
-      ok "  $var está en start-anclora-filestudio.ps1"
+      ok "  $var"
+      PASS=$((PASS+1))
     else
       fail "  $var NO está en start-anclora-filestudio.ps1"
     fi
   done
 else
-  fail "  start-anclora-filestudio.ps1 no encontrado — no se pueden verificar env vars"
+  fail "  start-anclora-filestudio.ps1 no encontrado"
 fi
 
-# ── 15. No contiene .pnpm store ─────────────────────────────────────────────
+TOOL_RESOLUTION_PS1="$EXTRACTED/internal/tool-resolution.ps1"
+info "Verificando resolución de herramientas externas..."
+if [[ -f "$TOOL_RESOLUTION_PS1" ]]; then
+  TOOL_RESOLUTION_MARKERS=(
+    "C:\\Program Files\\LibreOffice\\program\\soffice.exe"
+    "C:\\Program Files\\Calibre2\\ebook-convert.exe"
+    "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+    "C:\\Program Files\\Tesseract-OCR\\tessdata"
+    "Get-Command"
+    "ANCLORA_FILESTUDIO_TESSDATA_PREFIX"
+  )
+  for marker in "${TOOL_RESOLUTION_MARKERS[@]}"; do
+    if grep -Fq "$marker" "$TOOL_RESOLUTION_PS1" 2>/dev/null; then
+      ok "  tool-resolution contiene: $marker"
+      PASS=$((PASS+1))
+    else
+      fail "  tool-resolution no contiene: $marker"
+    fi
+  done
+else
+  fail "  tool-resolution.ps1 no encontrado"
+fi
+
+# ── 15. Launcher binds to 127.0.0.1 ─────────────────────────────────────────
+info "Verificando binding del launcher (127.0.0.1)..."
+if [[ -f "$START_PS1" ]]; then
+  if grep -q "127.0.0.1" "$START_PS1" 2>/dev/null; then
+    ok "  Launcher binds to 127.0.0.1"
+    PASS=$((PASS+1))
+  else
+    fail "  Launcher no menciona 127.0.0.1"
+  fi
+  if grep -q "0\.0\.0\.0" "$START_PS1" 2>/dev/null; then
+    fail "  Launcher binds to 0.0.0.0 (INSECURE)"
+  else
+    ok "  No 0.0.0.0 binding"
+    PASS=$((PASS+1))
+  fi
+fi
+
+# ── 16. No .pnpm store (path length safety) ──────────────────────────────────
 info "Verificando compatibilidad de rutas Windows..."
 if [[ -d "$EXTRACTED/app/node_modules/.pnpm" ]]; then
-  fail "  El paquete contiene app/node_modules/.pnpm; puede provocar rutas demasiado largas"
+  fail "  Contiene app/node_modules/.pnpm — rutas demasiado largas en Windows"
 else
   ok "  Sin app/node_modules/.pnpm"
+  PASS=$((PASS+1))
 fi
 
 MAX_PATH_INFO="$(cd "$(dirname "$EXTRACTED")" && find "$(basename "$EXTRACTED")" -type f 2>/dev/null | awk '{ if (length($0) > max) { max=length($0); path=$0 } } END { print max " " path }')"
 MAX_PATH_LEN="${MAX_PATH_INFO%% *}"
-MAX_PATH_NAME="${MAX_PATH_INFO#* }"
 if [[ "${MAX_PATH_LEN:-0}" -gt 180 ]]; then
-  fail "  Ruta interna demasiado larga (${MAX_PATH_LEN} caracteres): $MAX_PATH_NAME"
+  fail "  Ruta interna demasiado larga (${MAX_PATH_LEN} chars)"
 else
-  ok "  Ruta interna mas larga: ${MAX_PATH_LEN:-0} caracteres"
+  ok "  Ruta interna más larga: ${MAX_PATH_LEN:-0} chars"
+  PASS=$((PASS+1))
 fi
 
-# ── 16. diagnose-anclora-filestudio.ps1 existe ──────────────────────────────────────
-info "Verificando script de diagnostico..."
-if [[ -f "$EXTRACTED/internal/diagnose-anclora-filestudio.ps1" ]]; then
-  ok "  internal/diagnose-anclora-filestudio.ps1 existe"
-  # Verify it references tools
-  if grep -q "ANCLORA_FILESTUDIO_" "$EXTRACTED/internal/diagnose-anclora-filestudio.ps1" 2>/dev/null; then
-    ok "  diagnose-anclora-filestudio.ps1 referencia variables ANCLORA_FILESTUDIO_*"
-  else
-    warn "  diagnose-anclora-filestudio.ps1 no referencia variables ANCLORA_FILESTUDIO_*"
-  fi
-else
-  fail "  internal/diagnose-anclora-filestudio.ps1 no encontrado"
-fi
-
-# ── 17. DIAGNOSTICO_ANCLORA_FILESTUDIO.bat existe ───────────────────────────────────
-info "Verificando DIAGNOSTICO_ANCLORA_FILESTUDIO.bat..."
-if [[ -f "$EXTRACTED/DIAGNOSTICO_ANCLORA_FILESTUDIO.bat" ]]; then
-  ok "  DIAGNOSTICO_ANCLORA_FILESTUDIO.bat existe"
-  if grep -q "diagnose-anclora-filestudio.ps1" "$EXTRACTED/DIAGNOSTICO_ANCLORA_FILESTUDIO.bat" 2>/dev/null; then
-    ok "  DIAGNOSTICO_ANCLORA_FILESTUDIO.bat invoca diagnose-anclora-filestudio.ps1"
-  else
-    fail "  DIAGNOSTICO_ANCLORA_FILESTUDIO.bat no invoca diagnose-anclora-filestudio.ps1"
-  fi
-else
-  fail "  DIAGNOSTICO_ANCLORA_FILESTUDIO.bat no encontrado"
-fi
-
-# ── Resultado final ─────────────────────────────────────────────────────────
+# ── Result ────────────────────────────────────────────────────────────────────
 echo ""
-echo -e "${CYAN}════════════════════════════════════════════${NC}"
+echo -e "${CYAN}══════════════════════════════════════════════${NC}"
 if [[ $FAILURES -eq 0 ]]; then
-  echo -e "${GREEN}  ✓ TODAS LAS VERIFICACIONES PASARON${NC}"
+  echo -e "${GREEN}  ✓ TODAS LAS VERIFICACIONES PASARON (${PASS} checks)${NC}"
 else
-  echo -e "${RED}  ✗ $FAILURES verificación(es) FALLARON${NC}"
+  echo -e "${RED}  ✗ ${FAILURES} verificación(es) FALLARON / ${PASS} pasaron${NC}"
 fi
-echo -e "${CYAN}════════════════════════════════════════════${NC}"
+echo -e "${CYAN}══════════════════════════════════════════════${NC}"
 
-# Limpiar staging temporal (only if we extracted from ZIP)
+# Clean up temp extract
 if [[ -z "$STAGING_ARG" ]] && [[ -d "$VERIFY_STAGING" ]]; then
   rm -rf "$VERIFY_STAGING"
 fi
