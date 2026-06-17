@@ -1,0 +1,25 @@
+{
+  "url": "https://anclora-filestudio.vercel.app",
+  "deploymentUrl": "https://anclora-filestudio-6r7v6vlhj-pmi140979-6354s-projects.vercel.app",
+  "deploymentId": "dpl_87JfQJvPVi99GVvD5Ej54LxfbyZu",
+  "health": {
+    "ok": true,
+    "status": "web-preview",
+    "deploymentTarget": "vercel",
+    "effectivePlatform": "vercel-web",
+    "serverConversions": false,
+    "cloudUploads": false
+  },
+  "desktopRequiredRoute": {
+    "path": "/api/metadata",
+    "status": 503,
+    "code": "DESKTOP_REQUIRED"
+  },
+  "playwright": {
+    "ok": true,
+    "browserConversion": "json-to-yaml",
+    "unicodePreserved": true,
+    "apiUploads": 0,
+    "consoleErrors": 0
+  }
+}

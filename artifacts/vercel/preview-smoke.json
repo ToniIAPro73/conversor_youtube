@@ -1,0 +1,24 @@
+{
+  "url": "https://anclora-filestudio-o1802vyc1-pmi140979-6354s-projects.vercel.app",
+  "deploymentId": "dpl_G2QrBvnKetVzjRZTgiUwrqqgAzc3",
+  "validatedWith": "vercel curl",
+  "browserAccess": "blocked-by-vercel-authentication",
+  "health": {
+    "ok": true,
+    "status": "web-preview",
+    "deploymentTarget": "vercel",
+    "effectivePlatform": "vercel-web",
+    "serverConversions": false,
+    "cloudUploads": false
+  },
+  "capabilities": {
+    "browser": ["json", "yaml", "toml", "xml", "csv", "tsv"],
+    "desktopRequired": ["audio", "video", "image", "document", "spreadsheet", "presentation", "pdf", "ebook", "archive", "ocr"]
+  },
+  "blockedRoutes": {
+    "/api/metadata": {
+      "status": 503,
+      "code": "DESKTOP_REQUIRED"
+    }
+  }
+}
