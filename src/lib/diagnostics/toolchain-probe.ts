@@ -5,7 +5,34 @@
  */
 
 import { spawn } from "child_process";
+import path from "path";
+import fs from "fs";
 import { CONFIG } from "@/lib/config";
+
+const IS_WINDOWS = process.platform === "win32";
+
+// Resolve the pdftoppm binary from a Poppler directory.
+// Windows Poppler distributions may place the binary in Library\bin\ or bin\.
+function resolvePopplerBinary(dir: string): string {
+  if (!dir) return IS_WINDOWS ? "pdftoppm.exe" : "pdftoppm";
+  if (IS_WINDOWS) {
+    const candidates = [
+      path.join(dir, "Library", "bin", "pdftoppm.exe"),
+      path.join(dir, "bin", "pdftoppm.exe"),
+      path.join(dir, "pdftoppm.exe"),
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c)) return c;
+    }
+    return path.join(dir, "pdftoppm.exe");
+  }
+  return path.join(dir, "pdftoppm");
+}
+
+// Platform-aware installation hints shown when a tool is unavailable.
+function getRecommendedAction(linuxHint: string, windowsHint: string): string {
+  return IS_WINDOWS ? windowsHint : linuxHint;
+}
 
 export type ProbeStatus =
   | "available"
@@ -153,7 +180,10 @@ export const toolchainProbe = {
           id: "ytdlp", displayName: "yt-dlp",
           args: ["--version"], versionPattern: "(\\d{4}\\.\\d{2}\\.\\d{2})",
           group: "media", requiredFor: ["youtube-download"],
-          recommendedAction: "Instala yt-dlp: pip install yt-dlp",
+          recommendedAction: getRecommendedAction(
+            "Instala yt-dlp: pip install yt-dlp",
+            "Incluido en el portable — descárgalo de nuevo si falta: yt-dlp.org"
+          ),
         },
         binary: bins.ytdlp,
       },
@@ -162,7 +192,10 @@ export const toolchainProbe = {
           id: "ffmpeg", displayName: "FFmpeg",
           args: ["-version"], versionPattern: "ffmpeg version (\\S+)",
           group: "media", requiredFor: ["audio", "video", "gif", "thumbnail"],
-          recommendedAction: "Instala FFmpeg desde ffmpeg.org",
+          recommendedAction: getRecommendedAction(
+            "Instala FFmpeg desde ffmpeg.org",
+            "Incluido en el portable — descárgalo de nuevo si falta: ffmpeg.org"
+          ),
         },
         binary: bins.ffmpeg,
       },
@@ -171,7 +204,10 @@ export const toolchainProbe = {
           id: "ffprobe", displayName: "FFprobe",
           args: ["-version"], versionPattern: "ffprobe version (\\S+)",
           group: "media", requiredFor: ["media-analysis"],
-          recommendedAction: "FFprobe se instala junto con FFmpeg",
+          recommendedAction: getRecommendedAction(
+            "FFprobe se instala junto con FFmpeg",
+            "Incluido en el portable junto con FFmpeg"
+          ),
         },
         binary: bins.ffprobe,
       },
@@ -180,7 +216,10 @@ export const toolchainProbe = {
           id: "qpdf", displayName: "QPDF",
           args: ["--version"], versionPattern: "qpdf version (\\d+\\.\\d+\\.\\d+)",
           group: "document", requiredFor: ["pdf"],
-          recommendedAction: "sudo apt install qpdf",
+          recommendedAction: getRecommendedAction(
+            "sudo apt install qpdf",
+            "Incluido en el portable — descárgalo de nuevo si falta: qpdf.sourceforge.net"
+          ),
         },
         binary: bins.qpdf,
       },
@@ -189,7 +228,10 @@ export const toolchainProbe = {
           id: "sevenzip", displayName: "7-Zip",
           args: ["i"], versionPattern: "7-Zip (?:\\([az]\\) )?(\\d+\\.\\d+)",
           group: "archive", requiredFor: ["archive"],
-          recommendedAction: "sudo apt install p7zip-full",
+          recommendedAction: getRecommendedAction(
+            "sudo apt install p7zip-full",
+            "Incluido en el portable — descárgalo de nuevo si falta: 7-zip.org"
+          ),
         },
         binary: bins.sevenzip,
       },
@@ -198,16 +240,24 @@ export const toolchainProbe = {
           id: "pandoc", displayName: "Pandoc",
           args: ["--version"], versionPattern: "pandoc (\\d+\\.\\d+\\.\\d+)",
           group: "document", requiredFor: ["document"],
-          recommendedAction: "Descarga desde pandoc.org",
+          recommendedAction: getRecommendedAction(
+            "Descarga desde pandoc.org",
+            "Incluido en el portable — descárgalo de nuevo si falta: pandoc.org"
+          ),
         },
         binary: bins.pandoc,
       },
       {
         def: {
           id: "libreoffice", displayName: "LibreOffice",
-          args: ["--version"], versionPattern: "LibreOffice (\\d+\\.\\d+\\.\\d+)",
+          // --headless prevents GUI initialization on Windows; ignored gracefully on Linux.
+          args: IS_WINDOWS ? ["--headless", "--version"] : ["--version"],
+          versionPattern: "LibreOffice (\\d+\\.\\d+\\.\\d+)",
           group: "document", requiredFor: ["office-conversion"],
-          recommendedAction: "sudo apt install libreoffice",
+          recommendedAction: getRecommendedAction(
+            "sudo apt install libreoffice",
+            "Instala LibreOffice desde libreoffice.org (se detecta en C:\\Program Files\\LibreOffice)"
+          ),
         },
         binary: bins.libreoffice,
       },
@@ -216,7 +266,10 @@ export const toolchainProbe = {
           id: "calibre", displayName: "Calibre",
           args: ["--version"], versionPattern: "calibre (\\d+\\.\\d+\\.\\d+)",
           group: "ebook", requiredFor: ["ebook"],
-          recommendedAction: "Instala Calibre desde calibre-ebook.com",
+          recommendedAction: getRecommendedAction(
+            "Instala Calibre desde calibre-ebook.com",
+            "Instala Calibre desde calibre-ebook.com (se detecta en C:\\Program Files\\Calibre2)"
+          ),
         },
         binary: bins.calibre,
       },
@@ -225,7 +278,10 @@ export const toolchainProbe = {
           id: "tesseract", displayName: "Tesseract OCR",
           args: ["--version"], versionPattern: "tesseract (\\d+\\.\\d+\\.\\d+)",
           group: "ocr", requiredFor: ["ocr-image", "ocr-pdf"],
-          recommendedAction: "sudo apt install tesseract-ocr tesseract-ocr-spa tesseract-ocr-eng",
+          recommendedAction: getRecommendedAction(
+            "sudo apt install tesseract-ocr tesseract-ocr-spa tesseract-ocr-eng",
+            "Instala Tesseract desde github.com/UB-Mannheim/tesseract (se detecta en C:\\Program Files\\Tesseract-OCR)"
+          ),
         },
         binary: bins.tesseract,
       },
@@ -234,9 +290,13 @@ export const toolchainProbe = {
           id: "poppler", displayName: "Poppler (pdftoppm)",
           args: ["-v"], versionPattern: "pdftoppm version (\\d+\\.\\d+\\.\\d+)",
           group: "ocr", requiredFor: ["ocr-pdf", "pdf-to-image"],
-          recommendedAction: "sudo apt install poppler-utils",
+          recommendedAction: getRecommendedAction(
+            "sudo apt install poppler-utils",
+            "Descarga Poppler para Windows desde github.com/oschwartz10612/poppler-windows y colócalo en tools\\poppler\\ (el portable buscará en Library\\bin\\ y bin\\). Las conversiones PDF→imagen y OCR de PDF quedarán deshabilitadas sin esta herramienta."
+          ),
         },
-        binary: bins.poppler ? `${bins.poppler}/pdftoppm` : "pdftoppm",
+        // Resolve binary from directory: checks Library\bin\, bin\, and root on Windows.
+        binary: resolvePopplerBinary(bins.poppler),
       },
     ];
 

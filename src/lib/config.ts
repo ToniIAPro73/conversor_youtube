@@ -23,7 +23,11 @@ export const CONFIG = {
       qpdf: resolveToolPath(env.ANCLORA_FILESTUDIO_QPDF_PATH, "qpdf"),
       sevenzip: resolveToolPath(env.ANCLORA_FILESTUDIO_7ZIP_PATH, "7z"),
       pandoc: resolveToolPath(env.ANCLORA_FILESTUDIO_PANDOC_PATH, "pandoc"),
-      libreoffice: resolveToolPath(env.ANCLORA_FILESTUDIO_LIBREOFFICE_PATH, "libreoffice"),
+      // On Windows the binary is soffice.exe; fall back by that name so PATH lookup works.
+      libreoffice: resolveToolPath(
+        env.ANCLORA_FILESTUDIO_LIBREOFFICE_PATH,
+        process.platform === "win32" ? "soffice.exe" : "libreoffice"
+      ),
       calibre: resolveToolPath(env.ANCLORA_FILESTUDIO_CALIBRE_PATH, "ebook-convert"),
       tesseract: resolveToolPath(env.ANCLORA_FILESTUDIO_TESSERACT_PATH, "tesseract"),
       tessdataPrefix: env.ANCLORA_FILESTUDIO_TESSDATA_PREFIX || "",

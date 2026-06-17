@@ -98,24 +98,36 @@ function findTesseractBinary(): string {
 }
 
 function findPdftoppmBinary(): string {
+  const isWindows = process.platform === "win32";
+
+  // Build candidate list from a Poppler directory, checking common Windows distro subdirs.
+  function candidatesFromDir(dir: string): string[] {
+    if (isWindows) {
+      return [
+        path.join(dir, "Library", "bin", "pdftoppm.exe"),
+        path.join(dir, "bin", "pdftoppm.exe"),
+        path.join(dir, "pdftoppm.exe"),
+      ];
+    }
+    return [path.join(dir, "pdftoppm")];
+  }
+
   // 1. Prefer ANCLORA_FILESTUDIO_POPPLER_PATH env var (portable distribution)
   const popplerDir = CONFIG.media.binaries.poppler;
   if (popplerDir) {
-    const popplerPath = path.join(popplerDir, "pdftoppm.exe");
-    if (fs.existsSync(popplerPath)) return popplerPath;
-    const popplerPathUnix = path.join(popplerDir, "pdftoppm");
-    if (fs.existsSync(popplerPathUnix)) return popplerPathUnix;
+    for (const c of candidatesFromDir(popplerDir)) {
+      if (fs.existsSync(c)) return c;
+    }
   }
+
   // 2. Portable path relative to cwd
-  const portablePaths = [
-    path.resolve(process.cwd(), "tools", "poppler", "pdftoppm.exe"),
-    path.resolve(process.cwd(), "tools", "poppler", "pdftoppm"),
-  ];
-  for (const p of portablePaths) {
-    if (fs.existsSync(p)) return p;
+  const portableBase = path.resolve(process.cwd(), "tools", "poppler");
+  for (const c of candidatesFromDir(portableBase)) {
+    if (fs.existsSync(c)) return c;
   }
+
   // 3. Fall back to PATH
-  return "pdftoppm";
+  return isWindows ? "pdftoppm.exe" : "pdftoppm";
 }
 
 // ── Language detection ────────────────────────────────────────────────────────

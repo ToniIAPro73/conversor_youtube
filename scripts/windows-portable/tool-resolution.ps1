@@ -208,7 +208,11 @@ function Resolve-AncloraWindowsTools {
 
         Poppler = Resolve-AncloraTool `
             -Name 'Poppler' `
-            -PortablePaths @((Join-Path $BaseDir 'tools\poppler\pdftoppm.exe')) `
+            -PortablePaths @(
+                (Join-Path $BaseDir 'tools\poppler\Library\bin\pdftoppm.exe'),
+                (Join-Path $BaseDir 'tools\poppler\bin\pdftoppm.exe'),
+                (Join-Path $BaseDir 'tools\poppler\pdftoppm.exe')
+            ) `
             -EnvVar 'ANCLORA_FILESTUDIO_POPPLER_PATH' `
             -CommandNames @('pdftoppm.exe', 'pdftoppm')
     }

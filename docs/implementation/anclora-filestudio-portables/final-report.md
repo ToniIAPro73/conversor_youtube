@@ -191,6 +191,49 @@ Next.js standalone output traces JS but not binary `.so` files. The pnpm intra-p
 `@img+sharp-linux-x64@0.35.1/node_modules/@img/sharp-libvips-linux-x64` (needed by the RPATH in
 the `.node` file) is also absent from the standalone. Both are explicitly restored in the build script.
 
+## LibreOffice diagnostics fix (2026-06-17)
+
+**Root causes identified and fixed:**
+
+1. **LibreOffice binary name**: The fallback binary when `ANCLORA_FILESTUDIO_LIBREOFFICE_PATH` is
+   empty was `"libreoffice"` — which does not exist on Windows. The correct Windows binary name is
+   `soffice.exe`. Fixed in `config.ts`: fallback is now `"soffice.exe"` on Windows, allowing PATH
+   lookup to succeed when the launcher adds `C:\Program Files\LibreOffice\program` to PATH.
+
+2. **LibreOffice probe args**: Added `--headless` on Windows (`["--headless", "--version"]`) to
+   prevent potential GUI initialization delays. Without `--headless`, LibreOffice on Windows may
+   open a splash screen before outputting the version string.
+
+3. **Platform-aware `recommendedAction`**: All `recommendedAction` strings in `toolchain-probe.ts`
+   previously used Linux commands (`sudo apt install ...`) on all platforms. Now platform-specific:
+   Windows shows download links and portable-bundled-tool explanations.
+
+4. **Poppler binary resolution**: The probe previously constructed the `pdftoppm` path as
+   `${dir}/pdftoppm` (Unix separator, no `.exe`). This fails on Windows where distributions place
+   the binary in `Library\bin\pdftoppm.exe` or `bin\pdftoppm.exe`. Fixed in:
+   - `toolchain-probe.ts`: new `resolvePopplerBinary()` checks `Library\bin`, `bin`, root.
+   - `tesseract-engine.ts`: `findPdftoppmBinary()` now checks all three subdirectory layouts.
+   - `tool-resolution.ps1`: Poppler PortablePaths now include all three subdirectory candidates.
+   - `start-anclora-filestudio.ps1`: PATH now includes all Poppler subdirectory candidates.
+
+**Files modified:**
+
+- `src/lib/config.ts`
+- `src/lib/diagnostics/toolchain-probe.ts`
+- `src/lib/engines/ocr/tesseract-engine.ts`
+- `scripts/windows-portable/tool-resolution.ps1`
+- `scripts/windows-portable/start-anclora-filestudio.ps1`
+- `tests/unit/toolchain-probe-windows.test.ts` (new — 21 regression tests)
+
+**New artifact:**
+
+```text
+dist/windows/Anclora-FileStudio-Windows-x64-Core.zip  (250 MB)
+SHA-256: a48dae33cf9f999015e1e3f9598c239f71bcff87752b41f4f021e4cf85463b11
+```
+
+**Structural verify:** 91/91 PASS. **Smoke test:** 39/39 PASS.
+
 ## Pending work
 
 - Manual UI acceptance from a double-clicked BAT can still be repeated before a

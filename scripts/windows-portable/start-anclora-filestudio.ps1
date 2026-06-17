@@ -38,7 +38,7 @@ $LibreOfficeExe = $Tools.LibreOffice.Path
 $CalibreExe   = $Tools.Calibre.Path
 $TesseractExe = $Tools.Tesseract.Path
 $TessdataDir  = $Tools.Tessdata.Path
-$PopplerDir   = Join-Path $BaseDir 'tools\poppler'
+$PopplerBaseDir = Join-Path $BaseDir 'tools\poppler'
 $DataDir      = Join-Path $BaseDir 'data'
 $TempDir      = Join-Path $BaseDir 'temp'
 $LogDir       = Join-Path $BaseDir 'logs'
@@ -227,7 +227,9 @@ $env:ANCLORA_FILESTUDIO_LIBREOFFICE_PATH   = $LibreOfficeExe
 $env:ANCLORA_FILESTUDIO_CALIBRE_PATH       = $CalibreExe
 $env:ANCLORA_FILESTUDIO_TESSERACT_PATH     = $TesseractExe
 $env:ANCLORA_FILESTUDIO_TESSDATA_PREFIX    = $TessdataDir
-$env:ANCLORA_FILESTUDIO_POPPLER_PATH       = $PopplerDir
+# Resolve the Poppler directory: set ANCLORA_FILESTUDIO_POPPLER_PATH to the
+# base tools\poppler dir. The Node.js app searches Library\bin\, bin\, and root.
+$env:ANCLORA_FILESTUDIO_POPPLER_PATH       = $PopplerBaseDir
 $env:ANCLORA_FILESTUDIO_DATA_DIR           = $DataDir
 $env:ANCLORA_FILESTUDIO_TEMP_DIR           = $TempDir
 
@@ -241,16 +243,22 @@ $env:MAX_CONCURRENT_JOBS           = '1'
 $env:MAX_ACTIVE_JOBS_PER_CLIENT    = '1'
 
 # Add bundled tool directories to PATH for DLL lookup and fallback discovery.
+# Poppler: check all common Windows distribution subdirectory layouts.
+$popplerBinDirs = @(
+    (Join-Path $PopplerBaseDir 'Library\bin'),
+    (Join-Path $PopplerBaseDir 'bin'),
+    $PopplerBaseDir
+) | Where-Object { $_ -and (Test-Path $_) }
+
 $toolPathParts = @(
     (Split-Path -Parent $FfmpegExe),
     (Split-Path -Parent $QpdfExe),
     (Split-Path -Parent $SevenZipExe),
     (Split-Path -Parent $PandocExe),
     (Split-Path -Parent $TesseractExe),
-    $PopplerDir,
     (Split-Path -Parent $CalibreExe),
     (Split-Path -Parent $LibreOfficeExe)
-) | Where-Object { $_ -and (Test-Path $_) }
+) + $popplerBinDirs | Where-Object { $_ -and (Test-Path $_) }
 $env:PATH = "$($toolPathParts -join ';');$env:PATH"
 
 # - Lanzar servidor en segundo plano ---------------------
