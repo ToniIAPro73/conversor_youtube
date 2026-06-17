@@ -62,7 +62,7 @@ export function createMockFileStudioServer(options: { acceptedBearerToken?: stri
   };
 
   const app = new Hono();
-  const acceptedBearerToken = options.acceptedBearerToken ?? "test-token";
+  const acceptedBearerToken = options.acceptedBearerToken ?? "mock-nexus-token";
 
   // Auth middleware — strict token comparison even in tests.
   app.use("/api/v1/*", async (c, next) => {
