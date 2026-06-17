@@ -67,12 +67,16 @@ async function createTextFixtures() {
 async function createImageFixtures() {
   const base = sharp({
     create: {
-      width: 96,
-      height: 64,
+      width: 640,
+      height: 240,
       channels: 4,
-      background: { r: 40, g: 120, b: 210, alpha: 1 },
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
     },
-  }).composite([{ input: Buffer.from(`<svg width="96" height="64"><text x="8" y="34" font-size="12" fill="white">A</text></svg>`), top: 0, left: 0 }]);
+  }).composite([{
+    input: Buffer.from(`<svg width="640" height="240"><text x="40" y="135" font-family="Arial" font-size="54" fill="black">ANCLORA 12345</text></svg>`),
+    top: 0,
+    left: 0,
+  }]);
 
   await writeBuffer("png", await base.clone().png().toBuffer());
   await writeBuffer("jpg", await base.clone().jpeg({ quality: 92 }).toBuffer());
@@ -164,6 +168,7 @@ async function createDocumentFixtures() {
   addText("xls", `marker\tvalue\n${marker}\t1\n`);
   addText("ppt", `<html><body><h1>${marker}</h1></body></html>\n`);
   addText("log", `${marker} log fixture\n`);
+  await replaceOfficeFixturesWithLibreOfficeOutputs();
 }
 
 async function createArchiveFixtures() {
@@ -199,28 +204,51 @@ async function createArchiveFixtures() {
 }
 
 async function createPdfFixture() {
-  const pdf = `%PDF-1.4
-1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
-2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj
-3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 144]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj
-4 0 obj<</Length 64>>stream
-BT /F1 12 Tf 24 72 Td (${marker.replace(/[()]/g, "")}) Tj ET
-endstream endobj
-5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
-xref
-0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000231 00000 n 
-0000000345 00000 n 
-trailer<</Root 1 0 R/Size 6>>
-startxref
-415
-%%EOF
-`;
+  const stream = `BT /F1 12 Tf 24 72 Td (${marker.replace(/[()\\]/g, "")}) Tj ET`;
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 360 144] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  for (let index = 0; index < objects.length; index += 1) {
+    offsets.push(Buffer.byteLength(pdf));
+    pdf += `${index + 1} 0 obj\n${objects[index]}\nendobj\n`;
+  }
+  const xrefOffset = Buffer.byteLength(pdf);
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += "0000000000 65535 f \n";
+  for (const offset of offsets.slice(1)) {
+    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Root 1 0 R /Size ${objects.length + 1} >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
   await writeBuffer("pdf", Buffer.from(pdf));
+}
+
+async function replaceOfficeFixturesWithLibreOfficeOutputs() {
+  const soffice = findCommand(["soffice", "libreoffice"]);
+  if (!soffice) return;
+
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "anclora-lo-fixtures-"));
+  try {
+    const html = path.join(work, "source.html");
+    const csv = path.join(work, "source.csv");
+    fs.writeFileSync(html, `<!doctype html><html><body><h1>${marker}</h1><p>LibreOffice fixture</p></body></html>`);
+    fs.writeFileSync(csv, `marker,value\n${marker},1\n`);
+    for (const format of ["docx", "odt", "rtf", "pdf"]) {
+      convertWithLibreOffice(soffice, html, format, work);
+      replaceIfExists(path.join(work, `source.${format}`), format);
+    }
+    for (const format of ["xlsx", "ods"]) {
+      convertWithLibreOffice(soffice, csv, format, work);
+      replaceIfExists(path.join(work, `source.${format}`), format);
+    }
+  } finally {
+    fs.rmSync(work, { recursive: true, force: true });
+  }
 }
 
 async function createZipPackage(ext, entries) {
@@ -300,5 +328,39 @@ function run(command, args) {
   const result = spawnSync(command, args, { stdio: "pipe" });
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed: ${result.stderr.toString() || result.stdout.toString()}`);
+  }
+}
+
+function findCommand(candidates) {
+  for (const candidate of candidates) {
+    if (hasCommand(candidate)) return candidate;
+  }
+  return null;
+}
+
+function convertWithLibreOffice(soffice, source, format, outDir) {
+  const result = spawnSync(soffice, [
+    "--headless",
+    "--nologo",
+    "--nofirststartwizard",
+    "--convert-to",
+    format,
+    "--outdir",
+    outDir,
+    source,
+  ], { stdio: "pipe" });
+  if (result.status !== 0) {
+    console.warn(`LibreOffice fixture conversion to ${format} failed: ${result.stderr.toString() || result.stdout.toString()}`);
+  }
+}
+
+function replaceIfExists(source, ext) {
+  if (!fs.existsSync(source)) return;
+  fs.copyFileSync(source, file(ext));
+  const existing = fixtures.find((fixture) => fixture.extension === ext);
+  if (existing) {
+    existing.sizeBytes = fs.statSync(file(ext)).size;
+  } else {
+    register(ext);
   }
 }

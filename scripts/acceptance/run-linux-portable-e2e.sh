@@ -26,13 +26,36 @@ PKG_DIR="$(find "$EXTRACT_DIR" -maxdepth 1 -type d -name 'Anclora-FileStudio-Lin
 cp "$SCRIPT_DIR"/*.mjs "$RUNNER_DIR/"
 
 cleanup() {
-  if [[ -n "${PKG_DIR:-}" && -x "$PKG_DIR/stop-anclora-filestudio.sh" ]]; then
-    "$PKG_DIR/stop-anclora-filestudio.sh" >/dev/null 2>&1 || true
+  if [[ -n "${APP_PID:-}" ]] && kill -0 "$APP_PID" 2>/dev/null; then
+    kill "$APP_PID" >/dev/null 2>&1 || true
   fi
 }
 trap cleanup EXIT
 
-ANCLORA_FILESTUDIO_PORT="$PORT" "$PKG_DIR/start-anclora-filestudio.sh"
+mkdir -p "$PKG_DIR/data" "$PKG_DIR/temp" "$PKG_DIR/logs"
+(
+  cd "$PKG_DIR/app"
+  ANCLORA_FILESTUDIO_PORT="$PORT" \
+  PORT="$PORT" \
+  HOSTNAME="127.0.0.1" \
+  NODE_ENV="production" \
+  ANCLORA_FILESTUDIO_PLATFORM="linux" \
+  ANCLORA_FILESTUDIO_DATA_DIR="$PKG_DIR/data" \
+  ANCLORA_FILESTUDIO_TEMP_DIR="$PKG_DIR/temp" \
+  ANCLORA_FILESTUDIO_LOG_DIR="$PKG_DIR/logs" \
+  ANCLORA_FILESTUDIO_TOOLS_DIR="$PKG_DIR/tools" \
+  "$PKG_DIR/runtime/node" server.js >> "$PKG_DIR/logs/app.log" 2>&1
+) &
+APP_PID="$!"
+
+for _ in $(seq 1 60); do
+  if curl -sf "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+curl -sf "http://127.0.0.1:$PORT/api/health" >/dev/null
 
 "$PKG_DIR/runtime/node" "$RUNNER_DIR/run-conversion-suite.mjs" \
   --repo-root "$REPO_ROOT" \
