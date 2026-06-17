@@ -168,6 +168,7 @@ async function createDocumentFixtures() {
   addText("xls", `marker\tvalue\n${marker}\t1\n`);
   addText("ppt", `<html><body><h1>${marker}</h1></body></html>\n`);
   addText("log", `${marker} log fixture\n`);
+  createPptxWithPython();
   await replaceOfficeFixturesWithLibreOfficeOutputs();
 }
 
@@ -238,7 +239,7 @@ async function replaceOfficeFixturesWithLibreOfficeOutputs() {
     const csv = path.join(work, "source.csv");
     fs.writeFileSync(html, `<!doctype html><html><body><h1>${marker}</h1><p>LibreOffice fixture</p></body></html>`);
     fs.writeFileSync(csv, `marker,value\n${marker},1\n`);
-    for (const format of ["docx", "odt", "rtf", "pdf"]) {
+    for (const format of ["docx", "odt", "rtf"]) {
       convertWithLibreOffice(soffice, html, format, work);
       replaceIfExists(path.join(work, `source.${format}`), format);
     }
@@ -362,5 +363,25 @@ function replaceIfExists(source, ext) {
     existing.sizeBytes = fs.statSync(file(ext)).size;
   } else {
     register(ext);
+  }
+}
+
+function createPptxWithPython() {
+  const script = [
+    "from pptx import Presentation",
+    "import sys",
+    "prs = Presentation()",
+    "slide = prs.slides.add_slide(prs.slide_layouts[5])",
+    "box = slide.shapes.add_textbox(914400, 914400, 7315200, 1828800)",
+    "box.text_frame.text = sys.argv[2]",
+    "prs.save(sys.argv[1])",
+  ].join("\n");
+  const result = spawnSync("python3", ["-c", script, file("pptx"), marker], { stdio: "pipe" });
+  if (result.status === 0) {
+    const existing = fixtures.find((fixture) => fixture.extension === "pptx");
+    if (existing) existing.sizeBytes = fs.statSync(file("pptx")).size;
+    else register("pptx");
+  } else {
+    console.warn(`python-pptx fixture generation failed: ${result.stderr.toString() || result.stdout.toString()}`);
   }
 }

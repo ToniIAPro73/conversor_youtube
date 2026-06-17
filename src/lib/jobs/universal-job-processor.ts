@@ -46,11 +46,12 @@ function detectOutputMime(filePath: string): string | null {
       const typeBytes = riffBuf.slice(8, 12).toString("ascii");
       if (typeBytes === "WEBP") return "image/webp";
 
-      const bmffBuf = Buffer.alloc(16);
-      fs.readSync(fd, bmffBuf, 0, 16, 0);
+      const bmffBuf = Buffer.alloc(64);
+      fs.readSync(fd, bmffBuf, 0, 64, 0);
       if (bmffBuf.slice(4, 8).toString("ascii") === "ftyp") {
         const majorBrand = bmffBuf.slice(8, 12).toString("ascii");
-        if (majorBrand === "avif" || majorBrand === "avis") return "image/avif";
+        const brands = bmffBuf.toString("ascii");
+        if (majorBrand === "avif" || majorBrand === "avis" || brands.includes("avif") || brands.includes("avis")) return "image/avif";
       }
     } finally {
       fs.closeSync(fd);

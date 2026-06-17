@@ -184,7 +184,7 @@ async function handleUniversalJob(
     );
   }
 
-  if (matchingCap.state !== "available") {
+  if (matchingCap.state !== "available" && matchingCap.state !== "experimental") {
     return NextResponse.json(
       { error: `Capacidad no disponible: ${matchingCap.unavailableReason ?? "herramienta no instalada"}`, code: "CAPABILITY_UNAVAILABLE" },
       { status: 503 }

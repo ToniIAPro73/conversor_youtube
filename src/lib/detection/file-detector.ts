@@ -140,6 +140,15 @@ async function detectByMagic(filePath: string): Promise<{ mime: string; format: 
         return { mime: entry.mime, format: entry.format };
       }
     }
+    const bmffBuf = Buffer.alloc(64);
+    fs.readSync(fd, bmffBuf, 0, 64, 0);
+    if (bmffBuf.slice(4, 8).toString("ascii") === "ftyp") {
+      const majorBrand = bmffBuf.slice(8, 12).toString("ascii");
+      const brands = bmffBuf.toString("ascii");
+      if (majorBrand === "avif" || majorBrand === "avis" || brands.includes("avif") || brands.includes("avis")) {
+        return { mime: "image/avif", format: "avif" };
+      }
+    }
     // Check for TAR (ustar magic at offset 257)
     const tarBuf = Buffer.alloc(8);
     fs.readSync(fd, tarBuf, 0, 6, 257);
@@ -182,6 +191,7 @@ function probeTextStructure(filePath: string): { mime: string; format: string } 
   try {
     const sample = fs.readFileSync(filePath, { encoding: "utf8", flag: "r" }).slice(0, 4096);
     const trimmed = sample.trimStart();
+    if (trimmed.startsWith("{\\rtf")) return { mime: "application/rtf", format: "rtf" };
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) return { mime: "application/json", format: "json" };
     if (trimmed.match(/^---\s*\n/) || trimmed.match(/^[a-zA-Z_][a-zA-Z0-9_]*:\s/m)) return { mime: "application/yaml", format: "yaml" };
     if (trimmed.match(/^\[.*\]\s*\n/m) || trimmed.match(/^[a-zA-Z_]+\s*=\s*/m)) return { mime: "application/toml", format: "toml" };

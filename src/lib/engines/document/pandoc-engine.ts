@@ -158,6 +158,7 @@ export class PandocEngine implements ConversionEngine {
 
     const fromDef = resolveInputFormat(descriptor);
     if (!fromDef) return [];
+    if (fromDef.pandocName === "odt" && !supportsOdtInput(probeResult)) return [];
 
     const outputFormats = OUTPUT_MATRIX[fromDef.pandocName] ?? [];
     return outputFormats.map((toFmt) => buildCapability(fromDef, toFmt, descriptor, probeResult.available));
@@ -231,6 +232,15 @@ export class PandocEngine implements ConversionEngine {
 
     return { valid: checks.every((c) => c.passed), checks };
   }
+}
+
+function supportsOdtInput(probeResult: EngineProbeResult): boolean {
+  const versionText = probeResult.version ?? "";
+  const match = versionText.match(/(\d+)\.(\d+)/);
+  if (!match) return true;
+  const major = Number.parseInt(match[1]!, 10);
+  const minor = Number.parseInt(match[2]!, 10);
+  return major > 2 || (major === 2 && minor >= 19);
 }
 
 export const pandocEngine = new PandocEngine();
