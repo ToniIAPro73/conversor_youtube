@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs";
+import { CONFIG } from "../config";
 
 /**
  * Validates that targetPath is strictly inside allowedRoot.
@@ -48,8 +49,5 @@ export function safeExistsInRoot(targetPath: string, allowedRoot?: string): bool
 }
 
 function getDefaultTempDir(): string {
-  // Lazy import to avoid circular deps
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { CONFIG } = require("../config") as { CONFIG: { media: { tempDir: string } } };
   return CONFIG.media.tempDir;
 }

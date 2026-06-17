@@ -35,6 +35,7 @@ type PandocFormat = "markdown" | "html" | "docx" | "odt" | "rst" | "latex" | "pl
 
 interface FormatDef {
   pandocName: PandocFormat;
+  readerName?: string;
   label: string;
   mime: string;
   ext: string;
@@ -51,7 +52,7 @@ const FORMAT_MAP: Record<string, FormatDef> = {
   odt:      { pandocName: "odt",      label: "ODT",      mime: "application/vnd.oasis.opendocument.text", ext: "odt", lossless: false },
   latex:    { pandocName: "latex",    label: "LaTeX",    mime: "application/x-latex", ext: "tex", lossless: true },
   tex:      { pandocName: "latex",    label: "LaTeX",    mime: "application/x-latex", ext: "tex", lossless: true },
-  txt:      { pandocName: "plain",    label: "Texto plano", mime: "text/plain", ext: "txt", lossless: false },
+  txt:      { pandocName: "plain", readerName: "markdown",    label: "Texto plano", mime: "text/plain", ext: "txt", lossless: false },
 };
 
 // Output formats available from each input format
@@ -190,8 +191,10 @@ export class PandocEngine implements ConversionEngine {
       return { success: false, outputPath: plan.outputPath, outputSizeBytes: 0, durationMs: Date.now() - start, logs: [], warnings: [], error: `Formato de salida desconocido: ${outExt}` };
     }
 
+    const readerName = fromDef.readerName ?? fromDef.pandocName;
+
     const args = [
-      "-f", fromDef.pandocName,
+      "-f", readerName,
       "-t", toDef.pandocName,
       "-o", plan.outputPath,
       "--standalone",

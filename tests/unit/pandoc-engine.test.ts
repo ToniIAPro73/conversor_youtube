@@ -2,11 +2,15 @@
 // Focuses on capability matrix and loss profile tagging.
 // No execution tests (pandoc not installed in dev environment).
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { PandocEngine } from "../../src/lib/engines/document/pandoc-engine";
+import { ProcessRunner } from "../../src/lib/infrastructure/processes/process-runner";
+import { CONFIG } from "../../src/lib/config";
 import type { UniversalFileDescriptor } from "../../src/lib/domain/descriptors";
-import type { EngineProbeResult } from "../../src/lib/domain/engines";
+import type { EngineProbeResult, ConversionPlan } from "../../src/lib/domain/engines";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 
 function makeDescriptor(ext: string, fmt?: string): UniversalFileDescriptor {
   return {
@@ -163,5 +167,89 @@ describe("PandocEngine — recommendations", () => {
     const caps = engine.getCapabilities(makeDescriptor("docx"), AVAILABLE_PROBE);
     const recommended = caps.filter((c) => c.recommended);
     expect(recommended.length).toBeGreaterThan(0);
+  });
+});
+
+
+describe("PandocEngine — TXT execution regression", () => {
+  it("uses the markdown reader instead of the invalid plain reader for TXT input", async () => {
+    const tempDir = path.join(
+      CONFIG.media.tempDir,
+      "tests",
+      `pandoc-${crypto.randomUUID()}`
+    );
+
+    const inputPath = path.join(tempDir, "input.txt");
+    const outputPath = path.join(tempDir, "output.html");
+
+    fs.mkdirSync(tempDir, { recursive: true });
+    fs.writeFileSync(inputPath, "Contenido de texto plano", "utf-8");
+
+    const runSpy = vi
+      .spyOn(ProcessRunner.prototype, "run")
+      .mockImplementation(async ({ args }) => {
+        fs.writeFileSync(
+          outputPath,
+          "<!doctype html><html><body>Contenido</body></html>",
+          "utf-8"
+        );
+
+        return {
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          timedOut: false,
+          durationMs: 1,
+        };
+      });
+
+    const plan: ConversionPlan = {
+      jobId: "pandoc-txt-regression",
+      engineId: "pandoc",
+      operation: "convert-document",
+      inputPath,
+      outputPath,
+      outputFormat: "html",
+      options: {
+        inputFormat: "txt",
+      },
+      args: [],
+      env: {},
+      timeoutMs: 120_000,
+      estimatedSizeBytes: null,
+    };
+
+    try {
+      const result = await new PandocEngine().execute(plan);
+
+      expect(
+        result.success,
+        JSON.stringify(
+          {
+            result,
+            processRunnerCalls: runSpy.mock.calls.length,
+          },
+          null,
+          2
+        )
+      ).toBe(true);
+      expect(runSpy).toHaveBeenCalledTimes(1);
+
+      const processOptions = runSpy.mock.calls[0]?.[0];
+      expect(processOptions).toBeDefined();
+
+      const fromIndex = processOptions!.args.indexOf("-f");
+      const toIndex = processOptions!.args.indexOf("-t");
+
+      expect(fromIndex).toBeGreaterThanOrEqual(0);
+      expect(toIndex).toBeGreaterThanOrEqual(0);
+
+      expect(processOptions!.args[fromIndex + 1]).toBe("markdown");
+      expect(processOptions!.args[fromIndex + 1]).not.toBe("plain");
+      expect(processOptions!.args[toIndex + 1]).toBe("html");
+    } finally {
+      runSpy.mockRestore();
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });
