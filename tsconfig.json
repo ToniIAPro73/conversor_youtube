@@ -32,5 +32,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "packages", "apps", "deploy"]
+  "exclude": ["node_modules", "packages", "apps", "deploy", "artifacts/acceptance", "tests/acceptance/fixtures/generated"]
 }
