@@ -20,6 +20,7 @@ const envSchema = z.object({
   ANCLORA_FILESTUDIO_POPPLER_PATH: z.string().default(""),
   ANCLORA_FILESTUDIO_DATA_DIR: z.string().default(""),
   ANCLORA_FILESTUDIO_TEMP_DIR: z.string().default(""),
+  ANCLORA_FILESTUDIO_PLATFORM: z.string().default(""),
 
   // ── Legacy binary paths (backward compatibility) ──────────────────────
   MEDIA_TEMP_DIR: z.string().default(".tmp/media"),

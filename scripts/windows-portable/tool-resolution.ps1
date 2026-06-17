@@ -181,10 +181,16 @@ function Resolve-AncloraWindowsTools {
 
         LibreOffice = Resolve-AncloraTool `
             -Name 'LibreOffice' `
-            -PortablePaths @((Join-Path $BaseDir 'tools\libreoffice\program\soffice.exe')) `
+            -PortablePaths @(
+                (Join-Path $BaseDir 'tools\libreoffice\program\soffice.com'),
+                (Join-Path $BaseDir 'tools\libreoffice\program\soffice.exe')
+            ) `
             -EnvVar 'ANCLORA_FILESTUDIO_LIBREOFFICE_PATH' `
-            -StandardPaths @('C:\Program Files\LibreOffice\program\soffice.exe') `
-            -CommandNames @('soffice.exe', 'soffice')
+            -StandardPaths @(
+                'C:\Program Files\LibreOffice\program\soffice.com',
+                'C:\Program Files\LibreOffice\program\soffice.exe'
+            ) `
+            -CommandNames @('soffice.com', 'soffice.exe', 'soffice')
 
         Calibre = Resolve-AncloraTool `
             -Name 'Calibre' `

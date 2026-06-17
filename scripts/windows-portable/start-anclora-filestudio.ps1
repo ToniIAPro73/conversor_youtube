@@ -215,6 +215,7 @@ $env:NODE_ENV                      = 'production'
 $env:NEXT_TELEMETRY_DISABLED       = '1'
 $env:HOSTNAME                      = '127.0.0.1'
 $env:PORT                          = "$selectedPort"
+$env:ANCLORA_FILESTUDIO_PLATFORM   = 'windows'
 
 # ANCLORA_FILESTUDIO_* environment variables
 $env:ANCLORA_FILESTUDIO_FFMPEG_PATH        = $FfmpegExe

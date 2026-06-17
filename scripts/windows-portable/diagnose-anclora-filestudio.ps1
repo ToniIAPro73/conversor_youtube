@@ -70,7 +70,15 @@ foreach ($tool in $tools) {
         # Try to get version
         $ver = ''
         try {
-            $ver = (& $tool.Path --version 2>&1 | Select-Object -First 1).Trim()
+            $versionArgs = @('--version')
+            if ($tool.Name -eq 'LibreOffice') {
+                $versionArgs = @('--headless', '--version')
+            } elseif ($tool.Name -eq 'Poppler') {
+                $versionArgs = @('-v')
+            } elseif ($tool.Name -eq '7-Zip') {
+                $versionArgs = @('i')
+            }
+            $ver = (& $tool.Path @versionArgs 2>&1 | Select-Object -First 1).Trim()
         } catch { $ver = '(no se pudo obtener version)' }
         Write-Host "    [OK] $($tool.Name): $ver" -ForegroundColor Green
         Write-Host "         Ruta: $($tool.Path) [$($tool.Source)]" -ForegroundColor DarkGray

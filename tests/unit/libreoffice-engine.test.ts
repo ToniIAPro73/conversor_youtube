@@ -3,7 +3,10 @@
 // No execution tests (LibreOffice not installed in dev environment).
 
 import { describe, it, expect } from "vitest";
-import { LibreOfficeEngine } from "../../src/lib/engines/document/libreoffice-engine";
+import {
+  getLibreOfficeUserInstallationArg,
+  LibreOfficeEngine,
+} from "../../src/lib/engines/document/libreoffice-engine";
 import type { UniversalFileDescriptor, FileCategory } from "../../src/lib/domain/descriptors";
 import type { EngineProbeResult } from "../../src/lib/domain/engines";
 import crypto from "crypto";
@@ -176,5 +179,13 @@ describe("LibreOfficeEngine — availability states", () => {
   it("unavailable-tool capabilities include explanatory reason", () => {
     const caps = engine.getCapabilities(makeDescriptor("docx", "document"), UNAVAILABLE_PROBE);
     expect(caps[0]?.unavailableReason).toMatch(/[Ll]ibre[Oo]ffice/);
+  });
+});
+
+describe("LibreOfficeEngine — Windows profile URL", () => {
+  it("uses a file URL for isolated UserInstallation profiles", () => {
+    const arg = getLibreOfficeUserInstallationArg("C:\\Temp\\Anclora Profile");
+    expect(arg).toBe("-env:UserInstallation=file:///C:/Temp/Anclora%20Profile");
+    expect(arg).not.toContain("file://C:\\");
   });
 });

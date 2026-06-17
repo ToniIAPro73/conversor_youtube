@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { diagnoseAllEngines } from "@/lib/engines/registry";
 import { toolchainProbe } from "@/lib/diagnostics/toolchain-probe";
+import { getAncloraRuntimePlatform } from "@/lib/runtime-platform";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export async function GET() {
     },
     runtime: {
       platform: process.platform,
+      effectivePlatform: getAncloraRuntimePlatform(),
       arch: process.arch,
       nodeVersion: process.version,
     },

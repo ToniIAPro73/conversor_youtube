@@ -43,6 +43,12 @@ function AssertEq([string]$Label, [object]$Actual, [object]$Expected) {
   }
 }
 
+function AssertEndsWith([string]$Label, [string]$Actual, [string]$ExpectedSuffix) {
+  if (-not $Actual.EndsWith($ExpectedSuffix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "$Label expected path ending '$ExpectedSuffix' but got '$Actual'"
+  }
+}
+
 function ResolveTestTool([string]$PortablePath, [string]$StandardPath) {
   $params = @{
     Name = 'Tool'
@@ -63,11 +69,15 @@ try {
   $standard = Join-Path $root 'standard\tool.exe'
   $pathToolDir = Join-Path $root 'path'
   $pathTool = Join-Path $pathToolDir 'tool-from-path.exe'
+  $loCom = Join-Path $root 'bundle\tools\libreoffice\program\soffice.com'
+  $loExe = Join-Path $root 'bundle\tools\libreoffice\program\soffice.exe'
 
   TouchFile $portable
   TouchFile $envTool
   TouchFile $standard
   TouchFile $pathTool
+  TouchFile $loCom
+  TouchFile $loExe
 
   [Environment]::SetEnvironmentVariable('ANCLORA_TEST_TOOL_PATH', $envTool, 'Process')
   $env:PATH = "$pathToolDir;$oldPath"
@@ -113,8 +123,13 @@ try {
   }
   AssertEq 'warning count when tools are missing' $missingWarningCount 1
 
+  $bundleTools = Resolve-AncloraWindowsTools -BaseDir (Join-Path $root 'bundle')
+  AssertEq 'LibreOffice portable source' $bundleTools.LibreOffice.Source 'portable'
+  AssertEndsWith 'LibreOffice resolves soffice.com first' $bundleTools.LibreOffice.Path 'bundle\tools\libreoffice\program\soffice.com'
+
   $source = Get-Content -Path $HelperPath -Raw
   foreach ($marker in @(
+    'C:\Program Files\LibreOffice\program\soffice.com',
     'C:\Program Files\LibreOffice\program\soffice.exe',
     'C:\Program Files\Calibre2\ebook-convert.exe',
     'C:\Program Files\Tesseract-OCR\tesseract.exe',

@@ -11,6 +11,7 @@ import type { UniversalFileDescriptor } from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
 import { CONFIG } from "../../config";
+import { isAncloraWindowsRuntime } from "../../runtime-platform";
 
 const ENGINE_ID: EngineId = "tesseract";
 
@@ -98,7 +99,7 @@ function findTesseractBinary(): string {
 }
 
 function findPdftoppmBinary(): string {
-  const isWindows = process.platform === "win32";
+  const isWindows = isAncloraWindowsRuntime();
 
   // Build candidate list from a Poppler directory, checking common Windows distro subdirs.
   function candidatesFromDir(dir: string): string[] {

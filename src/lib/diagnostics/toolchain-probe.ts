@@ -8,21 +8,24 @@ import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import { CONFIG } from "@/lib/config";
-
-const IS_WINDOWS = process.platform === "win32";
+import { isAncloraWindowsRuntime } from "@/lib/runtime-platform";
 
 // Resolve the pdftoppm binary from a Poppler directory.
 // Windows Poppler distributions may place the binary in Library\bin\ or bin\.
-function resolvePopplerBinary(dir: string): string {
-  if (!dir) return IS_WINDOWS ? "pdftoppm.exe" : "pdftoppm";
-  if (IS_WINDOWS) {
+export function resolvePopplerBinary(
+  dir: string,
+  isWindows = isAncloraWindowsRuntime(),
+  existsSync: (path: string) => boolean = fs.existsSync
+): string {
+  if (!dir) return isWindows ? "pdftoppm.exe" : "pdftoppm";
+  if (isWindows) {
     const candidates = [
       path.join(dir, "Library", "bin", "pdftoppm.exe"),
       path.join(dir, "bin", "pdftoppm.exe"),
       path.join(dir, "pdftoppm.exe"),
     ];
     for (const c of candidates) {
-      if (fs.existsSync(c)) return c;
+      if (existsSync(c)) return c;
     }
     return path.join(dir, "pdftoppm.exe");
   }
@@ -30,8 +33,12 @@ function resolvePopplerBinary(dir: string): string {
 }
 
 // Platform-aware installation hints shown when a tool is unavailable.
-function getRecommendedAction(linuxHint: string, windowsHint: string): string {
-  return IS_WINDOWS ? windowsHint : linuxHint;
+export function getRecommendedAction(linuxHint: string, windowsHint: string): string {
+  return isAncloraWindowsRuntime() ? windowsHint : linuxHint;
+}
+
+export function getLibreOfficeProbeArgs(): string[] {
+  return isAncloraWindowsRuntime() ? ["--headless", "--version"] : ["--version"];
 }
 
 export type ProbeStatus =
@@ -112,7 +119,7 @@ function extractVersion(output: string, pattern: string): string | null {
   return m ? (m[1] ?? m[0]) : null;
 }
 
-async function probeOne(
+export async function probeDiagnosticBinary(
   binary: string,
   args: string[],
   versionPattern: string | null
@@ -251,8 +258,8 @@ export const toolchainProbe = {
         def: {
           id: "libreoffice", displayName: "LibreOffice",
           // --headless prevents GUI initialization on Windows; ignored gracefully on Linux.
-          args: IS_WINDOWS ? ["--headless", "--version"] : ["--version"],
-          versionPattern: "LibreOffice (\\d+\\.\\d+\\.\\d+)",
+          args: getLibreOfficeProbeArgs(),
+          versionPattern: "LibreOffice (\\d+\\.\\d+\\.\\d+(?:\\.\\d+)?)",
           group: "document", requiredFor: ["office-conversion"],
           recommendedAction: getRecommendedAction(
             "sudo apt install libreoffice",
@@ -302,7 +309,7 @@ export const toolchainProbe = {
 
     const results = await Promise.all(
       probes.map(async ({ def, binary }): Promise<ToolProbeResult> => {
-        const probe = await probeOne(binary, def.args, def.versionPattern);
+        const probe = await probeDiagnosticBinary(binary, def.args, def.versionPattern);
         return {
           id: def.id,
           displayName: def.displayName,

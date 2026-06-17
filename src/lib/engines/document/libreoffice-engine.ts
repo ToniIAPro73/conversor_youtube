@@ -8,28 +8,44 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import crypto from "crypto";
+import { pathToFileURL } from "url";
 import type { ConversionEngine, EngineId, EngineProbeResult, ConversionCapability, ConversionPlan, ExecutionResult, ArtifactValidation } from "../../domain/engines";
 import type { UniversalFileDescriptor, FileCategory } from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
 import { CONFIG } from "../../config";
+import { isAncloraWindowsRuntime } from "../../runtime-platform";
 
 const ENGINE_ID: EngineId = "libreoffice";
 
 // LibreOffice must use an isolated profile dir per run to avoid single-instance lockfile contention
 let _runner: ProcessRunner | null = null;
 
-function findLibreofficeBinary(): string {
+export function getLibreOfficeProbeArgs(): string[] {
+  return isAncloraWindowsRuntime() ? ["--headless", "--version"] : ["--version"];
+}
+
+export function findLibreofficeBinary(): string {
   // 1. Prefer ANCLORA_FILESTUDIO_LIBREOFFICE_PATH env var (portable distribution)
   const envPath = CONFIG.media.binaries.libreoffice;
-  if (envPath && envPath !== "libreoffice") return envPath;
+  const pathFallbacks = isAncloraWindowsRuntime()
+    ? ["soffice.com", "soffice.exe"]
+    : ["libreoffice", "soffice"];
+  const genericPathFallbacks = new Set([...pathFallbacks, "libreoffice", "soffice"]);
+  if (envPath && !genericPathFallbacks.has(envPath)) return envPath;
   // 2. Portable path relative to cwd
-  const candidates = [
-    path.resolve(process.cwd(), "tools", "libreoffice", "program", "soffice.exe"),
-    path.resolve(process.cwd(), "tools", "LibreOffice", "program", "soffice.exe"),
-    "libreoffice",
-    "soffice",
-  ];
+  const candidates = isAncloraWindowsRuntime()
+    ? [
+        path.resolve(process.cwd(), "tools", "libreoffice", "program", "soffice.com"),
+        path.resolve(process.cwd(), "tools", "LibreOffice", "program", "soffice.com"),
+        path.resolve(process.cwd(), "tools", "libreoffice", "program", "soffice.exe"),
+        path.resolve(process.cwd(), "tools", "LibreOffice", "program", "soffice.exe"),
+        ...pathFallbacks,
+      ]
+    : [
+        "libreoffice",
+        "soffice",
+      ];
   for (const c of candidates) {
     if (c.includes("/") || c.includes("\\")) {
       if (fs.existsSync(c)) return c;
@@ -37,7 +53,15 @@ function findLibreofficeBinary(): string {
       return c; // PATH-based — ProcessRunner.probe() will verify
     }
   }
-  return "libreoffice";
+  return pathFallbacks[0] ?? "libreoffice";
+}
+
+export function getLibreOfficeUserInstallationArg(profileDir: string): string {
+  if (/^[a-zA-Z]:[\\/]/.test(profileDir)) {
+    const normalized = profileDir.replace(/\\/g, "/");
+    return `-env:UserInstallation=file:///${encodeURI(normalized)}`;
+  }
+  return `-env:UserInstallation=${pathToFileURL(profileDir).href}`;
 }
 
 function getRunner(): ProcessRunner {
@@ -126,7 +150,7 @@ export class LibreOfficeEngine implements ConversionEngine {
 
   async probe(): Promise<EngineProbeResult> {
     if (this._probeResult) return this._probeResult;
-    const result = await getRunner().probe(["--version"]);
+    const result = await getRunner().probe(getLibreOfficeProbeArgs());
     this._probeResult = {
       available: result.available,
       version: result.version,
@@ -178,9 +202,8 @@ export class LibreOfficeEngine implements ConversionEngine {
     try {
       const outExt = plan.outputFormat;
       const args = [
-        `-env:UserInstallation=file://${profileDir}`,
+        getLibreOfficeUserInstallationArg(profileDir),
         "--headless",
-        "--noevent",
         "--norestore",
         "--convert-to", outExt,
         "--outdir", outDir,

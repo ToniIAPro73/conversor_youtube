@@ -2,27 +2,28 @@
 // Covers: platform-aware probe args, Poppler binary resolution, LibreOffice fallback,
 // Windows path-with-spaces, and correct recommendedAction messages.
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
+import fs from "fs";
+import os from "os";
 import path from "path";
+import {
+  getLibreOfficeProbeArgs,
+  getRecommendedAction,
+  probeDiagnosticBinary,
+  resolvePopplerBinary,
+} from "../../src/lib/diagnostics/toolchain-probe";
+import { isAncloraWindowsRuntime } from "../../src/lib/runtime-platform";
+import { findLibreofficeBinary } from "../../src/lib/engines/document/libreoffice-engine";
 
-// ── Poppler binary resolution helper ─────────────────────────────────────────
-// Re-implement the same logic as toolchain-probe.ts resolvePopplerBinary() so
-// tests remain independent of internal module structure.
-function resolvePopplerBinary(dir: string, isWindows: boolean, existsFn: (p: string) => boolean): string {
-  if (!dir) return isWindows ? "pdftoppm.exe" : "pdftoppm";
-  if (isWindows) {
-    const candidates = [
-      path.join(dir, "Library", "bin", "pdftoppm.exe"),
-      path.join(dir, "bin", "pdftoppm.exe"),
-      path.join(dir, "pdftoppm.exe"),
-    ];
-    for (const c of candidates) {
-      if (existsFn(c)) return c;
-    }
-    return path.join(dir, "pdftoppm.exe");
+const originalPlatformOverride = process.env.ANCLORA_FILESTUDIO_PLATFORM;
+
+afterEach(() => {
+  if (originalPlatformOverride === undefined) {
+    delete process.env.ANCLORA_FILESTUDIO_PLATFORM;
+  } else {
+    process.env.ANCLORA_FILESTUDIO_PLATFORM = originalPlatformOverride;
   }
-  return path.join(dir, "pdftoppm");
-}
+});
 
 // Re-implement the same logic as tesseract-engine.ts findPdftoppmBinary() candidates.
 function pdftoppmCandidatesFromDir(dir: string, isWindows: boolean): string[] {
@@ -112,14 +113,25 @@ describe("findPdftoppmBinary candidates — Windows layout", () => {
 // ── LibreOffice binary fallback ───────────────────────────────────────────────
 
 describe("LibreOffice binary name fallback", () => {
-  it("on Windows the fallback is soffice.exe (not libreoffice)", () => {
-    // This mirrors config.ts: resolveToolPath('', 'soffice.exe') on Windows.
-    // The test verifies the correct fallback is used by the config module.
-    const windowsFallback = process.platform === "win32" ? "soffice.exe" : "libreoffice";
-    if (process.platform === "win32") {
-      expect(windowsFallback).toBe("soffice.exe");
-    } else {
-      expect(windowsFallback).toBe("libreoffice");
+  it("on Windows prioritizes soffice.com before soffice.exe", () => {
+    process.env.ANCLORA_FILESTUDIO_PLATFORM = "windows";
+
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "anclora-lo-"));
+    const previousCwd = process.cwd();
+    try {
+      const programDir = path.join(tempDir, "tools", "libreoffice", "program");
+      fs.mkdirSync(programDir, { recursive: true });
+      const sofficeCom = path.join(programDir, "soffice.com");
+      const sofficeExe = path.join(programDir, "soffice.exe");
+      fs.writeFileSync(sofficeCom, "");
+      fs.writeFileSync(sofficeExe, "");
+
+      process.chdir(tempDir);
+
+      expect(findLibreofficeBinary()).toBe(sofficeCom);
+    } finally {
+      process.chdir(previousCwd);
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
@@ -135,13 +147,21 @@ describe("LibreOffice binary name fallback", () => {
 
 describe("recommendedAction platform awareness", () => {
   it("Windows message for LibreOffice does not contain 'sudo apt'", () => {
-    const winMsg = "Instala LibreOffice desde libreoffice.org (se detecta en C:\\Program Files\\LibreOffice)";
+    process.env.ANCLORA_FILESTUDIO_PLATFORM = "windows";
+    const winMsg = getRecommendedAction(
+      "sudo apt install libreoffice",
+      "Instala LibreOffice desde libreoffice.org (se detecta en C:\\Program Files\\LibreOffice)"
+    );
     expect(winMsg).not.toContain("sudo apt");
     expect(winMsg).toContain("libreoffice.org");
   });
 
   it("Windows message for Poppler does not contain 'sudo apt'", () => {
-    const winMsg = "Descarga Poppler para Windows desde github.com/oschwartz10612/poppler-windows y colócalo en tools\\poppler\\";
+    process.env.ANCLORA_FILESTUDIO_PLATFORM = "windows";
+    const winMsg = getRecommendedAction(
+      "sudo apt install poppler-utils",
+      "Descarga Poppler para Windows desde github.com/oschwartz10612/poppler-windows y colócalo en tools\\poppler\\"
+    );
     expect(winMsg).not.toContain("sudo apt");
     expect(winMsg).toContain("poppler-windows");
   });
@@ -165,7 +185,11 @@ describe("recommendedAction platform awareness", () => {
   });
 
   it("Linux message for LibreOffice uses apt", () => {
-    const linuxMsg = "sudo apt install libreoffice";
+    delete process.env.ANCLORA_FILESTUDIO_PLATFORM;
+    const linuxMsg = getRecommendedAction(
+      "sudo apt install libreoffice",
+      "Instala LibreOffice desde libreoffice.org"
+    );
     expect(linuxMsg).toContain("sudo apt");
   });
 });
@@ -173,13 +197,12 @@ describe("recommendedAction platform awareness", () => {
 // ── LibreOffice probe args ────────────────────────────────────────────────────
 
 describe("LibreOffice probe args", () => {
-  it("includes --headless when running on Windows", () => {
-    const args = process.platform === "win32"
-      ? ["--headless", "--version"]
-      : ["--version"];
-    if (process.platform === "win32") {
-      expect(args).toContain("--headless");
-    }
+  it("uses explicit Windows platform even when the host process is Linux", () => {
+    process.env.ANCLORA_FILESTUDIO_PLATFORM = "windows";
+
+    expect(isAncloraWindowsRuntime()).toBe(true);
+    const args = getLibreOfficeProbeArgs();
+    expect(args).toContain("--headless");
     expect(args).toContain("--version");
   });
 
@@ -199,5 +222,34 @@ describe("Poppler absent state", () => {
     expect(fakePath).toBe(path.join("C:\\nonexistent\\poppler", "pdftoppm.exe"));
     // The binary doesn't exist; spawn will fail → "spawn-error" → status: "missing".
     // This is correct: Poppler is absent, not installed incorrectly.
+  });
+
+  it("Windows fallback never uses a Linux-style tools\\poppler\\pdftoppm path", () => {
+    const fakePath = resolvePopplerBinary("C:\\portable\\tools\\poppler", true, () => false);
+    expect(fakePath).toMatch(/pdftoppm\.exe$/);
+    expect(fakePath).not.toMatch(/pdftoppm$/);
+  });
+});
+
+describe("probeDiagnosticBinary", () => {
+  it("marks code 0 LibreOffice output as available and keeps four-part version", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "anclora-probe-"));
+    const scriptPath = path.join(tempDir, "fake-soffice");
+    try {
+      fs.writeFileSync(scriptPath, "#!/usr/bin/env sh\necho 'LibreOffice 26.2.4.2'\nexit 0\n");
+      fs.chmodSync(scriptPath, 0o755);
+
+      const result = await probeDiagnosticBinary(
+        scriptPath,
+        ["--headless", "--version"],
+        "LibreOffice (\\d+\\.\\d+\\.\\d+(?:\\.\\d+)?)"
+      );
+
+      expect(result.available).toBe(true);
+      expect(result.status).toBe("available");
+      expect(result.version).toBe("26.2.4.2");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });

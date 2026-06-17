@@ -1,5 +1,6 @@
 import path from "path";
 import { env, resolveToolPath } from "./env";
+import { isAncloraWindowsRuntime } from "./runtime-platform";
 
 export const CONFIG = {
   app: {
@@ -23,10 +24,10 @@ export const CONFIG = {
       qpdf: resolveToolPath(env.ANCLORA_FILESTUDIO_QPDF_PATH, "qpdf"),
       sevenzip: resolveToolPath(env.ANCLORA_FILESTUDIO_7ZIP_PATH, "7z"),
       pandoc: resolveToolPath(env.ANCLORA_FILESTUDIO_PANDOC_PATH, "pandoc"),
-      // On Windows the binary is soffice.exe; fall back by that name so PATH lookup works.
+      // On Windows prefer soffice.com; soffice.exe can hang when probed from Node.
       libreoffice: resolveToolPath(
         env.ANCLORA_FILESTUDIO_LIBREOFFICE_PATH,
-        process.platform === "win32" ? "soffice.exe" : "libreoffice"
+        isAncloraWindowsRuntime() ? "soffice.com" : "libreoffice"
       ),
       calibre: resolveToolPath(env.ANCLORA_FILESTUDIO_CALIBRE_PATH, "ebook-convert"),
       tesseract: resolveToolPath(env.ANCLORA_FILESTUDIO_TESSERACT_PATH, "tesseract"),
