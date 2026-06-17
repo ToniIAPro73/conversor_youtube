@@ -63,7 +63,7 @@ const OUTPUT_MATRIX: Record<PandocFormat, PandocFormat[]> = {
   rst:      ["markdown", "html", "docx", "odt", "latex", "plain"],
   docx:     ["markdown", "html", "odt", "rst", "plain"],
   odt:      ["markdown", "html", "docx", "rst", "plain"],
-  latex:    ["markdown", "html", "plain"],
+  latex:    ["markdown", "html"],
   plain:    ["markdown", "html"],
 };
 
@@ -158,6 +158,7 @@ export class PandocEngine implements ConversionEngine {
 
     const fromDef = resolveInputFormat(descriptor);
     if (!fromDef) return [];
+    if (fromDef.pandocName === "odt") return [];
 
     const outputFormats = OUTPUT_MATRIX[fromDef.pandocName] ?? [];
     return outputFormats.map((toFmt) => buildCapability(fromDef, toFmt, descriptor, probeResult.available));

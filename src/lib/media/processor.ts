@@ -15,6 +15,7 @@ import crypto from "crypto";
 
 const AUDIO_FORMATS: AudioOutputFormat[] = ["mp3", "m4a", "wav", "flac", "ogg"];
 const VIDEO_FORMATS: VideoOutputFormat[] = ["mp4", "webm", "mkv"];
+const IMAGE_OUTPUT_FORMATS = ["gif", "jpg", "jpeg", "png"] as const;
 
 function getMimeType(format: string): string {
   const map: Record<string, string> = {
@@ -26,6 +27,10 @@ function getMimeType(format: string): string {
     mp4: "video/mp4",
     webm: "video/webm",
     mkv: "video/x-matroska",
+    gif: "image/gif",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
   };
   return map[format] ?? "application/octet-stream";
 }
@@ -37,6 +42,7 @@ export async function processJob(jobId: string) {
   const outputFormat = job.output_format;
   const isAudio = AUDIO_FORMATS.includes(outputFormat as AudioOutputFormat);
   const isVideo = VIDEO_FORMATS.includes(outputFormat as VideoOutputFormat);
+  const isImageOutput = IMAGE_OUTPUT_FORMATS.includes(outputFormat as (typeof IMAGE_OUTPUT_FORMATS)[number]);
   const extension = `.${outputFormat}`;
 
   const jobDir = path.join(CONFIG.media.tempDir, jobId);
@@ -69,6 +75,10 @@ export async function processJob(jobId: string) {
         await processLocalAudio(jobId, inputPath, outputFormat as AudioOutputFormat, job.quality, outputPath);
       } else if (isVideo) {
         await processLocalVideo(jobId, inputPath, outputFormat as VideoOutputFormat, job.quality, outputPath);
+      } else if (outputFormat === "gif") {
+        await processLocalGif(jobId, inputPath, job.quality, outputPath);
+      } else if (outputFormat === "jpg" || outputFormat === "jpeg" || outputFormat === "png") {
+        await processLocalThumbnail(jobId, inputPath, outputFormat, outputPath);
       } else {
         const err = createAppError("INPUT_UNSUPPORTED", `Formato no soportado: ${outputFormat}`, { stage: "pre-processing" });
         jobManager.updateJob(jobId, {
@@ -98,7 +108,9 @@ export async function processJob(jobId: string) {
     });
 
     const stats = fs.statSync(outputPath);
-    const verification = await verifyFile(outputPath, isAudio ? "mp3" : "mp4");
+    const verification = isImageOutput
+      ? verifyImageOutput(outputPath, outputFormat)
+      : await verifyFile(outputPath, isAudio ? "mp3" : "mp4");
 
     if (!verification.isValid) {
       const err = createAppError("ARTIFACT_VALIDATION_FAILED", "La verificación del archivo ha fallado.", {
@@ -222,6 +234,63 @@ async function processLocalVideo(
 
   const args = buildFfmpegVideoArgs({ inputPath, outputPath, format, quality });
   await runProcess(CONFIG.media.binaries.ffmpeg, args, jobId);
+}
+
+async function processLocalGif(
+  jobId: string,
+  inputPath: string,
+  quality: string,
+  outputPath: string
+): Promise<void> {
+  jobManager.updateJob(jobId, {
+    status: "processing",
+    stage: "Creando GIF",
+    started_at: new Date().toISOString(),
+  });
+
+  const width = Number.parseInt(quality, 10);
+  const scaleWidth = Number.isFinite(width) && width > 0 ? width : 480;
+  const args = [
+    "-y",
+    "-i", inputPath,
+    "-t", "10",
+    "-vf", `fps=10,scale=${scaleWidth}:-1:flags=lanczos`,
+    "-loop", "0",
+    outputPath,
+  ];
+  await runProcess(CONFIG.media.binaries.ffmpeg, args, jobId);
+}
+
+async function processLocalThumbnail(
+  jobId: string,
+  inputPath: string,
+  format: string,
+  outputPath: string
+): Promise<void> {
+  jobManager.updateJob(jobId, {
+    status: "processing",
+    stage: "Extrayendo miniatura",
+    started_at: new Date().toISOString(),
+  });
+
+  const codecArgs = format === "png" ? ["-frames:v", "1"] : ["-frames:v", "1", "-q:v", "2"];
+  const args = ["-y", "-ss", "0", "-i", inputPath, ...codecArgs, outputPath];
+  await runProcess(CONFIG.media.binaries.ffmpeg, args, jobId);
+}
+
+function verifyImageOutput(outputPath: string, outputFormat: string): { isValid: boolean; reason?: string } {
+  const bytes = fs.readFileSync(outputPath);
+  if (bytes.length === 0) return { isValid: false, reason: "empty output" };
+  if (outputFormat === "gif") {
+    return { isValid: bytes.subarray(0, 3).toString("ascii") === "GIF" };
+  }
+  if (outputFormat === "jpg" || outputFormat === "jpeg") {
+    return { isValid: bytes[0] === 0xff && bytes[1] === 0xd8 };
+  }
+  if (outputFormat === "png") {
+    return { isValid: bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) };
+  }
+  return { isValid: false, reason: `unsupported image output ${outputFormat}` };
 }
 
 function runProcess(

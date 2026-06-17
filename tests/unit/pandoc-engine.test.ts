@@ -88,9 +88,9 @@ describe("PandocEngine — capability matrix", () => {
     expect(fmts).toContain("html");
   });
 
-  it("odt input includes markdown output", () => {
+  it("odt input is not advertised through Pandoc", () => {
     const caps = engine.getCapabilities(makeDescriptor("odt"), AVAILABLE_PROBE);
-    expect(caps.map((c) => c.outputFormat)).toContain("md");
+    expect(caps).toHaveLength(0);
   });
 
   it("rst input includes html output", () => {

@@ -20,6 +20,8 @@ export function extractEngineIdFromCapabilityId(capabilityId: string): string {
     ["ffmpeg-subtitles", "ffmpeg-media"],
     ["sharp-image", "sharp-image"],
     ["ffmpeg-media", "ffmpeg-media"],
+    ["bg-removal", "background-removal"],
+    ["background-removal", "background-removal"],
     ["libreoffice", "libreoffice"],
     ["sevenzip", "sevenzip"],
     ["data-ts", "data-ts"],

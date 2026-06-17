@@ -45,6 +45,14 @@ function detectOutputMime(filePath: string): string | null {
       fs.readSync(fd, riffBuf, 0, 12, 0);
       const typeBytes = riffBuf.slice(8, 12).toString("ascii");
       if (typeBytes === "WEBP") return "image/webp";
+
+      const bmffBuf = Buffer.alloc(64);
+      fs.readSync(fd, bmffBuf, 0, 64, 0);
+      if (bmffBuf.slice(4, 8).toString("ascii") === "ftyp") {
+        const majorBrand = bmffBuf.slice(8, 12).toString("ascii");
+        const brands = bmffBuf.toString("ascii");
+        if (majorBrand === "avif" || majorBrand === "avis" || brands.includes("avif") || brands.includes("avis")) return "image/avif";
+      }
     } finally {
       fs.closeSync(fd);
     }
@@ -211,7 +219,10 @@ export async function processUniversalJob(jobId: string): Promise<void> {
       inputPath,
       outputPath,
       outputFormat,
-      options: job.options_json ? JSON.parse(job.options_json) : {},
+      options: {
+        ...(job.options_json ? JSON.parse(job.options_json) : {}),
+        inputFormat: job.input_format,
+      },
       args: [],
       env: {},
       timeoutMs: CONFIG.media.limits.conversionTimeoutSeconds * 1000,

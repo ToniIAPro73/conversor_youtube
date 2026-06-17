@@ -15,6 +15,9 @@ apps/*/node_modules
 
 # testing
 /coverage
+/artifacts/acceptance/**/downloads/
+/artifacts/acceptance/**/*.bin
+/tests/acceptance/fixtures/generated/
 
 # next.js
 /.next/

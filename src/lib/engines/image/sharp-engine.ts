@@ -270,8 +270,13 @@ export class SharpEngine implements ConversionEngine {
     try {
       const sharp = (await import("sharp")).default;
       const meta = await sharp(outputPath).metadata();
+      const actualMediaType = (meta as { mediaType?: string }).mediaType;
       checks.push({ name: "sharp-readable", passed: true, detail: `${meta.width}×${meta.height} ${meta.format}` });
-      checks.push({ name: "format-matches", passed: meta.format === plan.outputFormat || (plan.outputFormat === "jpeg" && meta.format === "jpeg"), detail: meta.format });
+      const formatMatches =
+        meta.format === plan.outputFormat ||
+        (plan.outputFormat === "jpeg" && meta.format === "jpeg") ||
+        (plan.outputFormat === "avif" && meta.format === "heif" && actualMediaType === "image/avif");
+      checks.push({ name: "format-matches", passed: formatMatches, detail: `${meta.format}${actualMediaType ? `/${actualMediaType}` : ""}` });
     } catch (err) {
       checks.push({ name: "sharp-readable", passed: false, detail: String(err) });
     }

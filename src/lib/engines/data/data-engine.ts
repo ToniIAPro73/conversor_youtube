@@ -120,7 +120,7 @@ async function serializeOutput(data: unknown, fmt: DataFormat): Promise<string> 
     }
     case "toml": {
       const { stringify } = await import("smol-toml");
-      return stringify(data as Record<string, unknown>);
+      return stringify(toTomlObject(data));
     }
     case "xml": {
       const { XMLBuilder } = await import("fast-xml-parser");
@@ -142,16 +142,34 @@ async function serializeOutput(data: unknown, fmt: DataFormat): Promise<string> 
 
 function flattenToRows(data: unknown): Record<string, unknown>[] {
   if (Array.isArray(data)) {
-    return data.filter((r) => typeof r === "object" && r !== null) as Record<string, unknown>[];
+    const rows = data.map((r) => typeof r === "object" && r !== null ? normalizeRow(r as Record<string, unknown>) : { value: r });
+    return rows.length > 0 ? rows : [{ value: "" }];
   }
   if (typeof data === "object" && data !== null) {
     // Try to find a nested array (common XML/JSON pattern)
     for (const v of Object.values(data as Record<string, unknown>)) {
-      if (Array.isArray(v)) return v as Record<string, unknown>[];
+      if (Array.isArray(v)) return flattenToRows(v);
     }
-    return [data as Record<string, unknown>];
+    return [normalizeRow(data as Record<string, unknown>)];
   }
-  return [];
+  return [{ value: data ?? "" }];
+}
+
+function normalizeRow(row: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(row).map(([key, value]) => [
+    key,
+    typeof value === "object" && value !== null ? JSON.stringify(value) : value,
+  ]));
+}
+
+function toTomlObject(data: unknown): Record<string, unknown> {
+  if (typeof data === "object" && data !== null && !Array.isArray(data)) {
+    return data as Record<string, unknown>;
+  }
+  if (Array.isArray(data)) {
+    return { items: data.map((item) => typeof item === "object" && item !== null ? item : { value: item }) };
+  }
+  return { value: data ?? "" };
 }
 
 // ── Engine implementation ────────────────────────────────────────────────────
@@ -217,7 +235,7 @@ export class DataEngine implements ConversionEngine {
 
     try {
       const inputText = fs.readFileSync(plan.inputPath, "utf-8");
-      const fromFmt = (plan.options.inputFormat ?? plan.inputPath.split(".").pop()) as DataFormat;
+      const fromFmt = normalizeDataFormat(plan.options.inputFormat ?? plan.inputPath.split(".").pop());
       const toFmt = plan.outputFormat as DataFormat;
 
       onProgress?.(30, "Parseando");
@@ -274,6 +292,14 @@ export class DataEngine implements ConversionEngine {
 
     return { valid: checks.every((c) => c.passed), checks };
   }
+}
+
+function normalizeDataFormat(value: unknown): DataFormat {
+  const raw = String(value ?? "").toLowerCase();
+  if (raw === "yml") return "yaml";
+  if (raw === "html" || raw === "htm") return "xml";
+  if (ALL_FORMATS.includes(raw as DataFormat)) return raw as DataFormat;
+  throw new Error(`Unsupported data input format: ${raw}`);
 }
 
 export const dataEngine = new DataEngine();
