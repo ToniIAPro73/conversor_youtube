@@ -66,3 +66,5 @@ dist/
 SBOM.cdx.json
 
 MEMORY.md
+
+*.log

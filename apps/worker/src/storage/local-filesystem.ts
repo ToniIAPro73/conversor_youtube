@@ -1,6 +1,6 @@
 // LocalFilesystemStorage — implements ArtifactStorage for Desktop and single-node VPS.
 import { createReadStream, createWriteStream, existsSync, statSync, mkdirSync } from "node:fs";
-import { unlink, stat } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import { join, resolve, relative, dirname, basename } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { createHash, randomBytes } from "node:crypto";

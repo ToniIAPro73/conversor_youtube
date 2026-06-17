@@ -1,11 +1,10 @@
 // Webhook delivery service tests — SSRF protection, HMAC signature, delivery
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   signWebhookPayload,
   verifyWebhookSignature,
   buildWebhookHeaders,
   deliverWebhook,
-  SsrfError,
 } from "../src/services/webhook-delivery.js";
 
 // ── HMAC Signature ────────────────────────────────────────────────────────────

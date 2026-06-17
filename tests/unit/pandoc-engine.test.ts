@@ -187,7 +187,7 @@ describe("PandocEngine — TXT execution regression", () => {
 
     const runSpy = vi
       .spyOn(ProcessRunner.prototype, "run")
-      .mockImplementation(async ({ args }) => {
+      .mockImplementation(async () => {
         fs.writeFileSync(
           outputPath,
           "<!doctype html><html><body>Contenido</body></html>",
