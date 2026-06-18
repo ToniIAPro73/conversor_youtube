@@ -83,6 +83,40 @@ export const messages = {
   "general.bytes": "{n} bytes",
   "general.kb": "{n} KB",
   "general.mb": "{n} MB",
+
+  // Web mode — dropzone
+  "web.dropzone.idle": "Drop a file here or select one",
+  "web.dropzone.drag-active": "Drop the file to continue",
+  "web.dropzone.drag-invalid": "Unsupported file",
+  "web.dropzone.formats": "Web formats: JSON, YAML, TOML, XML, CSV and TSV",
+  "web.dropzone.max-size": "Maximum size: 1 MB",
+  "web.dropzone.too-large": "The file is too large. The Web version supports up to 1 MB.",
+  "web.dropzone.unsupported": "Unsupported file. Use JSON, YAML, TOML, XML, CSV or TSV.",
+
+  // Web mode — conversion
+  "web.convert.done": "Conversion complete. Your file was converted in this browser and is ready to download.",
+  "web.convert.converting": "Converting…",
+  "web.convert.another": "Convert another file",
+
+  // Web mode — privacy
+  "web.privacy.title": "Your files never leave your device",
+  "web.privacy.body": "The conversion happens entirely in this browser. We never send your file to our servers, and we do not store a copy.",
+
+  // Web mode — desktop required
+  "web.desktop.title": "These conversions require the Desktop app",
+  "web.desktop.cta": "Download FileStudio for Windows or Linux to use these formats.",
+
+  // Web mode — links
+  "web.link.windows": "Windows",
+  "web.link.linux": "Linux",
+  "web.link.support": "Help",
+  "web.link.windows-disabled": "Download coming soon",
+  "web.link.linux-disabled": "Download coming soon",
+  "web.link.support-disabled": "Support not yet configured",
+
+  // Web mode — CSV warnings
+  "web.csv.nested-warning": "Some values contain nested structures. They have been serialized as JSON text inside the cell.",
+  "web.csv.root-invalid": "Cannot create CSV from this content. The file must contain a list of records (array of objects).",
 } as const;
 
 export type MessageKey = keyof typeof messages;

@@ -83,6 +83,40 @@ export const messages = {
   "general.bytes": "{n} bytes",
   "general.kb": "{n} KB",
   "general.mb": "{n} MB",
+
+  // Web mode — dropzone
+  "web.dropzone.idle": "Arrastra el archivo aquí o selecciona uno",
+  "web.dropzone.drag-active": "Suelta el archivo para continuar",
+  "web.dropzone.drag-invalid": "Archivo no compatible",
+  "web.dropzone.formats": "Formatos Web: JSON, YAML, TOML, XML, CSV y TSV",
+  "web.dropzone.max-size": "Tamaño máximo: 1 MB",
+  "web.dropzone.too-large": "El archivo es demasiado grande. La versión Web admite hasta 1 MB.",
+  "web.dropzone.unsupported": "Archivo no compatible. Usa JSON, YAML, TOML, XML, CSV o TSV.",
+
+  // Web mode — conversion
+  "web.convert.done": "Conversión completada. Tu archivo se ha convertido en este navegador y ya está listo para descargar.",
+  "web.convert.converting": "Convirtiendo…",
+  "web.convert.another": "Convertir otro archivo",
+
+  // Web mode — privacy
+  "web.privacy.title": "Tus archivos no salen de tu equipo",
+  "web.privacy.body": "La conversión se realiza directamente en este navegador. No enviamos el archivo a nuestros servidores y no guardamos una copia.",
+
+  // Web mode — desktop required
+  "web.desktop.title": "Para estas conversiones necesitas la aplicación Desktop",
+  "web.desktop.cta": "Descarga FileStudio para Windows o Linux para usar estos formatos.",
+
+  // Web mode — links
+  "web.link.windows": "Windows",
+  "web.link.linux": "Linux",
+  "web.link.support": "Ayuda",
+  "web.link.windows-disabled": "Descarga próximamente",
+  "web.link.linux-disabled": "Descarga próximamente",
+  "web.link.support-disabled": "Soporte aún no configurado",
+
+  // Web mode — CSV warnings
+  "web.csv.nested-warning": "Algunos valores contienen estructuras anidadas. Se han serializado como texto JSON dentro de la celda.",
+  "web.csv.root-invalid": "No se puede crear un CSV con este contenido. Para convertir a CSV, el archivo debe contener una lista de registros.",
 } as const;
 
 export type MessageKey = keyof typeof messages;

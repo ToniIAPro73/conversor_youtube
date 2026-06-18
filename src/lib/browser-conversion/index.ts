@@ -2,23 +2,16 @@ import type { CapabilityInfo } from "@/lib/domain/unified-analysis";
 import { convertStructuredData } from "./structured-data";
 import { normalizeFormat } from "./validators";
 import type { BrowserCapability, BrowserStructuredFormat } from "./types";
+import { BROWSER_CONVERSION_MATRIX } from "./capabilities";
 
 export { convertStructuredData };
 export type { BrowserCapability, BrowserConversionInput, BrowserConversionResult, BrowserStructuredFormat } from "./types";
-
-const TARGETS: Record<BrowserStructuredFormat, BrowserStructuredFormat[]> = {
-  json: ["yaml", "toml", "xml", "csv", "tsv"],
-  yaml: ["json", "toml", "xml"],
-  toml: ["json", "yaml", "xml"],
-  xml: ["json", "yaml"],
-  csv: ["tsv", "json"],
-  tsv: ["csv", "json"],
-};
+export { BROWSER_CONVERSION_MATRIX, BROWSER_ROUTE_COUNT, BROWSER_MATRIX_DISPLAY, DESKTOP_REQUIRED_CATEGORIES, getTargetsForFormat } from "./capabilities";
 
 export function getWebCapabilitiesForExtension(extension: string): BrowserCapability[] {
   const source = normalizeFormat(extension);
   const browserCaps = source
-    ? TARGETS[source].map((target) => browserCapability(source, target))
+    ? (BROWSER_CONVERSION_MATRIX[source] as readonly BrowserStructuredFormat[]).map((target) => browserCapability(source, target))
     : [];
 
   return [

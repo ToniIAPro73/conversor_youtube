@@ -1,10 +1,48 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { FILESTUDIO_BRAND } from "@/lib/filestudio-brand";
+
+export const viewport: Viewport = {
+  themeColor: FILESTUDIO_BRAND.themeColor,
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
-  title: "Anclora FileStudio - Conversor de YouTube a MP3/MP4",
-  description: "Convierte vídeos de YouTube a MP3 o MP4 de forma rápida, segura y gratuita.",
+  metadataBase: new URL(FILESTUDIO_BRAND.siteUrl),
+  applicationName: FILESTUDIO_BRAND.name,
+  title: {
+    default: FILESTUDIO_BRAND.name,
+    template: `%s | ${FILESTUDIO_BRAND.name}`,
+  },
+  description: FILESTUDIO_BRAND.description,
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: { url: "/icon.png", type: "image/png" },
+  },
+  openGraph: {
+    type: "website",
+    siteName: FILESTUDIO_BRAND.name,
+    title: FILESTUDIO_BRAND.name,
+    description: FILESTUDIO_BRAND.description,
+    url: FILESTUDIO_BRAND.siteUrl,
+    images: [{ url: FILESTUDIO_BRAND.logoPath, width: 512, height: 512, alt: FILESTUDIO_BRAND.name }],
+  },
+  twitter: {
+    card: "summary",
+    title: FILESTUDIO_BRAND.name,
+    description: FILESTUDIO_BRAND.description,
+    images: [FILESTUDIO_BRAND.logoPath],
+  },
+  appleWebApp: {
+    capable: true,
+    title: FILESTUDIO_BRAND.shortName,
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({
@@ -14,7 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className="h-full antialiased"
       suppressHydrationWarning
     >
