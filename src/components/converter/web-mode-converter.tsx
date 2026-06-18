@@ -121,7 +121,7 @@ export function WebModeConverter() {
           <div className="flex items-center gap-3">
             <h1 className="text-[2rem] font-black leading-tight tracking-tight sm:text-4xl">
               Anclora{" "}
-              <span className="bg-gradient-to-r from-teal-300 to-teal-400 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-teal-300 to-teal-400 bg-clip-text text-transparent">
                 FileStudio
               </span>
             </h1>
@@ -390,7 +390,7 @@ export function WebModeConverter() {
         {/* ── Footer ─────────────────────────────────────────────────── */}
         <footer className="mt-12 flex flex-col items-center gap-2 border-t border-white/6 pt-6">
           <div className="flex items-center gap-2">
-            <span className="h-px w-8 bg-gradient-to-r from-transparent to-white/15" />
+            <span className="h-px w-8 bg-linear-to-r from-transparent to-white/15" />
             <p className="text-[10px] font-medium uppercase tracking-[0.26em] text-stone-600">
               Anclora FileStudio
             </p>
@@ -398,7 +398,7 @@ export function WebModeConverter() {
             <p className="text-[10px] font-medium uppercase tracking-[0.26em] text-stone-600">
               100% local
             </p>
-            <span className="h-px w-8 bg-gradient-to-l from-transparent to-white/15" />
+            <span className="h-px w-8 bg-linear-to-l from-transparent to-white/15" />
           </div>
           <p className="text-[9px] tracking-widest text-stone-700">{new Date().getFullYear()}</p>
         </footer>
