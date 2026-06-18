@@ -13,9 +13,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (isVercelWeb()) {
+    const vercelEnv = process.env.VERCEL_ENV;
+    const webStatus = vercelEnv === "production" ? "web-production" : "web-preview";
     return NextResponse.json({
       ok: true,
-      status: "web-preview",
+      status: webStatus,
       app: {
         name: "Anclora FileStudio",
         version: process.env.npm_package_version ?? "0.1.0",
