@@ -21,6 +21,15 @@ const envSchema = z.object({
   ANCLORA_FILESTUDIO_DATA_DIR: z.string().default(""),
   ANCLORA_FILESTUDIO_TEMP_DIR: z.string().default(""),
   ANCLORA_FILESTUDIO_PLATFORM: z.string().default(""),
+  ANCLORA_FILESTUDIO_DEPLOYMENT_TARGET: z.string().default(""),
+  ANCLORA_FILESTUDIO_ENABLE_SERVER_CONVERSIONS: z.string().default(""),
+  ANCLORA_FILESTUDIO_ENABLE_CLOUD_UPLOADS: z.string().default(""),
+  NEXT_PUBLIC_ANCLORA_FILESTUDIO_MODE: z.string().default(""),
+  NEXT_PUBLIC_ENABLE_BROWSER_DATA_CONVERSIONS: z.string().default(""),
+  NEXT_PUBLIC_WINDOWS_DOWNLOAD_URL: z.string().default(""),
+  NEXT_PUBLIC_LINUX_DOWNLOAD_URL: z.string().default(""),
+  NEXT_PUBLIC_SUPPORT_URL: z.string().default(""),
+  NEXT_PUBLIC_FILESTUDIO_SERVICE_URL: z.string().default(""),
 
   // ── Legacy binary paths (backward compatibility) ──────────────────────
   MEDIA_TEMP_DIR: z.string().default(".tmp/media"),

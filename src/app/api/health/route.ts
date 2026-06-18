@@ -1,11 +1,42 @@
 import { NextResponse } from "next/server";
-import { diagnoseAllEngines } from "@/lib/engines/registry";
-import { toolchainProbe } from "@/lib/diagnostics/toolchain-probe";
+import { loadDesktopModule } from "@/app/api/_desktop-route-loader";
+import {
+  areCloudUploadsEnabled,
+  areServerConversionsEnabled,
+  getDeploymentTarget,
+  getPublicFileStudioMode,
+  isVercelWeb,
+} from "@/lib/deployment-target";
 import { getAncloraRuntimePlatform } from "@/lib/runtime-platform";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (isVercelWeb()) {
+    return NextResponse.json({
+      ok: true,
+      status: "web-preview",
+      app: {
+        name: "Anclora FileStudio",
+        version: process.env.npm_package_version ?? "0.1.0",
+      },
+      runtime: {
+        deploymentTarget: getDeploymentTarget(),
+        effectivePlatform: getPublicFileStudioMode(),
+        nodeVersion: process.version,
+      },
+      serverConversions: areServerConversionsEnabled(),
+      cloudUploads: areCloudUploadsEnabled(),
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  const registryModule = "@/lib/engines/registry";
+  const probeModule = "@/lib/diagnostics/toolchain-probe";
+  const [{ diagnoseAllEngines }, { toolchainProbe }] = await Promise.all([
+    loadDesktopModule<typeof import("@/lib/engines/registry")>(registryModule),
+    loadDesktopModule<typeof import("@/lib/diagnostics/toolchain-probe")>(probeModule),
+  ]);
   const { dependencies, probeResults } = await toolchainProbe.run();
 
   const allOk = dependencies.every((d) => d.available);

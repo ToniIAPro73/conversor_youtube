@@ -165,7 +165,10 @@ info "Running tests..."
 pnpm test || warn "Tests not available or failed — manual review required"
 
 info "Building Next.js standalone..."
-NEXT_TELEMETRY_DISABLED=1 pnpm build
+ANCLORA_FILESTUDIO_DEPLOYMENT_TARGET=desktop \
+NEXT_PUBLIC_ANCLORA_FILESTUDIO_MODE=desktop \
+NEXT_TELEMETRY_DISABLED=1 \
+  pnpm build
 [[ -f "$STANDALONE/server.js" ]] || die "Standalone build missing: $STANDALONE/server.js"
 ok "Next.js build complete"
 
@@ -330,11 +333,13 @@ TMP_POPPLER="$(mktemp -d)"
 unzip -q "$POPPLER_CACHE" -d "$TMP_POPPLER" || die "Failed to decompress Poppler ZIP"
 POPPLER_ROOT="$(find "$TMP_POPPLER" -maxdepth 1 -type d -name "poppler-*" | head -1)"
 [[ -n "$POPPLER_ROOT" ]] || die "Poppler root directory not found in ZIP"
-POPPLER_PDFTOPPM="$(find "$POPPLER_ROOT" -path "*/Library/bin/pdftoppm.exe" -o -path "*/bin/pdftoppm.exe" | head -1)"
+POPPLER_PDFTOPPM="$(find "$POPPLER_ROOT" \( -path "*/Library/bin/pdftoppm.exe" -o -path "*/bin/pdftoppm.exe" -o -name "pdftoppm.exe" \) | head -1)"
 [[ -n "$POPPLER_PDFTOPPM" ]] || die "pdftoppm.exe not found in Poppler ZIP"
 cp -r "$POPPLER_ROOT/." "$TOOLS_DIR/poppler/"
 rm -rf "$TMP_POPPLER"
-[[ -f "$TOOLS_DIR/poppler/Library/bin/pdftoppm.exe" ]] || die "Poppler extraction failed: Library/bin/pdftoppm.exe missing"
+# Validate using the same multi-layout search (Library\bin, bin, root) — works with Poppler ≤25.x and 26.x+
+POPPLER_INSTALLED="$(find "$TOOLS_DIR/poppler" \( -path "*/Library/bin/pdftoppm.exe" -o -path "*/bin/pdftoppm.exe" -o -name "pdftoppm.exe" \) | head -1)"
+[[ -n "$POPPLER_INSTALLED" ]] || die "Poppler extraction failed: pdftoppm.exe not found in tools/poppler/"
 ok "Poppler ${POPPLER_VERSION} extracted"
 
 # 7-Zip — optional, no pinned SHA in lockfile, best-effort

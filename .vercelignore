@@ -1,0 +1,16 @@
+.env*
+.git
+.github
+.tmp
+.vercel
+artifacts/acceptance/**
+data/**
+dist/**
+logs/**
+temp/**
+tools/**
+tests/acceptance/fixtures/generated/**
+deploy/vps/**
+apps/api/**
+apps/worker/**
+apps/local-agent/**

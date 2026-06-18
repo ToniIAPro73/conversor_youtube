@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupportedConversions, getRecommendedConversion } from "@/lib/media/supported-conversions";
-import { MediaDescriptor } from "@/lib/media/probe";
-import { getCapabilities } from "@/lib/engines/registry";
+import { loadDesktopModule } from "@/app/api/_desktop-route-loader";
 import type { UniversalFileDescriptor } from "@/lib/domain/descriptors";
 import type { CapabilityInfo } from "@/lib/domain/unified-analysis";
 import { normalizeCapabilityInfo } from "@/lib/domain/unified-analysis";
 import type { ConversionCapability } from "@/lib/domain/engines";
-import fs from "fs";
-import { CONFIG } from "@/lib/config";
+import { getWebCapabilitiesForExtension } from "@/lib/browser-conversion";
+import { isVercelWeb } from "@/lib/deployment-target";
 import { z } from "zod";
 
 const BodySchema = z.union([
@@ -21,7 +19,21 @@ const BodySchema = z.union([
   }),
 ]);
 
-function checkToolAvailability() {
+type LegacyConversionCapability = {
+  outputFormat: string;
+  operation: string;
+  enabled: boolean;
+  warning?: string;
+  reason?: string;
+};
+
+async function checkToolAvailability() {
+  const fsModule = "fs";
+  const configModule = "@/lib/config";
+  const [fs, { CONFIG }] = await Promise.all([
+    loadDesktopModule<typeof import("fs")>(fsModule),
+    loadDesktopModule<typeof import("@/lib/config")>(configModule),
+  ]);
   function exists(bin: string) {
     if (!bin.includes("/") && !bin.includes("\\")) return true;
     return fs.existsSync(bin);
@@ -33,11 +45,44 @@ function checkToolAvailability() {
   };
 }
 
+export async function GET() {
+  if (isVercelWeb()) {
+    return NextResponse.json({
+      deploymentTarget: "vercel",
+      effectivePlatform: "vercel-web",
+      categories: {
+        browser: ["json", "yaml", "toml", "xml", "csv", "tsv"],
+        "desktop-required": [
+          "audio",
+          "video",
+          "image",
+          "document",
+          "spreadsheet",
+          "presentation",
+          "pdf",
+          "ebook",
+          "archive",
+          "ocr",
+        ],
+        "future-service": [],
+        unavailable: [],
+      },
+      serverConversions: false,
+      cloudUploads: false,
+    });
+  }
+
+  return NextResponse.json({
+    deploymentTarget: "desktop",
+    message: "Use POST with an analyzed descriptor to compute Desktop capabilities.",
+  });
+}
+
 /**
  * Convert a legacy media ConversionCapability to a normalized CapabilityInfo
  */
 function mediaCapToCapabilityInfo(
-  cap: ReturnType<typeof getSupportedConversions>[number],
+  cap: LegacyConversionCapability,
   engineId: import("@/lib/domain/engines").EngineId = "ffmpeg-media"
 ): CapabilityInfo {
   const isAudioFormat = ["mp3", "m4a", "wav", "flac", "ogg"].includes(cap.outputFormat as string);
@@ -105,6 +150,22 @@ export async function POST(req: NextRequest) {
     // Universal path — new engines (Sharp, data, qpdf, 7-Zip, pandoc, LibreOffice)
     if ("universalDescriptor" in parsed.data) {
       const descriptor = parsed.data.universalDescriptor as unknown as UniversalFileDescriptor;
+      if (isVercelWeb()) {
+        const normalizedCaps = getWebCapabilitiesForExtension(
+          descriptor.detectedFormat ?? descriptor.extension ?? ""
+        );
+        const recommended = normalizedCaps.find((cap) => cap.state === "available") ?? null;
+        return NextResponse.json({
+          capabilities: normalizedCaps,
+          recommended,
+          inputFormat: descriptor.detectedFormat ?? descriptor.extension ?? "unknown",
+          inputCategory: descriptor.category,
+          deploymentTarget: "vercel",
+        });
+      }
+
+      const registryModule = "@/lib/engines/registry";
+      const { getCapabilities } = await loadDesktopModule<typeof import("@/lib/engines/registry")>(registryModule);
       const capabilities = await getCapabilities(descriptor);
 
       // Normalize to CapabilityInfo
@@ -121,8 +182,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Legacy media path — FFmpeg engine
+    if (isVercelWeb()) {
+      return NextResponse.json({
+        capabilities: [],
+        recommended: null,
+        inputFormat: "unknown",
+        inputCategory: "desktop-required",
+        deploymentTarget: "vercel",
+      });
+    }
+
+    const mediaModule = "@/lib/media/supported-conversions";
+    const { getSupportedConversions, getRecommendedConversion } =
+      await loadDesktopModule<typeof import("@/lib/media/supported-conversions")>(mediaModule);
+    type MediaDescriptor = import("@/lib/media/probe").MediaDescriptor;
     const descriptor = parsed.data.descriptor as unknown as MediaDescriptor;
-    const tools = checkToolAvailability();
+    const tools = await checkToolAvailability();
     const capabilities = getSupportedConversions(descriptor, tools);
     const recommended = getRecommendedConversion(descriptor, capabilities);
 

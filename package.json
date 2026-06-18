@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:vercel": "ANCLORA_FILESTUDIO_DEPLOYMENT_TARGET=vercel NEXT_PUBLIC_ANCLORA_FILESTUDIO_MODE=vercel-web NEXT_PUBLIC_ENABLE_BROWSER_DATA_CONVERSIONS=true ANCLORA_FILESTUDIO_ENABLE_SERVER_CONVERSIONS=false ANCLORA_FILESTUDIO_ENABLE_CLOUD_UPLOADS=false next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -46,6 +47,7 @@
     "test:nexus-contract": "pnpm --filter @anclora/filestudio-nexus test -- tests/contract.test.ts",
     "test:privacy": "pnpm --filter @anclora/filestudio-local-agent test -- tests/consent.test.ts tests/credential-store.test.ts",
     "test:e2e": "playwright test",
+    "test:vercel": "vitest run tests/vercel",
     "build:desktop": "next build",
     "build:service": "pnpm --filter @anclora/filestudio-api build",
     "build:local-agent": "pnpm --filter @anclora/filestudio-local-agent build",
@@ -66,6 +68,9 @@
     "audit:licenses": "node scripts/audit-licenses.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "check:deps": "node scripts/check-dependencies.mjs",
+    "verify:vercel": "ANCLORA_FILESTUDIO_DEPLOYMENT_TARGET=vercel NEXT_PUBLIC_ANCLORA_FILESTUDIO_MODE=vercel-web node scripts/verify-vercel-bundle.mjs",
+    "deploy:vercel:preview": "vercel deploy",
+    "deploy:vercel:production": "vercel deploy --prod",
     "cleanup": "node scripts/cleanup-temp.mjs"
   },
   "dependencies": {

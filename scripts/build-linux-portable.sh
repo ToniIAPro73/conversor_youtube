@@ -69,15 +69,15 @@ STANDALONE="$REPO_ROOT/.next/standalone"
 STATIC_DIR="$REPO_ROOT/.next/static"
 PUBLIC_DIR="$REPO_ROOT/public"
 
-if [[ ! -f "$STANDALONE/server.js" ]]; then
-  info "Building Next.js application (output: standalone)..."
-  cd "$REPO_ROOT"
+info "Building Next.js application for Desktop portable (output: standalone)..."
+cd "$REPO_ROOT"
+rm -rf "$REPO_ROOT/.next"
+ANCLORA_FILESTUDIO_DEPLOYMENT_TARGET=desktop \
+NEXT_PUBLIC_ANCLORA_FILESTUDIO_MODE=desktop \
+NEXT_TELEMETRY_DISABLED=1 \
   pnpm build:desktop
-  [[ -f "$STANDALONE/server.js" ]] || die ".next/standalone/server.js not found after build"
-  ok "Next.js build complete"
-else
-  ok ".next/standalone/server.js already exists — skipping build"
-fi
+[[ -f "$STANDALONE/server.js" ]] || die ".next/standalone/server.js not found after build"
+ok "Next.js Desktop build complete"
 
 # ── Download Node.js runtime into cache (before staging wipe) ────────────────
 info "Preparing Node.js v${NODE_LINUX_VERSION} runtime cache..."

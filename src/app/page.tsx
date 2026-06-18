@@ -9,6 +9,7 @@ import { JobProgressCard } from "@/components/converter/job-progress-card";
 import { ArtifactResultCard } from "@/components/converter/artifact-result-card";
 import { JobHistory } from "@/components/history/job-history";
 import { ToolStatusPanel } from "@/components/diagnostics/tool-status-panel";
+import { WebModeConverter } from "@/components/converter/web-mode-converter";
 import type { CapabilityInfo } from "@/lib/domain/unified-analysis";
 import { Layers, History, Stethoscope, CheckCircle2, ArrowRight } from "lucide-react";
 import Image from "next/image";
@@ -44,6 +45,7 @@ interface CapabilitiesData {
 }
 
 export default function Home() {
+  const isWebMode = process.env.NEXT_PUBLIC_ANCLORA_FILESTUDIO_MODE === "vercel-web";
   const [activeTab, setActiveTab] = useState<Tab>("convert");
 
   // Flow step
@@ -214,6 +216,14 @@ export default function Home() {
 
   const currentStepIndex = steps.findIndex((s) => s.key === flowStep);
   const needsRights = analysisResult?.kind === "remote-url";
+
+  if (isWebMode) {
+    return (
+      <div lang="es" className="min-h-screen bg-[#0d0f12] text-[#f4f1ea]">
+        <WebModeConverter />
+      </div>
+    );
+  }
 
   return (
     <div lang="es" className="min-h-screen overflow-hidden bg-[#0d0f12] text-[#f4f1ea]">
