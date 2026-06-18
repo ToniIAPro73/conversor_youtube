@@ -37,6 +37,8 @@ describe("Vercel API mode", () => {
 
     expect(response.status).toBe(200);
     expect(body.categories.browser).toContain("json");
+    expect(body.categories.browser).toContain("pdf");
+    expect(body.categories.browser).toContain("webp");
     expect(body.categories["desktop-required"]).toContain("video");
     expect(body.serverConversions).toBe(false);
   });

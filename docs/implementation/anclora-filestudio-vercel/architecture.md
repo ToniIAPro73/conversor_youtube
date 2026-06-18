@@ -54,6 +54,19 @@ Blocked routes return `503 DESKTOP_REQUIRED` before loading Desktop-only code.
 
 ## Browser Conversion Flow
 
-The browser reads the selected file with `File.text()`, detects the extension,
-converts with browser-safe parsers/serializers, creates a `Blob`, and downloads
-with `URL.createObjectURL`. File bytes are not sent to `/api/*`.
+The browser reads the selected file with File APIs, validates the format, converts
+with browser-safe code, creates a `Blob`, and downloads with
+`URL.createObjectURL`. File bytes are not sent to `/api/*`.
+
+Phase 1 browser tools:
+
+- images: JPEG, PNG, WebP conversion, compression, resize, EXIF/GPS read and
+  strip, batch ZIP;
+- PDF: merge, split, reorder, rotate, images to PDF;
+- structured data: JSON, YAML/YML, TOML, XML, CSV, TSV.
+
+Heavy browser libraries are dynamically imported by the tool action:
+
+- `pdf-lib`;
+- `exifr`;
+- `fflate`.

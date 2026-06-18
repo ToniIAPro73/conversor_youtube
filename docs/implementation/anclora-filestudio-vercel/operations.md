@@ -35,11 +35,15 @@ pnpm deploy:vercel:production
 
 Validate:
 
-- `/` renders `Modo Web`;
+- `/` renders `Versión Web`, `Preparar imágenes`, `Organizar PDF` and `Más herramientas`;
 - `/api/health` returns `deploymentTarget=vercel`;
-- `/api/capabilities` lists browser formats;
+- `/api/capabilities` lists image, PDF and structured browser formats with
+  `execution=browser`, `uploads=false` and `serverConversions=false`;
 - `/api/metadata` returns `503 DESKTOP_REQUIRED`;
 - browser conversion downloads without `/api` upload.
+
+Preview must be validated before Production. Do not run `vercel deploy --prod`
+or merge the PR without explicit approval.
 
 ## Rollback
 

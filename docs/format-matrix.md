@@ -16,6 +16,16 @@ Complete reference of all supported conversions, organized by engine.
 
 ---
 
+## Web Version — Browser Tools
+
+| Area | Input | Output | Operations | Notes |
+|---|---|---|---|---|
+| Images | JPEG, PNG, WebP | JPEG, PNG, WebP, ZIP | Convert, compress, resize, EXIF/GPS read, EXIF/GPS strip, batch | Canvas-based browser processing; AVIF and advanced image formats require later validation or Desktop. |
+| PDF | PDF, JPEG, PNG, WebP | PDF, ZIP | Merge, split, reorder, rotate, images to PDF | `pdf-lib` browser processing; OCR, Office/PDF conversion and encrypted PDFs require Desktop. |
+| Structured Data | JSON, YAML/YML, TOML, XML, CSV, TSV | JSON, YAML, TOML, XML, CSV, TSV | Cross-conversion | Pure TypeScript browser conversion. |
+
+The Desktop matrix below remains the native engine matrix.
+
 ## Audio — FFmpeg Engine
 
 | Input Format | Output Format | Engine | Loss Profile | Notes |

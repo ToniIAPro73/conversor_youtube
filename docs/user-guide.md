@@ -15,6 +15,21 @@
 
 ## Getting Started
 
+### Web Version
+
+The Web version runs image, PDF and structured data tools directly in your
+browser:
+
+- **Imágenes**: JPEG, PNG and WebP conversion, compression, resize, EXIF/GPS
+  read and removal, batch ZIP download.
+- **PDF**: merge PDFs, split by range, reorder pages, rotate pages and create a
+  PDF from images.
+- **Más herramientas**: JSON, YAML/YML, TOML, XML, CSV and TSV conversions.
+
+The Web version does not upload file content to `/api/*` or any cloud storage.
+Audio, video, Office, OCR, ebooks, archives and advanced PDF/image workflows
+require Desktop.
+
 ### Development Mode
 
 If you are a developer running Anclora FileStudio from source:

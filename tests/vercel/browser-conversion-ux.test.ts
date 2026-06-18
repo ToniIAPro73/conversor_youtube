@@ -56,13 +56,13 @@ describe("BROWSER_CONVERSION_MATRIX", () => {
     expect(inputs).toContain("TSV");
   });
 
-  it("DESKTOP_REQUIRED_CATEGORIES covers audio, video, images, documents, PDF, ebooks, archives, YouTube", () => {
+  it("DESKTOP_REQUIRED_CATEGORIES covers audio, video, advanced images, documents, advanced PDF, ebooks, archives, YouTube", () => {
     const labels = DESKTOP_REQUIRED_CATEGORIES.map((c) => c.label);
     expect(labels).toContain("Audio");
     expect(labels).toContain("Vídeo");
-    expect(labels).toContain("Imágenes");
+    expect(labels).toContain("Imágenes avanzadas");
     expect(labels).toContain("Documentos y Office");
-    expect(labels).toContain("PDF y OCR");
+    expect(labels).toContain("PDF avanzado y OCR");
     expect(labels).toContain("Ebooks");
     expect(labels).toContain("Archivos comprimidos");
     expect(labels).toContain("YouTube y funciones avanzadas");

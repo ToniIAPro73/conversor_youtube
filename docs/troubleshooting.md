@@ -1,5 +1,15 @@
 # Troubleshooting
 
+## Web version cannot process an advanced format
+
+The Web version supports browser-local JPEG, PNG, WebP, PDF organization and
+structured data conversions. Audio, video, Office, OCR, ebooks, archives,
+encrypted PDFs and advanced image formats require Desktop.
+
+If `/api/capabilities` reports `execution: "browser"`, the Web page must not
+upload the file to the server. If a browser blocks image decoding or PDF loading,
+try Desktop for that file.
+
 ## Local Agent cannot pair
 
 Check server URL, clock skew, admin approval and that the pairing code has not expired.

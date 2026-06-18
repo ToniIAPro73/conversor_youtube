@@ -6,6 +6,7 @@ Anclora FileStudio es una plataforma local-first de conversión y procesamiento 
 
 ## Product Surfaces
 
+- **Anclora FileStudio Web**: browser-local image, PDF and structured data tools on Vercel. Files are not uploaded.
 - **Anclora FileStudio Desktop**: local Next.js application, no Docker required.
 - **Anclora FileStudio Core**: shared domain contracts and conversion types.
 - **Anclora FileStudio Service**: private VPS/CI API with PostgreSQL, Redis and workers.
@@ -14,6 +15,9 @@ Anclora FileStudio es una plataforma local-first de conversión y procesamiento 
 
 ## Features
 
+- **Web image tools**: Convert, compress, resize and strip private metadata from JPEG, PNG and WebP in the browser.
+- **Web PDF tools**: Merge, split, reorder, rotate and create PDFs from images in the browser.
+- **Web structured data tools**: Convert JSON, YAML, TOML, XML, CSV and TSV in the browser.
 - **Universal conversion**: Convert between 50+ formats across 11 categories
 - **100% local & private**: All processing happens on your machine. No files are uploaded to any server.
 - **9 conversion engines**: FFmpeg, Sharp, Data Engine, QPDF, 7-Zip, Pandoc, LibreOffice, Calibre, Tesseract
@@ -27,6 +31,18 @@ Anclora FileStudio es una plataforma local-first de conversión y procesamiento 
 - **Windows portable distribution**: Self-contained ZIP with no installation required
 
 ## Supported Conversion Categories
+
+### Web Version
+
+| Category | Browser-local support |
+|---|---|
+| **Image** | JPEG, PNG, WebP conversion, compression, resize, EXIF/GPS read and strip, batch ZIP |
+| **PDF** | Merge, split by range, reorder, rotate, images to PDF |
+| **Structured Data** | JSON, YAML/YML, TOML, XML, CSV, TSV |
+
+Advanced engines, OCR, Office conversions, media, archives, ebooks and YouTube conversion require Desktop.
+
+### Desktop Version
 
 | Category | Formats |
 |---|---|

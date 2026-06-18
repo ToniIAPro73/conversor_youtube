@@ -5,6 +5,7 @@ import type { CapabilityInfo } from "@/lib/domain/unified-analysis";
 import { normalizeCapabilityInfo } from "@/lib/domain/unified-analysis";
 import type { ConversionCapability } from "@/lib/domain/engines";
 import { getWebCapabilitiesForExtension } from "@/lib/browser-conversion";
+import { WEB_TOOL_CAPABILITIES } from "@/lib/browser-tools/capabilities";
 import { isVercelWeb } from "@/lib/deployment-target";
 import { z } from "zod";
 
@@ -50,16 +51,17 @@ export async function GET() {
     return NextResponse.json({
       deploymentTarget: "vercel",
       effectivePlatform: "vercel-web",
+      execution: "browser",
+      uploads: false,
+      serverConversions: false,
       categories: {
-        browser: ["json", "yaml", "toml", "xml", "csv", "tsv"],
+        browser: ["jpeg", "jpg", "png", "webp", "pdf", "json", "yaml", "toml", "xml", "csv", "tsv"],
         "desktop-required": [
           "audio",
           "video",
-          "image",
           "document",
           "spreadsheet",
           "presentation",
-          "pdf",
           "ebook",
           "archive",
           "ocr",
@@ -67,7 +69,7 @@ export async function GET() {
         "future-service": [],
         unavailable: [],
       },
-      serverConversions: false,
+      tools: WEB_TOOL_CAPABILITIES,
       cloudUploads: false,
     });
   }
@@ -151,16 +153,64 @@ export async function POST(req: NextRequest) {
     if ("universalDescriptor" in parsed.data) {
       const descriptor = parsed.data.universalDescriptor as unknown as UniversalFileDescriptor;
       if (isVercelWeb()) {
+        const input = (descriptor.detectedFormat ?? descriptor.extension ?? "").toLowerCase();
+        if (["jpg", "jpeg", "png", "webp"].includes(input)) {
+          const capabilities: CapabilityInfo[] = WEB_TOOL_CAPABILITIES.images.operations.map((operation) => ({
+            id: `browser-image-${operation}`,
+            outputFormat: operation === "read-exif" ? input : "jpeg,png,webp",
+            outputLabel: operation,
+            state: "available",
+            lossProfile: operation === "read-exif" ? "lossless" : "metadata-risk",
+            engineId: "data-ts",
+            mobilePortability: "portable-domain",
+            warnings: ["Se ejecuta localmente en el navegador; no hay subida de archivos."],
+          }));
+          return NextResponse.json({
+            capabilities,
+            recommended: capabilities[0] ?? null,
+            inputFormat: input,
+            inputCategory: "image",
+            deploymentTarget: "vercel",
+            execution: "browser",
+            uploads: false,
+            serverConversions: false,
+          });
+        }
+        if (input === "pdf") {
+          const capabilities: CapabilityInfo[] = WEB_TOOL_CAPABILITIES.pdf.operations.map((operation) => ({
+            id: `browser-pdf-${operation}`,
+            outputFormat: operation === "split" ? "pdf,zip" : "pdf",
+            outputLabel: operation,
+            state: "available",
+            lossProfile: "metadata-risk",
+            engineId: "data-ts",
+            mobilePortability: "portable-domain",
+            warnings: ["Se ejecuta localmente en el navegador; no hay subida de archivos."],
+          }));
+          return NextResponse.json({
+            capabilities,
+            recommended: capabilities[0] ?? null,
+            inputFormat: input,
+            inputCategory: "pdf",
+            deploymentTarget: "vercel",
+            execution: "browser",
+            uploads: false,
+            serverConversions: false,
+          });
+        }
         const normalizedCaps = getWebCapabilitiesForExtension(
-          descriptor.detectedFormat ?? descriptor.extension ?? ""
+          input
         );
         const recommended = normalizedCaps.find((cap) => cap.state === "available") ?? null;
         return NextResponse.json({
           capabilities: normalizedCaps,
           recommended,
-          inputFormat: descriptor.detectedFormat ?? descriptor.extension ?? "unknown",
+          inputFormat: input || "unknown",
           inputCategory: descriptor.category,
           deploymentTarget: "vercel",
+          execution: "browser",
+          uploads: false,
+          serverConversions: false,
         });
       }
 

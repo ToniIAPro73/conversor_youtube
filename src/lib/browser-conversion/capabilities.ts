@@ -44,16 +44,16 @@ export const DESKTOP_REQUIRED_CATEGORIES = [
     formats: ["MP4", "WebM", "MKV", "GIF", "extracción de audio", "recorte", "miniaturas"],
   },
   {
-    label: "Imágenes",
-    formats: ["JPG", "PNG", "WebP", "AVIF", "TIFF", "GIF", "redimensionado", "eliminación de fondo"],
+    label: "Imágenes avanzadas",
+    formats: ["AVIF no soportado por el navegador", "TIFF", "GIF animado", "HEIC", "RAW", "eliminación de fondo"],
   },
   {
     label: "Documentos y Office",
     formats: ["DOCX", "DOC", "ODT", "RTF", "XLSX", "XLS", "ODS", "PPTX", "PPT", "ODP"],
   },
   {
-    label: "PDF y OCR",
-    formats: ["dividir", "rotar", "optimizar", "reconocer texto", "convertir PDF"],
+    label: "PDF avanzado y OCR",
+    formats: ["OCR", "PDF a Word", "Office a PDF", "descifrar PDF", "optimización avanzada"],
   },
   {
     label: "Ebooks",

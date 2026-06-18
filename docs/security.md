@@ -13,6 +13,10 @@ Anclora FileStudio procesa archivos localmente. Los principios de seguridad son:
 
 ## Ejecución de procesos externos
 
+La versión Web en Vercel no ejecuta procesos externos. Las herramientas de
+imágenes, PDF y datos estructurados se ejecutan en el navegador y no importan
+motores nativos ni rutas Desktop.
+
 Todos los `spawn()` en el codebase usan:
 
 ```typescript
