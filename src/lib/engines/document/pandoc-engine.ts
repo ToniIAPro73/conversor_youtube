@@ -5,7 +5,15 @@
 
 import fs from "fs";
 import path from "path";
-import type { ConversionEngine, EngineId, EngineProbeResult, ConversionCapability, ConversionPlan, ExecutionResult, ArtifactValidation } from "../../domain/engines";
+import type {
+  ConversionEngine,
+  EngineId,
+  EngineProbeResult,
+  ConversionCapability,
+  ConversionPlan,
+  ExecutionResult,
+  ArtifactValidation,
+} from "../../domain/engines";
 import type { UniversalFileDescriptor } from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
@@ -29,9 +37,46 @@ function findPandocBinary(): string {
   return "pandoc";
 }
 
+/**
+ * Resolve the Pandoc data directory for portable distributions.
+ * Pandoc needs this to locate templates (e.g. reference.docx for DOCX output).
+ * Checks: <pandocDir>/data, <pandocDir>/../share/pandoc, <pandocDir> itself.
+ * Returns null if running from PATH (system Pandoc manages its own data dir).
+ */
+function resolveDataDir(pandocDir: string): string | null {
+  // Only resolve for non-PATH installations (portable/explicit path)
+  const binary = CONFIG.media.binaries.pandoc;
+  if (!binary || binary === "pandoc") return null;
+
+  const candidates = [
+    path.join(pandocDir, "data"),
+    path.join(pandocDir, "..", "share", "pandoc"),
+    path.join(pandocDir, "..", "share"),
+    pandocDir,
+  ];
+
+  for (const candidate of candidates) {
+    const resolved = path.resolve(candidate);
+    // Check if this directory contains templates/ or defaults/
+    const templatesDir = path.join(resolved, "templates");
+    if (fs.existsSync(templatesDir)) return resolved;
+  }
+
+  // If no templates dir found, still pass the pandoc binary directory
+  // as data-dir — Pandoc 3.x will use its embedded defaults as fallback
+  return null;
+}
+
 // ── Format definitions ───────────────────────────────────────────────────────
 
-type PandocFormat = "markdown" | "html" | "docx" | "odt" | "rst" | "latex" | "plain";
+type PandocFormat =
+  | "markdown"
+  | "html"
+  | "docx"
+  | "odt"
+  | "rst"
+  | "latex"
+  | "plain";
 
 interface FormatDef {
   pandocName: PandocFormat;
@@ -43,28 +88,89 @@ interface FormatDef {
 }
 
 const FORMAT_MAP: Record<string, FormatDef> = {
-  markdown: { pandocName: "markdown", label: "Markdown", mime: "text/markdown", ext: "md", lossless: true },
-  md:       { pandocName: "markdown", label: "Markdown", mime: "text/markdown", ext: "md", lossless: true },
-  html:     { pandocName: "html",     label: "HTML",     mime: "text/html", ext: "html", lossless: false },
-  htm:      { pandocName: "html",     label: "HTML",     mime: "text/html", ext: "html", lossless: false },
-  rst:      { pandocName: "rst",      label: "reStructuredText", mime: "text/x-rst", ext: "rst", lossless: true },
-  docx:     { pandocName: "docx",     label: "Word DOCX", mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ext: "docx", lossless: false },
-  odt:      { pandocName: "odt",      label: "ODT",      mime: "application/vnd.oasis.opendocument.text", ext: "odt", lossless: false },
-  latex:    { pandocName: "latex",    label: "LaTeX",    mime: "application/x-latex", ext: "tex", lossless: true },
-  tex:      { pandocName: "latex",    label: "LaTeX",    mime: "application/x-latex", ext: "tex", lossless: true },
-  txt:      { pandocName: "plain", readerName: "markdown",    label: "Texto plano", mime: "text/plain", ext: "txt", lossless: false },
+  markdown: {
+    pandocName: "markdown",
+    label: "Markdown",
+    mime: "text/markdown",
+    ext: "md",
+    lossless: true,
+  },
+  md: {
+    pandocName: "markdown",
+    label: "Markdown",
+    mime: "text/markdown",
+    ext: "md",
+    lossless: true,
+  },
+  html: {
+    pandocName: "html",
+    label: "HTML",
+    mime: "text/html",
+    ext: "html",
+    lossless: false,
+  },
+  htm: {
+    pandocName: "html",
+    label: "HTML",
+    mime: "text/html",
+    ext: "html",
+    lossless: false,
+  },
+  rst: {
+    pandocName: "rst",
+    label: "reStructuredText",
+    mime: "text/x-rst",
+    ext: "rst",
+    lossless: true,
+  },
+  docx: {
+    pandocName: "docx",
+    label: "Word DOCX",
+    mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ext: "docx",
+    lossless: false,
+  },
+  odt: {
+    pandocName: "odt",
+    label: "ODT",
+    mime: "application/vnd.oasis.opendocument.text",
+    ext: "odt",
+    lossless: false,
+  },
+  latex: {
+    pandocName: "latex",
+    label: "LaTeX",
+    mime: "application/x-latex",
+    ext: "tex",
+    lossless: true,
+  },
+  tex: {
+    pandocName: "latex",
+    label: "LaTeX",
+    mime: "application/x-latex",
+    ext: "tex",
+    lossless: true,
+  },
+  txt: {
+    pandocName: "plain",
+    readerName: "markdown",
+    label: "Texto plano",
+    mime: "text/plain",
+    ext: "txt",
+    lossless: false,
+  },
 };
 
 // Output formats available from each input format
 // Rule: rich → plain is always allowed; plain → rich loses formatting (flagged)
 const OUTPUT_MATRIX: Record<PandocFormat, PandocFormat[]> = {
   markdown: ["html", "docx", "odt", "rst", "latex", "plain"],
-  html:     ["markdown", "docx", "odt", "rst", "plain"],
-  rst:      ["markdown", "html", "docx", "odt", "latex", "plain"],
-  docx:     ["markdown", "html", "odt", "rst", "plain"],
-  odt:      ["markdown", "html", "docx", "rst", "plain"],
-  latex:    ["markdown", "html"],
-  plain:    ["markdown", "html"],
+  html: ["markdown", "docx", "odt", "rst", "plain"],
+  rst: ["markdown", "html", "docx", "odt", "latex", "plain"],
+  docx: ["markdown", "html", "odt", "rst", "plain"],
+  odt: ["markdown", "html", "docx", "rst", "plain"],
+  latex: ["markdown", "html"],
+  plain: ["markdown", "html"],
 };
 
 // Formats where the output loses significant structure
@@ -75,21 +181,31 @@ const RISK_PAIRS: Array<[PandocFormat, PandocFormat]> = [
   ["odt", "markdown"],
 ];
 
-function isLossProfile(from: PandocFormat, to: PandocFormat): "lossless" | "lossy" | "metadata-risk" {
+function isLossProfile(
+  from: PandocFormat,
+  to: PandocFormat,
+): "lossless" | "lossy" | "metadata-risk" {
   if (LOSSY_OUTPUTS.has(to)) return "lossy";
-  if (RISK_PAIRS.some(([f, t]) => f === from && t === to)) return "metadata-risk";
-  if ((from === "docx" || from === "odt") && (to === "docx" || to === "odt")) return "metadata-risk";
+  if (RISK_PAIRS.some(([f, t]) => f === from && t === to))
+    return "metadata-risk";
+  if ((from === "docx" || from === "odt") && (to === "docx" || to === "odt"))
+    return "metadata-risk";
   return "lossless";
 }
 
 function lossWarning(from: PandocFormat, to: PandocFormat): string | null {
-  if (to === "plain") return "El texto plano pierde toda la estructura y el formato del documento";
-  if ((from === "docx" || from === "odt") && to === "markdown") return "Los documentos Word/ODT con formato complejo pueden perder estilos al convertir a Markdown";
-  if (from === "docx" && to === "odt") return "La conversión entre formatos ofimáticos puede alterar algunos estilos";
+  if (to === "plain")
+    return "El texto plano pierde toda la estructura y el formato del documento";
+  if ((from === "docx" || from === "odt") && to === "markdown")
+    return "Los documentos Word/ODT con formato complejo pueden perder estilos al convertir a Markdown";
+  if (from === "docx" && to === "odt")
+    return "La conversión entre formatos ofimáticos puede alterar algunos estilos";
   return null;
 }
 
-function resolveInputFormat(descriptor: UniversalFileDescriptor): FormatDef | null {
+function resolveInputFormat(
+  descriptor: UniversalFileDescriptor,
+): FormatDef | null {
   const ext = (descriptor.extension ?? "").toLowerCase();
   const fmt = (descriptor.detectedFormat ?? "").toLowerCase();
   return FORMAT_MAP[ext] ?? FORMAT_MAP[fmt] ?? null;
@@ -99,9 +215,11 @@ function buildCapability(
   fromDef: FormatDef,
   toFmt: PandocFormat,
   descriptor: UniversalFileDescriptor,
-  available: boolean
+  available: boolean,
 ): ConversionCapability {
-  const toDef: FormatDef = Object.values(FORMAT_MAP).find((f) => f.pandocName === toFmt)!;
+  const toDef: FormatDef = Object.values(FORMAT_MAP).find(
+    (f) => f.pandocName === toFmt,
+  )!;
   const loss = isLossProfile(fromDef.pandocName, toFmt);
   const warn = lossWarning(fromDef.pandocName, toFmt);
 
@@ -114,9 +232,21 @@ function buildCapability(
     description: `${fromDef.label} → ${toDef.label}`,
     lossProfile: loss,
     state: available ? "available" : "unavailable-tool",
-    unavailableReason: available ? undefined : "Pandoc no está instalado. Disponible en el ZIP portable de Windows.",
-    recommended: toFmt === "html" || (fromDef.pandocName === "docx" && toFmt === "markdown"),
-    presets: [{ id: `${fromDef.pandocName}-${toFmt}-default`, label: "Estándar", quality: "0", description: "Conversión directa con Pandoc", isRecommended: true }],
+    unavailableReason: available
+      ? undefined
+      : "Pandoc no está instalado. Disponible en el ZIP portable de Windows.",
+    recommended:
+      toFmt === "html" ||
+      (fromDef.pandocName === "docx" && toFmt === "markdown"),
+    presets: [
+      {
+        id: `${fromDef.pandocName}-${toFmt}-default`,
+        label: "Estándar",
+        quality: "0",
+        description: "Conversión directa con Pandoc",
+        isRecommended: true,
+      },
+    ],
     warnings: warn ? [warn] : [],
     engineId: ENGINE_ID,
     mobilePortability: "replace-adapter-on-mobile",
@@ -133,7 +263,8 @@ export class PandocEngine implements ConversionEngine {
   private _runner: ProcessRunner | null = null;
 
   private getRunner(): ProcessRunner {
-    if (!this._runner) this._runner = new ProcessRunner(findPandocBinary(), 120_000);
+    if (!this._runner)
+      this._runner = new ProcessRunner(findPandocBinary(), 120_000);
     return this._runner;
   }
 
@@ -145,28 +276,36 @@ export class PandocEngine implements ConversionEngine {
       version: result.version,
       binaryPath: result.binaryPath,
       capabilities: result.available ? Object.keys(FORMAT_MAP) : [],
-      error: result.available ? undefined : "Pandoc no encontrado. Instálalo desde pandoc.org o usa el ZIP portable.",
+      error: result.available
+        ? undefined
+        : "Pandoc no encontrado. Instálalo desde pandoc.org o usa el ZIP portable.",
     };
     return this._probeResult;
   }
 
   getCapabilities(
     descriptor: UniversalFileDescriptor,
-    probeResult: EngineProbeResult
+    probeResult: EngineProbeResult,
   ): ConversionCapability[] {
-    if (descriptor.category !== "plain-text" && descriptor.category !== "document") return [];
+    if (
+      descriptor.category !== "plain-text" &&
+      descriptor.category !== "document"
+    )
+      return [];
 
     const fromDef = resolveInputFormat(descriptor);
     if (!fromDef) return [];
     if (fromDef.pandocName === "odt") return [];
 
     const outputFormats = OUTPUT_MATRIX[fromDef.pandocName] ?? [];
-    return outputFormats.map((toFmt) => buildCapability(fromDef, toFmt, descriptor, probeResult.available));
+    return outputFormats.map((toFmt) =>
+      buildCapability(fromDef, toFmt, descriptor, probeResult.available),
+    );
   }
 
   async execute(
     plan: ConversionPlan,
-    onProgress?: (progress: number, stage: string) => void
+    onProgress?: (progress: number, stage: string) => void,
   ): Promise<ExecutionResult> {
     const start = Date.now();
     onProgress?.(10, "Preparando");
@@ -175,60 +314,143 @@ export class PandocEngine implements ConversionEngine {
       ensurePathSafety(plan.inputPath);
       ensurePathSafety(plan.outputPath);
     } catch (err) {
-      return { success: false, outputPath: plan.outputPath, outputSizeBytes: 0, durationMs: 0, logs: [], warnings: [], error: String(err) };
+      return {
+        success: false,
+        outputPath: plan.outputPath,
+        outputSizeBytes: 0,
+        durationMs: 0,
+        logs: [],
+        warnings: [],
+        error: String(err),
+      };
     }
 
     // Resolve input format from options or extension
-    const inputExt = (plan.options.inputFormat as string | undefined)
-      ?? path.extname(plan.inputPath).replace(".", "").toLowerCase();
+    const inputExt =
+      (plan.options.inputFormat as string | undefined) ??
+      path.extname(plan.inputPath).replace(".", "").toLowerCase();
     const fromDef = FORMAT_MAP[inputExt];
     if (!fromDef) {
-      return { success: false, outputPath: plan.outputPath, outputSizeBytes: 0, durationMs: Date.now() - start, logs: [], warnings: [], error: `Formato de entrada desconocido: ${inputExt}` };
+      return {
+        success: false,
+        outputPath: plan.outputPath,
+        outputSizeBytes: 0,
+        durationMs: Date.now() - start,
+        logs: [],
+        warnings: [],
+        error: `Formato de entrada desconocido: ${inputExt}`,
+      };
     }
 
     const outExt = plan.outputFormat;
-    const toDef = Object.values(FORMAT_MAP).find((f) => f.ext === outExt || f.pandocName === outExt);
+    const toDef = Object.values(FORMAT_MAP).find(
+      (f) => f.ext === outExt || f.pandocName === outExt,
+    );
     if (!toDef) {
-      return { success: false, outputPath: plan.outputPath, outputSizeBytes: 0, durationMs: Date.now() - start, logs: [], warnings: [], error: `Formato de salida desconocido: ${outExt}` };
+      return {
+        success: false,
+        outputPath: plan.outputPath,
+        outputSizeBytes: 0,
+        durationMs: Date.now() - start,
+        logs: [],
+        warnings: [],
+        error: `Formato de salida desconocido: ${outExt}`,
+      };
     }
 
     const readerName = fromDef.readerName ?? fromDef.pandocName;
 
-    const args = [
-      "-f", readerName,
-      "-t", toDef.pandocName,
-      "-o", plan.outputPath,
-      "--standalone",
-      plan.inputPath,
+    // Verify input file exists and is readable before calling Pandoc
+    if (!fs.existsSync(plan.inputPath)) {
+      return {
+        success: false,
+        outputPath: plan.outputPath,
+        outputSizeBytes: 0,
+        durationMs: Date.now() - start,
+        logs: [],
+        warnings: [],
+        error: `Archivo de entrada no encontrado: el archivo puede haber expirado o sido eliminado`,
+      };
+    }
+
+    const args: string[] = [
+      "-f",
+      readerName,
+      "-t",
+      toDef.pandocName,
+      "-o",
+      plan.outputPath,
     ];
 
+    // --standalone is implicit for binary output formats (docx, odt, epub).
+    // Only add it for text-based output formats where it makes a difference.
+    if (toDef.pandocName !== "docx" && toDef.pandocName !== "odt") {
+      args.push("--standalone");
+    }
+
+    // For portable distributions, set --data-dir to the Pandoc binary directory
+    // so Pandoc can locate its templates (reference.docx, etc.)
+    const pandocBinary = findPandocBinary();
+    const pandocDir = path.dirname(pandocBinary);
+    const dataDir = resolveDataDir(pandocDir);
+    if (dataDir) {
+      args.push("--data-dir", dataDir);
+    }
+
+    args.push(plan.inputPath);
+
     onProgress?.(40, "Convirtiendo con Pandoc");
-    const result = await this.getRunner().run({ args, timeoutMs: plan.timeoutMs });
+
+    // Use the input file's directory as cwd so relative resources resolve correctly
+    const inputDir = path.dirname(plan.inputPath);
+    const result = await this.getRunner().run({
+      args,
+      cwd: inputDir,
+      timeoutMs: plan.timeoutMs,
+    });
 
     const success = result.exitCode === 0;
-    const stat = success && fs.existsSync(plan.outputPath) ? fs.statSync(plan.outputPath) : null;
+    const outputExists = fs.existsSync(plan.outputPath);
+    const stat = success && outputExists ? fs.statSync(plan.outputPath) : null;
     onProgress?.(100, success ? "Completado" : "Error");
 
+    // Build detailed error for diagnostics
+    let error: string | undefined;
+    if (!success) {
+      const stderrSummary = result.stderr.trim().slice(0, 500);
+      error = `pandoc exit ${result.exitCode}: ${stderrSummary || "(sin salida de error)"}`;
+    } else if (!outputExists) {
+      error =
+        "Pandoc finalizó con éxito (exit 0) pero no generó el archivo de salida";
+    }
+
     return {
-      success,
+      success: success && outputExists,
       outputPath: plan.outputPath,
       outputSizeBytes: stat?.size ?? 0,
       durationMs: Date.now() - start,
       logs: [result.stdout, result.stderr].filter(Boolean),
       warnings: [],
-      error: success ? undefined : `pandoc exit ${result.exitCode}: ${result.stderr.slice(0, 300)}`,
+      error,
     };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async validate(outputPath: string, _plan: ConversionPlan): Promise<ArtifactValidation> {
+  async validate(
+    outputPath: string,
+    _plan: ConversionPlan,
+  ): Promise<ArtifactValidation> {
     const checks: ArtifactValidation["checks"] = [];
     const exists = fs.existsSync(outputPath);
     checks.push({ name: "file-exists", passed: exists });
     if (!exists) return { valid: false, checks };
 
     const stat = fs.statSync(outputPath);
-    checks.push({ name: "size-nonzero", passed: stat.size > 0, detail: `${stat.size} bytes` });
+    checks.push({
+      name: "size-nonzero",
+      passed: stat.size > 0,
+      detail: `${stat.size} bytes`,
+    });
 
     return { valid: checks.every((c) => c.passed), checks };
   }

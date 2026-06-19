@@ -13,21 +13,50 @@ import { CONFIG } from "../config";
 import { ensurePathSafety } from "../security/path-safety";
 import { sanitizeFilename } from "../security/sanitize-filename";
 import { FORMAT_BY_EXTENSION } from "../domain/format-catalog";
-import { createAppError, type AppError, type ErrorCode } from "../errors/error-codes";
+import {
+  createAppError,
+  ERROR_MESSAGES,
+  type AppError,
+  type ErrorCode,
+} from "../errors/error-codes";
 import { extractEngineIdFromCapabilityId } from "./capability-routing";
 import { checkDiskSpace } from "./disk-space-check";
 import { coordinatedCleanup } from "./coordinated-cleanup";
 
 // ── Magic bytes table for output validation ──────────────────────────────────
 
-const MAGIC_SIGNATURES: Array<{ bytes: Buffer; offset: number; mimeType: string }> = [
+const MAGIC_SIGNATURES: Array<{
+  bytes: Buffer;
+  offset: number;
+  mimeType: string;
+}> = [
   { bytes: Buffer.from([0xff, 0xd8, 0xff]), offset: 0, mimeType: "image/jpeg" },
-  { bytes: Buffer.from([0x89, 0x50, 0x4e, 0x47]), offset: 0, mimeType: "image/png" },
+  {
+    bytes: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+    offset: 0,
+    mimeType: "image/png",
+  },
   { bytes: Buffer.from([0x47, 0x49, 0x46]), offset: 0, mimeType: "image/gif" },
-  { bytes: Buffer.from([0x52, 0x49, 0x46, 0x46]), offset: 0, mimeType: "image/webp" },
-  { bytes: Buffer.from([0x25, 0x50, 0x44, 0x46]), offset: 0, mimeType: "application/pdf" },
-  { bytes: Buffer.from([0x50, 0x4b, 0x03, 0x04]), offset: 0, mimeType: "application/zip" },
-  { bytes: Buffer.from([0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c]), offset: 0, mimeType: "application/x-7z-compressed" },
+  {
+    bytes: Buffer.from([0x52, 0x49, 0x46, 0x46]),
+    offset: 0,
+    mimeType: "image/webp",
+  },
+  {
+    bytes: Buffer.from([0x25, 0x50, 0x44, 0x46]),
+    offset: 0,
+    mimeType: "application/pdf",
+  },
+  {
+    bytes: Buffer.from([0x50, 0x4b, 0x03, 0x04]),
+    offset: 0,
+    mimeType: "application/zip",
+  },
+  {
+    bytes: Buffer.from([0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c]),
+    offset: 0,
+    mimeType: "application/x-7z-compressed",
+  },
   { bytes: Buffer.from([0x1f, 0x8b]), offset: 0, mimeType: "application/gzip" },
 ];
 
@@ -51,7 +80,13 @@ function detectOutputMime(filePath: string): string | null {
       if (bmffBuf.slice(4, 8).toString("ascii") === "ftyp") {
         const majorBrand = bmffBuf.slice(8, 12).toString("ascii");
         const brands = bmffBuf.toString("ascii");
-        if (majorBrand === "avif" || majorBrand === "avis" || brands.includes("avif") || brands.includes("avis")) return "image/avif";
+        if (
+          majorBrand === "avif" ||
+          majorBrand === "avis" ||
+          brands.includes("avif") ||
+          brands.includes("avis")
+        )
+          return "image/avif";
       }
     } finally {
       fs.closeSync(fd);
@@ -122,11 +157,17 @@ export async function processUniversalJob(jobId: string): Promise<void> {
     // 1. Recover job from DB
     const job = jobManager.getJob(jobId);
     if (!job) {
-      throw createAppError("JOB_NOT_FOUND", `Job ${jobId} not found`, { stage: "recovery" });
+      throw createAppError("JOB_NOT_FOUND", `Job ${jobId} not found`, {
+        stage: "recovery",
+      });
     }
 
     if (job.status !== "queued") {
-      throw createAppError("INVALID_STATE", `Job ${jobId} is not queued (status: ${job.status})`, { stage: "recovery" });
+      throw createAppError(
+        "INVALID_STATE",
+        `Job ${jobId} is not queued (status: ${job.status})`,
+        { stage: "recovery" },
+      );
     }
 
     log.push(`[universal-job] Starting job ${jobId}`);
@@ -143,18 +184,26 @@ export async function processUniversalJob(jobId: string): Promise<void> {
     // 3. Re-validate capability against the engine registry
     const conversionId = job.conversion_id;
     if (!conversionId) {
-      throw createAppError("MISSING_CONVERSION_ID", `Job ${jobId} has no conversion_id`, { stage: "recovery" });
+      throw createAppError(
+        "MISSING_CONVERSION_ID",
+        `Job ${jobId} has no conversion_id`,
+        { stage: "recovery" },
+      );
     }
 
     // 4. Resolve engine from the registry via conversion_id
     const engineId = extractEngineIdFromCapabilityId(conversionId);
     const engine = getEngine(engineId);
     if (!engine) {
-      throw createAppError("ENGINE_NOT_FOUND", `Engine not found for capability`, {
-        stage: "engine-resolution",
-        engineId,
-        technicalDetail: `Engine ${engineId} not found for capability ${conversionId}`,
-      });
+      throw createAppError(
+        "ENGINE_NOT_FOUND",
+        `Engine not found for capability`,
+        {
+          stage: "engine-resolution",
+          engineId,
+          technicalDetail: `Engine ${engineId} not found for capability ${conversionId}`,
+        },
+      );
     }
 
     // Probe the engine to ensure it's available
@@ -167,7 +216,9 @@ export async function processUniversalJob(jobId: string): Promise<void> {
       });
     }
 
-    log.push(`[universal-job] Engine: ${engineId} v${probeResult.version ?? "unknown"}`);
+    log.push(
+      `[universal-job] Engine: ${engineId} v${probeResult.version ?? "unknown"}`,
+    );
 
     // Update job to processing state
     jobManager.updateJob(jobId, {
@@ -182,7 +233,10 @@ export async function processUniversalJob(jobId: string): Promise<void> {
     const inputStat = fs.statSync(inputPath);
     // Estimate output as 2x input size as a safety margin
     const estimatedRequired = inputStat.size * 2;
-    const diskCheck = await checkDiskSpace(estimatedRequired, CONFIG.media.tempDir);
+    const diskCheck = await checkDiskSpace(
+      estimatedRequired,
+      CONFIG.media.tempDir,
+    );
     if (!diskCheck.sufficient) {
       throw createAppError("INSUFFICIENT_DISK_SPACE", diskCheck.message, {
         stage: "pre-execution",
@@ -259,7 +313,9 @@ export async function processUniversalJob(jobId: string): Promise<void> {
       });
     }
 
-    log.push(`[universal-job] Execution completed in ${result.durationMs}ms, output size: ${result.outputSizeBytes} bytes`);
+    log.push(
+      `[universal-job] Execution completed in ${result.durationMs}ms, output size: ${result.outputSizeBytes} bytes`,
+    );
 
     // 9. Validate the output artifact
     jobManager.updateJob(jobId, {
@@ -284,25 +340,38 @@ export async function processUniversalJob(jobId: string): Promise<void> {
     // Additional deep validation: check magic bytes, MIME, size
     const deepValidation = validateOutputArtifact(outputPath, outputFormat);
     if (!deepValidation.valid) {
-      throw createAppError("ARTIFACT_VALIDATION_FAILED", `Deep validation failed`, {
-        stage: "validation",
-        engineId,
-        technicalDetail: deepValidation.error ?? "unknown",
-      });
+      throw createAppError(
+        "ARTIFACT_VALIDATION_FAILED",
+        `Deep validation failed`,
+        {
+          stage: "validation",
+          engineId,
+          technicalDetail: deepValidation.error ?? "unknown",
+        },
+      );
     }
 
     log.push(`[universal-job] Validation passed`);
 
     // 10. Persist metadata
     const outputMime = getOutputMimeType(outputFormat);
-    const inputFormat = job.input_format ?? path.extname(inputPath).replace(".", "").toLowerCase() ?? "unknown";
+    const inputFormat =
+      job.input_format ??
+      path.extname(inputPath).replace(".", "").toLowerCase() ??
+      "unknown";
     const inputMimeType = job.input_mime_type ?? "application/octet-stream";
 
     // Determine loss profile from capability
-    const lossProfile = await resolveLossProfile(conversionId, job.operation, inputPath, engineId);
+    const lossProfile = await resolveLossProfile(
+      conversionId,
+      job.operation,
+      inputPath,
+      engineId,
+    );
 
     // Determine category from format catalog
-    const category = (FORMAT_BY_EXTENSION.get(outputFormat)?.category ?? "unknown") as FileCategory;
+    const category = (FORMAT_BY_EXTENSION.get(outputFormat)?.category ??
+      "unknown") as FileCategory;
 
     // 11. Create download token
     const token = crypto.randomBytes(32).toString("hex");
@@ -342,7 +411,8 @@ export async function processUniversalJob(jobId: string): Promise<void> {
         engineValidation: validation.checks,
         deepValidation: deepValidation.checks,
       }),
-      warnings_json: result.warnings.length > 0 ? JSON.stringify(result.warnings) : null,
+      warnings_json:
+        result.warnings.length > 0 ? JSON.stringify(result.warnings) : null,
     });
 
     log.push(`[universal-job] Job ${jobId} completed successfully`);
@@ -351,7 +421,10 @@ export async function processUniversalJob(jobId: string): Promise<void> {
     // This will clean up expired jobs and orphaned files on the next interval
     // We don't await this to avoid blocking the job completion response
     coordinatedCleanup().catch((err) => {
-      console.error("[universal-job] Post-job cleanup error:", redact(String(err)));
+      console.error(
+        "[universal-job] Post-job cleanup error:",
+        redact(String(err)),
+      );
     });
 
     // 14. Log redacted messages
@@ -361,19 +434,41 @@ export async function processUniversalJob(jobId: string): Promise<void> {
   } catch (error: unknown) {
     const appError = error as AppError;
     const code: ErrorCode = appError?.code ?? "ENGINE_EXECUTE_FAILED";
-    const message = error instanceof Error ? error.message : "Error interno del procesador.";
+    const message =
+      error instanceof Error ? error.message : "Error interno del procesador.";
     const stage = appError?.stage ?? "unknown";
+    const engineId = appError?.engineId ?? "unknown";
+    const technicalDetail =
+      appError?.technicalDetail ??
+      (error instanceof Error ? error.message : "");
+
+    // Build user-facing error message with actionable detail
+    const userMessage = buildUserErrorMessage(code, technicalDetail, engineId);
 
     jobManager.updateJob(jobId, {
       status: "failed",
       error_code: code,
-      error_message: redact(message),
+      error_message: userMessage,
       stage: "Error",
     });
 
-    log.push(`[universal-job] Job ${jobId} failed at stage "${stage}": ${redact(message)} [code=${code}]`);
+    // Enhanced logging: engine, redacted command context, exit code, stderr summary
+    const logEntry = [
+      `[universal-job] Job ${jobId} FAILED`,
+      `  stage: ${stage}`,
+      `  engine: ${engineId}`,
+      `  code: ${code}`,
+      `  message: ${redact(message)}`,
+      technicalDetail
+        ? `  detail: ${redact(technicalDetail).slice(0, 500)}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    log.push(logEntry);
     for (const msg of log) {
-      console.log(redact(msg));
+      console.error(redact(msg));
     }
   }
 }
@@ -401,8 +496,12 @@ function resolveInputPath(inputReference: string, inputKind: string): string {
  */
 function validateOutputArtifact(
   outputPath: string,
-  expectedFormat: string
-): { valid: boolean; checks: Array<{ name: string; passed: boolean; detail?: string }>; error?: string } {
+  expectedFormat: string,
+): {
+  valid: boolean;
+  checks: Array<{ name: string; passed: boolean; detail?: string }>;
+  error?: string;
+} {
   const checks: Array<{ name: string; passed: boolean; detail?: string }> = [];
 
   // File exists
@@ -414,7 +513,11 @@ function validateOutputArtifact(
 
   // Size > 0
   const stat = fs.statSync(outputPath);
-  checks.push({ name: "size-nonzero", passed: stat.size > 0, detail: `${stat.size} bytes` });
+  checks.push({
+    name: "size-nonzero",
+    passed: stat.size > 0,
+    detail: `${stat.size} bytes`,
+  });
   if (stat.size === 0) {
     return { valid: false, checks, error: "Output file is empty (0 bytes)" };
   }
@@ -425,13 +528,13 @@ function validateOutputArtifact(
 
   if (detectedMime) {
     // For formats with clear magic signatures, verify match
-    const mimeMatch = detectedMime === expectedMime ||
+    const mimeMatch =
+      detectedMime === expectedMime ||
       // Allow MIME subtypes (e.g., application/zip matches for DOCX/XLSX containers)
-      detectedMime === "application/zip" && (
-        expectedMime.includes("openxmlformats") ||
-        expectedMime.includes("oasis") ||
-        expectedMime.includes("epub")
-      );
+      (detectedMime === "application/zip" &&
+        (expectedMime.includes("openxmlformats") ||
+          expectedMime.includes("oasis") ||
+          expectedMime.includes("epub")));
 
     checks.push({
       name: "magic-bytes",
@@ -463,7 +566,7 @@ async function resolveLossProfile(
   conversionId: string,
   operation: string,
   inputPath: string,
-  engineId: string
+  engineId: string,
 ): Promise<LossProfile> {
   try {
     const ext = path.extname(inputPath).replace(".", "").toLowerCase();
@@ -484,7 +587,11 @@ async function resolveLossProfile(
       detectedFormat: ext,
       sizeBytes: 0,
       sha256: null,
-      source: { kind: "local-upload" as const, originalName: `input.${ext}`, storedRelativePath: `input.${ext}` },
+      source: {
+        kind: "local-upload" as const,
+        originalName: `input.${ext}`,
+        storedRelativePath: `input.${ext}`,
+      },
       attributes: { kind: "unknown" as const },
       warnings: [],
       analyzedBy: [],
@@ -498,7 +605,13 @@ async function resolveLossProfile(
     if (matchingCap) {
       // Map domain engines LossProfile to descriptors LossProfile
       const lp = matchingCap.lossProfile;
-      if (lp === "lossless" || lp === "lossy" || lp === "metadata-risk" || lp === "structure-risk" || lp === "none") {
+      if (
+        lp === "lossless" ||
+        lp === "lossy" ||
+        lp === "metadata-risk" ||
+        lp === "structure-risk" ||
+        lp === "none"
+      ) {
         return lp;
       }
       return "lossy";
@@ -512,3 +625,46 @@ async function resolveLossProfile(
 
 // Exported for testing
 export { validateOutputArtifact, getOutputMimeType, detectOutputMime };
+
+// ── User-facing error message builder ─────────────────────────────────────────
+
+/**
+ * Builds a user-facing error message that includes actionable detail.
+ * Falls back to generic ERROR_MESSAGES for the code when no detail is available.
+ */
+function buildUserErrorMessage(
+  code: ErrorCode,
+  technicalDetail: string,
+  engineId: string,
+): string {
+  const baseMessage = ERROR_MESSAGES[code] ?? "Error desconocido.";
+
+  if (!technicalDetail) return baseMessage;
+
+  // Extract actionable info from technical detail
+  const detail = extractUserDetail(technicalDetail);
+  if (!detail) return baseMessage;
+
+  return `${baseMessage} (${engineId}: ${detail})`;
+}
+
+/**
+ * Extracts a user-friendly summary from the technical error detail.
+ * Removes paths and internal data, keeps the useful error description.
+ */
+function extractUserDetail(technicalDetail: string): string | null {
+  if (!technicalDetail || technicalDetail === "unknown error") return null;
+
+  // Extract pandoc exit code and message pattern
+  const pandocMatch = technicalDetail.match(/pandoc exit (\d+):\s*([\s\S]+)/);
+  if (pandocMatch) {
+    const exitCode = pandocMatch[1];
+    const stderr = pandocMatch[2]?.trim().slice(0, 200) ?? "";
+    if (stderr) return `exit ${exitCode} — ${stderr}`;
+    return `exit ${exitCode}`;
+  }
+
+  // Generic: just truncate
+  const cleaned = technicalDetail.slice(0, 200).trim();
+  return cleaned || null;
+}
