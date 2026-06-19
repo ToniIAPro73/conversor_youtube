@@ -306,11 +306,44 @@ export async function processUniversalJob(jobId: string): Promise<void> {
     }
 
     if (!result.success) {
+      // Build rich technical detail from engine error + logs
+      const logSummary = result.logs
+        .filter(Boolean)
+        .map((l) => l.trim().slice(0, 200))
+        .join(" | ");
+      const detail = result.error
+        ? `${result.error}${logSummary ? ` [logs: ${logSummary}]` : ""}`
+        : logSummary || "unknown error";
       throw createAppError("ENGINE_EXECUTE_FAILED", `Engine execution failed`, {
         stage: "execution",
         engineId,
-        technicalDetail: redact(result.error ?? "unknown error"),
+        technicalDetail: redact(detail),
       });
+    }
+
+    // Guard: engine reported success but output file is missing or empty
+    if (!fs.existsSync(outputPath)) {
+      throw createAppError(
+        "ENGINE_EXECUTE_FAILED",
+        `Engine reported success but output file was not created`,
+        {
+          stage: "execution",
+          engineId,
+          technicalDetail: `outputPath missing after execute(): ${redact(outputPath)}. Logs: ${result.logs.map((l) => l.slice(0, 100)).join(" | ")}`,
+        },
+      );
+    }
+    const outputStat = fs.statSync(outputPath);
+    if (outputStat.size === 0) {
+      throw createAppError(
+        "ENGINE_EXECUTE_FAILED",
+        `Engine reported success but output file is empty (0 bytes)`,
+        {
+          stage: "execution",
+          engineId,
+          technicalDetail: `outputPath exists but 0 bytes: ${redact(outputPath)}. Logs: ${result.logs.map((l) => l.slice(0, 100)).join(" | ")}`,
+        },
+      );
     }
 
     log.push(

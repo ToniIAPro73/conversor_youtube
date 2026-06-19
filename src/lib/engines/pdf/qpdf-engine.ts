@@ -5,8 +5,19 @@
 
 import fs from "fs";
 import path from "path";
-import type { ConversionEngine, EngineId, EngineProbeResult, ConversionCapability, ConversionPlan, ExecutionResult, ArtifactValidation } from "../../domain/engines";
-import type { UniversalFileDescriptor, PdfAttributes } from "../../domain/descriptors";
+import type {
+  ConversionEngine,
+  EngineId,
+  EngineProbeResult,
+  ConversionCapability,
+  ConversionPlan,
+  ExecutionResult,
+  ArtifactValidation,
+} from "../../domain/engines";
+import type {
+  UniversalFileDescriptor,
+  PdfAttributes,
+} from "../../domain/descriptors";
 import { ProcessRunner } from "../../infrastructure/processes/process-runner";
 import { ensurePathSafety } from "../../security/path-safety";
 import { CONFIG } from "../../config";
@@ -29,7 +40,7 @@ function findQpdfBinary(): string {
 
 interface QpdfOptions {
   operation: "linearize" | "extract-pages" | "rotate" | "decrypt";
-  pages?: string;   // e.g. "1-3,5,7-9"
+  pages?: string; // e.g. "1-3,5,7-9"
   rotation?: number; // degrees: 90, 180, 270
 }
 
@@ -55,7 +66,8 @@ const OPERATIONS = [
   {
     id: "decrypt",
     label: "Eliminar contraseña",
-    description: "Elimina la protección por contraseña si el PDF está desbloqueado",
+    description:
+      "Elimina la protección por contraseña si el PDF está desbloqueado",
     lossProfile: "metadata-risk" as const,
   },
 ] as const;
@@ -68,7 +80,8 @@ export class QpdfEngine implements ConversionEngine {
   private _runner: ProcessRunner | null = null;
 
   private getRunner(): ProcessRunner {
-    if (!this._runner) this._runner = new ProcessRunner(findQpdfBinary(), 120_000);
+    if (!this._runner)
+      this._runner = new ProcessRunner(findQpdfBinary(), 120_000);
     return this._runner;
   }
 
@@ -80,40 +93,47 @@ export class QpdfEngine implements ConversionEngine {
       version: result.version,
       binaryPath: result.binaryPath,
       capabilities: result.available ? OPERATIONS.map((o) => o.id) : [],
-      error: result.available ? undefined : "qpdf no encontrado en PATH ni en el directorio de herramientas",
+      error: result.available
+        ? undefined
+        : "qpdf no encontrado en PATH ni en el directorio de herramientas",
     };
     return this._probeResult;
   }
 
   getCapabilities(
     descriptor: UniversalFileDescriptor,
-    probeResult: EngineProbeResult
+    probeResult: EngineProbeResult,
   ): ConversionCapability[] {
     if (descriptor.category !== "pdf") return [];
     const attrs = descriptor.attributes as PdfAttributes;
 
-    return OPERATIONS
-      .filter((op) => op.id !== "decrypt" || attrs.isEncrypted)
-      .map((op) => ({
-        id: `qpdf-${descriptor.id}-${op.id}`,
-        operation: op.id,
-        outputFormat: "pdf",
-        outputMime: "application/pdf",
-        label: op.label,
-        description: op.description,
-        lossProfile: op.lossProfile,
-        state: probeResult.available ? "available" as const : "unavailable-tool" as const,
-        recommended: op.id === "linearize",
-        presets: buildPresets(op.id, attrs),
-        warnings: op.id === "decrypt" ? ["Solo funciona si no se requiere contraseña de propietario"] : [],
-        engineId: ENGINE_ID,
-        mobilePortability: "desktop-only" as const,
-      }));
+    return OPERATIONS.filter(
+      (op) => op.id !== "decrypt" || attrs.isEncrypted,
+    ).map((op) => ({
+      id: `qpdf-${descriptor.id}-${op.id}`,
+      operation: op.id,
+      outputFormat: "pdf",
+      outputMime: "application/pdf",
+      label: op.label,
+      description: op.description,
+      lossProfile: op.lossProfile,
+      state: probeResult.available
+        ? ("available" as const)
+        : ("unavailable-tool" as const),
+      recommended: op.id === "linearize",
+      presets: buildPresets(op.id, attrs),
+      warnings:
+        op.id === "decrypt"
+          ? ["Solo funciona si no se requiere contraseña de propietario"]
+          : [],
+      engineId: ENGINE_ID,
+      mobilePortability: "desktop-only" as const,
+    }));
   }
 
   async execute(
     plan: ConversionPlan,
-    onProgress?: (progress: number, stage: string) => void
+    onProgress?: (progress: number, stage: string) => void,
   ): Promise<ExecutionResult> {
     const start = Date.now();
     const opts = plan.options as unknown as QpdfOptions;
@@ -122,17 +142,38 @@ export class QpdfEngine implements ConversionEngine {
       ensurePathSafety(plan.inputPath);
       ensurePathSafety(plan.outputPath);
     } catch (err) {
-      return { success: false, outputPath: plan.outputPath, outputSizeBytes: 0, durationMs: 0, logs: [], warnings: [], error: String(err) };
+      return {
+        success: false,
+        outputPath: plan.outputPath,
+        outputSizeBytes: 0,
+        durationMs: 0,
+        logs: [],
+        warnings: [],
+        error: String(err),
+      };
     }
 
     onProgress?.(10, "Preparando");
     const args = buildArgs(opts, plan.inputPath, plan.outputPath);
 
     onProgress?.(30, "Procesando PDF");
-    const result = await this.getRunner().run({ args, timeoutMs: plan.timeoutMs });
+    const result = await this.getRunner().run({
+      args,
+      timeoutMs: plan.timeoutMs,
+    });
 
-    const success = result.exitCode === 0;
-    const stat = success && fs.existsSync(plan.outputPath) ? fs.statSync(plan.outputPath) : null;
+    // QPDF exit codes: 0 = success, 3 = warnings but operation succeeded
+    const success = result.exitCode === 0 || result.exitCode === 3;
+    const stat =
+      success && fs.existsSync(plan.outputPath)
+        ? fs.statSync(plan.outputPath)
+        : null;
+    const warnings: string[] = [];
+    if (result.exitCode === 3) {
+      warnings.push(
+        "QPDF completó con advertencias (archivo de entrada dañado o no estándar)",
+      );
+    }
 
     onProgress?.(100, success ? "Completado" : "Error");
 
@@ -142,13 +183,18 @@ export class QpdfEngine implements ConversionEngine {
       outputSizeBytes: stat?.size ?? 0,
       durationMs: Date.now() - start,
       logs: [result.stdout, result.stderr].filter(Boolean),
-      warnings: [],
-      error: success ? undefined : `qpdf exit ${result.exitCode}: ${result.stderr.slice(0, 300)}`,
+      warnings,
+      error: success
+        ? undefined
+        : `qpdf exit ${result.exitCode}: ${result.stderr.slice(0, 300)}`,
     };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async validate(outputPath: string, _plan: ConversionPlan): Promise<ArtifactValidation> {
+  async validate(
+    outputPath: string,
+    _plan: ConversionPlan,
+  ): Promise<ArtifactValidation> {
     const checks: ArtifactValidation["checks"] = [];
 
     const exists = fs.existsSync(outputPath);
@@ -160,16 +206,28 @@ export class QpdfEngine implements ConversionEngine {
     fs.readSync(fd, buf, 0, 5, 0);
     fs.closeSync(fd);
     const isPdf = buf.toString("ascii") === "%PDF-";
-    checks.push({ name: "pdf-magic-bytes", passed: isPdf, detail: buf.toString("ascii") });
+    checks.push({
+      name: "pdf-magic-bytes",
+      passed: isPdf,
+      detail: buf.toString("ascii"),
+    });
 
     const stat = fs.statSync(outputPath);
-    checks.push({ name: "size-nonzero", passed: stat.size > 0, detail: `${stat.size} bytes` });
+    checks.push({
+      name: "size-nonzero",
+      passed: stat.size > 0,
+      detail: `${stat.size} bytes`,
+    });
 
     return { valid: checks.every((c) => c.passed), checks };
   }
 }
 
-function buildArgs(opts: QpdfOptions, inputPath: string, outputPath: string): string[] {
+function buildArgs(
+  opts: QpdfOptions,
+  inputPath: string,
+  outputPath: string,
+): string[] {
   switch (opts.operation) {
     case "linearize":
       return ["--linearize", inputPath, outputPath];
@@ -190,23 +248,53 @@ function buildArgs(opts: QpdfOptions, inputPath: string, outputPath: string): st
 
 function buildPresets(
   op: string,
-  attrs: PdfAttributes
+  attrs: PdfAttributes,
 ): import("../../domain/engines").ConversionPreset[] {
   if (op === "extract-pages") {
     const total = attrs.pageCount ?? 1;
     return [
-      { id: "extract-all", label: "Todas", quality: "0", description: `1-${total}`, isRecommended: true },
-      { id: "extract-first", label: "Primera mitad", quality: "0", description: `1-${Math.ceil(total / 2)}` },
+      {
+        id: "extract-all",
+        label: "Todas",
+        quality: "0",
+        description: `1-${total}`,
+        isRecommended: true,
+      },
+      {
+        id: "extract-first",
+        label: "Primera mitad",
+        quality: "0",
+        description: `1-${Math.ceil(total / 2)}`,
+      },
     ];
   }
   if (op === "rotate") {
     return [
-      { id: "rot-90", label: "90° derecha", quality: "0", description: "Sentido horario", isRecommended: true },
+      {
+        id: "rot-90",
+        label: "90° derecha",
+        quality: "0",
+        description: "Sentido horario",
+        isRecommended: true,
+      },
       { id: "rot-180", label: "180°", quality: "0", description: "Invertir" },
-      { id: "rot-270", label: "90° izquierda", quality: "0", description: "Sentido antihorario" },
+      {
+        id: "rot-270",
+        label: "90° izquierda",
+        quality: "0",
+        description: "Sentido antihorario",
+      },
     ];
   }
-  return [{ id: `${op}-default`, label: "Estándar", quality: "0", description: "Configuración por defecto", isRecommended: true }];
+  return [
+    {
+      id: `${op}-default`,
+      label: "Estándar",
+      quality: "0",
+      description: "Configuración por defecto",
+      isRecommended: true,
+    },
+  ];
 }
 
 export const qpdfEngine = new QpdfEngine();
