@@ -1,0 +1,409 @@
+{
+  "generatedAt": "2026-06-19T02:06:31.016Z",
+  "marker": "ANCLORA_ACCEPTANCE_Árbol_東京_12345",
+  "root": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios",
+  "declaredFormatCount": 56,
+  "fixtureCount": 57,
+  "fixtures": [
+    {
+      "extension": "txt",
+      "category": "plain-text",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-txt.txt",
+      "fileName": "fixture-txt.txt",
+      "sizeBytes": 59
+    },
+    {
+      "extension": "md",
+      "category": "plain-text",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-md.md",
+      "fileName": "fixture-md.md",
+      "sizeBytes": 79
+    },
+    {
+      "extension": "html",
+      "category": "plain-text",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-html.html",
+      "fileName": "fixture-html.html",
+      "sizeBytes": 109
+    },
+    {
+      "extension": "rst",
+      "category": "plain-text",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-rst.rst",
+      "fileName": "fixture-rst.rst",
+      "sizeBytes": 100
+    },
+    {
+      "extension": "tex",
+      "category": "plain-text",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-tex.tex",
+      "fileName": "fixture-tex.tex",
+      "sizeBytes": 92
+    },
+    {
+      "extension": "json",
+      "category": "structured-data",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-json.json",
+      "fileName": "fixture-json.json",
+      "sizeBytes": 129
+    },
+    {
+      "extension": "yaml",
+      "category": "structured-data",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-yaml.yaml",
+      "fileName": "fixture-yaml.yaml",
+      "sizeBytes": 67
+    },
+    {
+      "extension": "yml",
+      "category": "structured-data",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-yml.yml",
+      "fileName": "fixture-yml.yml",
+      "sizeBytes": 67
+    },
+    {
+      "extension": "toml",
+      "category": "structured-data",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-toml.toml",
+      "fileName": "fixture-toml.toml",
+      "sizeBytes": 69
+    },
+    {
+      "extension": "xml",
+      "category": "structured-data",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-xml.xml",
+      "fileName": "fixture-xml.xml",
+      "sizeBytes": 113
+    },
+    {
+      "extension": "csv",
+      "category": "structured-data",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-csv.csv",
+      "fileName": "fixture-csv.csv",
+      "sizeBytes": 54
+    },
+    {
+      "extension": "tsv",
+      "category": "structured-data",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-tsv.tsv",
+      "fileName": "fixture-tsv.tsv",
+      "sizeBytes": 54
+    },
+    {
+      "extension": "markdown",
+      "category": "plain-text",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-markdown.markdown",
+      "fileName": "fixture-markdown.markdown",
+      "sizeBytes": 66
+    },
+    {
+      "extension": "htm",
+      "category": "plain-text",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-htm.htm",
+      "fileName": "fixture-htm.htm",
+      "sizeBytes": 114
+    },
+    {
+      "extension": "latex",
+      "category": "plain-text",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-latex.latex",
+      "fileName": "fixture-latex.latex",
+      "sizeBytes": 92
+    },
+    {
+      "extension": "png",
+      "category": "image",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-png.png",
+      "fileName": "fixture-png.png",
+      "sizeBytes": 7846
+    },
+    {
+      "extension": "jpg",
+      "category": "image",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-jpg.jpg",
+      "fileName": "fixture-jpg.jpg",
+      "sizeBytes": 9334
+    },
+    {
+      "extension": "jpeg",
+      "category": "image",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-jpeg.jpeg",
+      "fileName": "fixture-jpeg.jpeg",
+      "sizeBytes": 9334
+    },
+    {
+      "extension": "webp",
+      "category": "image",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-webp.webp",
+      "fileName": "fixture-webp.webp",
+      "sizeBytes": 3718
+    },
+    {
+      "extension": "avif",
+      "category": "image",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-avif.avif",
+      "fileName": "fixture-avif.avif",
+      "sizeBytes": 2489
+    },
+    {
+      "extension": "tiff",
+      "category": "image",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-tiff.tiff",
+      "fileName": "fixture-tiff.tiff",
+      "sizeBytes": 9134
+    },
+    {
+      "extension": "tif",
+      "category": "image",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-tif.tif",
+      "fileName": "fixture-tif.tif",
+      "sizeBytes": 9134
+    },
+    {
+      "extension": "gif",
+      "category": "image",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-gif.gif",
+      "fileName": "fixture-gif.gif",
+      "sizeBytes": 35
+    },
+    {
+      "extension": "wav",
+      "category": "audio",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-wav.wav",
+      "fileName": "fixture-wav.wav",
+      "sizeBytes": 88278
+    },
+    {
+      "extension": "mp3",
+      "category": "audio",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-mp3.mp3",
+      "fileName": "fixture-mp3.mp3",
+      "sizeBytes": 8586
+    },
+    {
+      "extension": "m4a",
+      "category": "audio",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-m4a.m4a",
+      "fileName": "fixture-m4a.m4a",
+      "sizeBytes": 9892
+    },
+    {
+      "extension": "flac",
+      "category": "audio",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-flac.flac",
+      "fileName": "fixture-flac.flac",
+      "sizeBytes": 20335
+    },
+    {
+      "extension": "ogg",
+      "category": "audio",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-ogg.ogg",
+      "fileName": "fixture-ogg.ogg",
+      "sizeBytes": 5266
+    },
+    {
+      "extension": "aac",
+      "category": "audio",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-aac.aac",
+      "fileName": "fixture-aac.aac",
+      "sizeBytes": 9220
+    },
+    {
+      "extension": "mp4",
+      "category": "video",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-mp4.mp4",
+      "fileName": "fixture-mp4.mp4",
+      "sizeBytes": 13806
+    },
+    {
+      "extension": "webm",
+      "category": "video",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-webm.webm",
+      "fileName": "fixture-webm.webm",
+      "sizeBytes": 14813
+    },
+    {
+      "extension": "mkv",
+      "category": "video",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-mkv.mkv",
+      "fileName": "fixture-mkv.mkv",
+      "sizeBytes": 13129
+    },
+    {
+      "extension": "avi",
+      "category": "video",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-avi.avi",
+      "fileName": "fixture-avi.avi",
+      "sizeBytes": 27090
+    },
+    {
+      "extension": "mov",
+      "category": "video",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-mov.mov",
+      "fileName": "fixture-mov.mov",
+      "sizeBytes": 13857
+    },
+    {
+      "extension": "wmv",
+      "category": "video",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-wmv.wmv",
+      "fileName": "fixture-wmv.wmv",
+      "sizeBytes": 26501
+    },
+    {
+      "extension": "ts",
+      "category": "video",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-ts.ts",
+      "fileName": "fixture-ts.ts",
+      "sizeBytes": 18988
+    },
+    {
+      "extension": "docx",
+      "category": "document",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-docx.docx",
+      "fileName": "fixture-docx.docx",
+      "sizeBytes": 932
+    },
+    {
+      "extension": "xlsx",
+      "category": "spreadsheet",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-xlsx.xlsx",
+      "fileName": "fixture-xlsx.xlsx",
+      "sizeBytes": 4873
+    },
+    {
+      "extension": "pptx",
+      "category": "presentation",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-pptx.pptx",
+      "fileName": "fixture-pptx.pptx",
+      "sizeBytes": 28372
+    },
+    {
+      "extension": "odt",
+      "category": "document",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-odt.odt",
+      "fileName": "fixture-odt.odt",
+      "sizeBytes": 7932
+    },
+    {
+      "extension": "ods",
+      "category": "spreadsheet",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-ods.ods",
+      "fileName": "fixture-ods.ods",
+      "sizeBytes": 9081
+    },
+    {
+      "extension": "odp",
+      "category": "presentation",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-odp.odp",
+      "fileName": "fixture-odp.odp",
+      "sizeBytes": 476
+    },
+    {
+      "extension": "epub",
+      "category": "ebook",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-epub.epub",
+      "fileName": "fixture-epub.epub",
+      "sizeBytes": 1039
+    },
+    {
+      "extension": "mobi",
+      "category": "ebook",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-mobi.mobi",
+      "fileName": "fixture-mobi.mobi",
+      "sizeBytes": 1039
+    },
+    {
+      "extension": "azw3",
+      "category": "ebook",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-azw3.azw3",
+      "fileName": "fixture-azw3.azw3",
+      "sizeBytes": 1039
+    },
+    {
+      "extension": "rtf",
+      "category": "document",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-rtf.rtf",
+      "fileName": "fixture-rtf.rtf",
+      "sizeBytes": 52
+    },
+    {
+      "extension": "doc",
+      "category": "document",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-doc.doc",
+      "fileName": "fixture-doc.doc",
+      "sizeBytes": 72
+    },
+    {
+      "extension": "xls",
+      "category": "spreadsheet",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-xls.xls",
+      "fileName": "fixture-xls.xls",
+      "sizeBytes": 54
+    },
+    {
+      "extension": "ppt",
+      "category": "presentation",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-ppt.ppt",
+      "fileName": "fixture-ppt.ppt",
+      "sizeBytes": 74
+    },
+    {
+      "extension": "log",
+      "category": "unknown",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-log.log",
+      "fileName": "fixture-log.log",
+      "sizeBytes": 51
+    },
+    {
+      "extension": "zip",
+      "category": "archive",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-zip.zip",
+      "fileName": "fixture-zip.zip",
+      "sizeBytes": 193
+    },
+    {
+      "extension": "tar",
+      "category": "archive",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-tar.tar",
+      "fileName": "fixture-tar.tar",
+      "sizeBytes": 10240
+    },
+    {
+      "extension": "gz",
+      "category": "archive",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-gz.gz",
+      "fileName": "fixture-gz.gz",
+      "sizeBytes": 92
+    },
+    {
+      "extension": "bz2",
+      "category": "archive",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-bz2.bz2",
+      "fileName": "fixture-bz2.bz2",
+      "sizeBytes": 116
+    },
+    {
+      "extension": "xz",
+      "category": "archive",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-xz.xz",
+      "fileName": "fixture-xz.xz",
+      "sizeBytes": 112
+    },
+    {
+      "extension": "7z",
+      "category": "archive",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-7z.7z",
+      "fileName": "fixture-7z.7z",
+      "sizeBytes": 206
+    },
+    {
+      "extension": "pdf",
+      "category": "pdf",
+      "path": "/tmp/Anclora Acceptance Linux 東京/20260619-020600/fixtures con espacios/fixture-pdf.pdf",
+      "fileName": "fixture-pdf.pdf",
+      "sizeBytes": 612
+    }
+  ],
+  "missingFixtures": []
+}

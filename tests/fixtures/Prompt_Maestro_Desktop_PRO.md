@@ -1,3 +1,13 @@
+---
+title: Prompt Maestro Desktop PRO
+version: 2.0
+category: system-prompts
+tags:
+  - conversion
+  - pandoc
+  - filestudio
+---
+
 # Prompt Maestro Desktop PRO
 
 ## Descripción General

@@ -325,11 +325,16 @@ export class PandocEngine implements ConversionEngine {
       };
     }
 
-    // Resolve input format from options or extension
-    const inputExt =
-      (plan.options.inputFormat as string | undefined) ??
-      path.extname(plan.inputPath).replace(".", "").toLowerCase();
-    const fromDef = FORMAT_MAP[inputExt];
+    // Resolve input format from options or extension.
+    // If options.inputFormat is not a recognized Pandoc format, fall back to
+    // the file extension. This prevents misdetected formats (e.g., "yaml" for a .md
+    // file with frontmatter) from reaching Pandoc as an invalid reader name.
+    const optInputFormat = plan.options.inputFormat as string | undefined;
+    const fileExt = path.extname(plan.inputPath).replace(".", "").toLowerCase();
+    let fromDef = optInputFormat ? FORMAT_MAP[optInputFormat] : undefined;
+    if (!fromDef) {
+      fromDef = FORMAT_MAP[fileExt];
+    }
     if (!fromDef) {
       return {
         success: false,
@@ -338,7 +343,7 @@ export class PandocEngine implements ConversionEngine {
         durationMs: Date.now() - start,
         logs: [],
         warnings: [],
-        error: `Formato de entrada desconocido: ${inputExt}`,
+        error: `Formato de entrada desconocido: ${optInputFormat ?? fileExt} (extensión: .${fileExt})`,
       };
     }
 

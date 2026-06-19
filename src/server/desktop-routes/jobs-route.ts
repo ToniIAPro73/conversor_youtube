@@ -28,23 +28,25 @@ const MEDIA_FORMATS = [...AUDIO_FORMATS, ...VIDEO_FORMATS] as const;
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
-const JobRequestSchema = z.object({
-  // Legacy fields (backward compatible)
-  videoId: z.string().optional(),
-  url: z.string().optional(),
-  localFilePath: z.string().optional(),
-  format: z.string().optional(),
-  quality: z.string().min(1).max(10).optional(),
-  rightsConfirmed: z.boolean(),
-  operation: z.string().optional(),
-  // New universal fields
-  inputId: z.string().optional(),
-  capabilityId: z.string().optional(),
-  presetId: z.string().nullable().optional(),
-  options: z.record(z.string(), z.unknown()).optional(),
-}).refine(data => data.url || data.localFilePath || data.inputId, {
-  message: "Must provide url, localFilePath, or inputId",
-});
+const JobRequestSchema = z
+  .object({
+    // Legacy fields (backward compatible)
+    videoId: z.string().optional(),
+    url: z.string().optional(),
+    localFilePath: z.string().optional(),
+    format: z.string().optional(),
+    quality: z.string().min(1).max(10).optional(),
+    rightsConfirmed: z.boolean(),
+    operation: z.string().optional(),
+    // New universal fields
+    inputId: z.string().optional(),
+    capabilityId: z.string().optional(),
+    presetId: z.string().nullable().optional(),
+    options: z.record(z.string(), z.unknown()).optional(),
+  })
+  .refine((data) => data.url || data.localFilePath || data.inputId, {
+    message: "Must provide url, localFilePath, or inputId",
+  });
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,30 +56,38 @@ export async function POST(req: NextRequest) {
     if (!validated.success) {
       return NextResponse.json(
         { error: validated.error.issues[0].message, code: "VALIDATION_ERROR" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!validated.data.rightsConfirmed) {
       return NextResponse.json(
-        { error: "Debes confirmar que tienes derechos sobre el contenido.", code: "RIGHTS_NOT_CONFIRMED" },
-        { status: 400 }
+        {
+          error: "Debes confirmar que tienes derechos sobre el contenido.",
+          code: "RIGHTS_NOT_CONFIRMED",
+        },
+        { status: 400 },
       );
     }
 
     const clientIp = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
 
-    if (jobManager.getActiveJobsCount() >= CONFIG.media.limits.maxConcurrentJobs) {
+    if (
+      jobManager.getActiveJobsCount() >= CONFIG.media.limits.maxConcurrentJobs
+    ) {
       return NextResponse.json(
         { error: ERROR_MESSAGES.QUEUE_FULL, code: ERROR_CODES.QUEUE_FULL },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     if (jobManager.getClientActiveJob(clientIp)) {
       return NextResponse.json(
-        { error: ERROR_MESSAGES.JOB_ALREADY_ACTIVE, code: ERROR_CODES.JOB_ALREADY_ACTIVE },
-        { status: 429 }
+        {
+          error: ERROR_MESSAGES.JOB_ALREADY_ACTIVE,
+          code: ERROR_CODES.JOB_ALREADY_ACTIVE,
+        },
+        { status: 429 },
       );
     }
 
@@ -93,8 +103,11 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     console.error("Jobs API Error:", error);
     return NextResponse.json(
-      { error: ERROR_MESSAGES.INTERNAL_ERROR, code: ERROR_CODES.INTERNAL_ERROR },
-      { status: 500 }
+      {
+        error: ERROR_MESSAGES.INTERNAL_ERROR,
+        code: ERROR_CODES.INTERNAL_ERROR,
+      },
+      { status: 500 },
     );
   }
 }
@@ -103,21 +116,27 @@ export async function POST(req: NextRequest) {
 
 async function handleUniversalJob(
   data: z.infer<typeof JobRequestSchema>,
-  clientIp: string
+  clientIp: string,
 ): Promise<NextResponse> {
   const { capabilityId, inputId, format, options, operation, presetId } = data;
 
   if (!capabilityId) {
     return NextResponse.json(
-      { error: "Falta capabilityId para trabajo universal.", code: "VALIDATION_ERROR" },
-      { status: 400 }
+      {
+        error: "Falta capabilityId para trabajo universal.",
+        code: "VALIDATION_ERROR",
+      },
+      { status: 400 },
     );
   }
 
   if (!inputId) {
     return NextResponse.json(
-      { error: "Falta inputId para trabajo universal.", code: "VALIDATION_ERROR" },
-      { status: 400 }
+      {
+        error: "Falta inputId para trabajo universal.",
+        code: "VALIDATION_ERROR",
+      },
+      { status: 400 },
     );
   }
 
@@ -127,8 +146,11 @@ async function handleUniversalJob(
 
   if (!engine) {
     return NextResponse.json(
-      { error: `Motor de conversión no encontrado: ${engineId}`, code: "ENGINE_NOT_FOUND" },
-      { status: 400 }
+      {
+        error: `Motor de conversión no encontrado: ${engineId}`,
+        code: "ENGINE_NOT_FOUND",
+      },
+      { status: 400 },
     );
   }
 
@@ -136,8 +158,11 @@ async function handleUniversalJob(
   const probeResult = await engine.probe();
   if (!probeResult.available) {
     return NextResponse.json(
-      { error: `Motor no disponible: ${engineId}. ${probeResult.error ?? ""}`, code: "ENGINE_UNAVAILABLE" },
-      { status: 503 }
+      {
+        error: `Motor no disponible: ${engineId}. ${probeResult.error ?? ""}`,
+        code: "ENGINE_UNAVAILABLE",
+      },
+      { status: 503 },
     );
   }
 
@@ -145,33 +170,50 @@ async function handleUniversalJob(
   const inputInfo = resolveInputFromId(inputId);
   if (!inputInfo) {
     return NextResponse.json(
-      { error: "Input no encontrado. Puede haber expirado.", code: "INPUT_NOT_FOUND" },
-      { status: 404 }
+      {
+        error: "Input no encontrado. Puede haber expirado.",
+        code: "INPUT_NOT_FOUND",
+      },
+      { status: 404 },
     );
   }
 
   // Determine output format
-  const outputFormat = format ?? extractOutputFormatFromCapabilityId(capabilityId);
+  const outputFormat =
+    format ?? extractOutputFormatFromCapabilityId(capabilityId);
   if (!outputFormat) {
     return NextResponse.json(
-      { error: "No se pudo determinar el formato de salida.", code: "VALIDATION_ERROR" },
-      { status: 400 }
+      {
+        error: "No se pudo determinar el formato de salida.",
+        code: "VALIDATION_ERROR",
+      },
+      { status: 400 },
     );
   }
 
   // Validate the output format against the catalog
-  if (!ALL_ALLOWED_EXTENSIONS.has(outputFormat) && !(MEDIA_FORMATS as readonly string[]).includes(outputFormat)) {
+  if (
+    !ALL_ALLOWED_EXTENSIONS.has(outputFormat) &&
+    !(MEDIA_FORMATS as readonly string[]).includes(outputFormat)
+  ) {
     return NextResponse.json(
-      { error: `Formato de salida no soportado: ${outputFormat}`, code: "UNSUPPORTED_FORMAT" },
-      { status: 400 }
+      {
+        error: `Formato de salida no soportado: ${outputFormat}`,
+        code: "UNSUPPORTED_FORMAT",
+      },
+      { status: 400 },
     );
   }
 
   // Build the descriptor to re-validate the capability
   const descriptor = await buildDescriptor(
     inputInfo.localPath,
-    { kind: "local-upload", originalName: inputInfo.originalName, storedRelativePath: inputInfo.storedRelativePath },
-    inputId
+    {
+      kind: "local-upload",
+      originalName: inputInfo.originalName,
+      storedRelativePath: inputInfo.storedRelativePath,
+    },
+    inputId,
   );
 
   // Validate capability against engine registry
@@ -179,15 +221,24 @@ async function handleUniversalJob(
   const matchingCap = capabilities.find((c) => c.id === capabilityId);
   if (!matchingCap) {
     return NextResponse.json(
-      { error: `Capacidad no válida para este archivo: ${capabilityId}`, code: "INVALID_CAPABILITY" },
-      { status: 400 }
+      {
+        error: `Capacidad no válida para este archivo: ${capabilityId}`,
+        code: "INVALID_CAPABILITY",
+      },
+      { status: 400 },
     );
   }
 
-  if (matchingCap.state !== "available" && matchingCap.state !== "experimental") {
+  if (
+    matchingCap.state !== "available" &&
+    matchingCap.state !== "experimental"
+  ) {
     return NextResponse.json(
-      { error: `Capacidad no disponible: ${matchingCap.unavailableReason ?? "herramienta no instalada"}`, code: "CAPABILITY_UNAVAILABLE" },
-      { status: 503 }
+      {
+        error: `Capacidad no disponible: ${matchingCap.unavailableReason ?? "herramienta no instalada"}`,
+        code: "CAPABILITY_UNAVAILABLE",
+      },
+      { status: 503 },
     );
   }
 
@@ -202,6 +253,23 @@ async function handleUniversalJob(
   }
 
   // Create job with universal fields
+  // Resolve inputFormat: prefer detectedFormat when it's consistent with the extension,
+  // otherwise use extension. This prevents misdetections (e.g., .md detected as yaml
+  // due to frontmatter) from propagating invalid formats to engines.
+  const resolvedInputFormat = resolveInputFormatForJob(descriptor);
+
+  // Log analysis context for debugging engine failures
+  console.log(
+    `[jobs-route] Universal job: originalName=${inputInfo.originalName}` +
+      ` detectedFormat=${descriptor.detectedFormat}` +
+      ` category=${descriptor.category}` +
+      ` extension=${descriptor.extension}` +
+      ` resolvedInputFormat=${resolvedInputFormat}` +
+      ` capabilityId=${capabilityId}` +
+      ` engineId=${engineId}` +
+      ` outputFormat=${outputFormat}`,
+  );
+
   const job = createUniversalJob({
     inputReference: inputInfo.storedRelativePath,
     outputFormat,
@@ -214,7 +282,7 @@ async function handleUniversalJob(
     engineId,
     category: descriptor.category,
     inputMimeType: descriptor.detectedMimeType ?? "application/octet-stream",
-    inputFormat: descriptor.detectedFormat ?? descriptor.extension ?? "unknown",
+    inputFormat: resolvedInputFormat,
     options: options ?? {},
   });
 
@@ -228,58 +296,70 @@ async function handleUniversalJob(
 
 function handleLegacyMediaJob(
   data: z.infer<typeof JobRequestSchema>,
-  clientIp: string
+  clientIp: string,
 ): NextResponse {
   const format = data.format;
   if (!format) {
     return NextResponse.json(
       { error: "Falta el formato de salida.", code: "VALIDATION_ERROR" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   let inputReference: string;
   let inputTitle: string | undefined;
-  const inputKind: "remote-url" | "local-file" = data.localFilePath ? "local-file" : "remote-url";
+  const inputKind: "remote-url" | "local-file" = data.localFilePath
+    ? "local-file"
+    : "remote-url";
 
   if (inputKind === "local-file") {
     if (!data.localFilePath) {
-      return NextResponse.json({ error: "Falta ruta del archivo local.", code: "INVALID_INPUT" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Falta ruta del archivo local.", code: "INVALID_INPUT" },
+        { status: 400 },
+      );
     }
     inputReference = data.localFilePath;
   } else {
-    const rawUrl = data.url ?? (data.videoId ? `https://www.youtube.com/watch?v=${data.videoId}` : null);
+    const rawUrl =
+      data.url ??
+      (data.videoId ? `https://www.youtube.com/watch?v=${data.videoId}` : null);
     if (!rawUrl) {
-      return NextResponse.json({ error: "Falta URL o videoId.", code: "INVALID_INPUT" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Falta URL o videoId.", code: "INVALID_INPUT" },
+        { status: 400 },
+      );
     }
     const normalizedUrl = normalizeYoutubeUrl(rawUrl);
     if (!normalizedUrl) {
       return NextResponse.json(
         { error: ERROR_MESSAGES.INVALID_URL, code: ERROR_CODES.INVALID_URL },
-        { status: 400 }
+        { status: 400 },
       );
     }
     inputReference = normalizedUrl;
 
     // Fetch title asynchronously (non-blocking for job creation)
-    getVideoMetadata(normalizedUrl).then((meta) => {
-      if (meta.title) {
-        const currentJob = jobManager.getClientActiveJob(clientIp);
-        if (currentJob) {
-          jobManager.updateJob(currentJob.id, { input_title: meta.title });
+    getVideoMetadata(normalizedUrl)
+      .then((meta) => {
+        if (meta.title) {
+          const currentJob = jobManager.getClientActiveJob(clientIp);
+          if (currentJob) {
+            jobManager.updateJob(currentJob.id, { input_title: meta.title });
+          }
         }
-      }
-    }).catch(() => {
-      // Non-fatal
-    });
+      })
+      .catch(() => {
+        // Non-fatal
+      });
   }
 
   const operation =
     data.operation && data.operation !== "transcode-audio"
       ? data.operation
       : AUDIO_FORMATS.includes(format as (typeof AUDIO_FORMATS)[number])
-      ? "transcode-audio"
-      : "transcode-video";
+        ? "transcode-audio"
+        : "transcode-video";
 
   const quality = data.quality ?? "5";
 
@@ -290,7 +370,7 @@ function handleLegacyMediaJob(
     clientIp,
     operation,
     inputKind,
-    inputTitle
+    inputTitle,
   );
 
   processJob(job.id).catch(console.error);
@@ -317,7 +397,9 @@ function resolveInputFromId(inputId: string): InputInfo | null {
   // Try to find in the inputs table
   try {
     const db = getDb();
-    const row = db.prepare("SELECT * FROM inputs WHERE id = ? AND status = 'active'").get(inputId) as Record<string, unknown> | undefined;
+    const row = db
+      .prepare("SELECT * FROM inputs WHERE id = ? AND status = 'active'")
+      .get(inputId) as Record<string, unknown> | undefined;
     if (row) {
       const storedRelativePath = row.stored_relative_path as string;
       const localPath = path.resolve(CONFIG.media.tempDir, storedRelativePath);
@@ -366,13 +448,60 @@ interface UniversalJobParams {
   options: Record<string, unknown>;
 }
 
+/**
+ * Resolves the inputFormat to pass to the engine.
+ * Priority: extension (if known and authoritative) > detectedFormat > extension > "unknown".
+ * Prevents content-based misdetections (e.g., .md detected as yaml) from reaching engines.
+ */
+function resolveInputFormatForJob(descriptor: {
+  detectedFormat: string | null;
+  extension: string | null;
+}): string {
+  const ext = descriptor.extension?.toLowerCase() ?? null;
+  const detected = descriptor.detectedFormat?.toLowerCase() ?? null;
+
+  // Known extensions that must always map to their format, regardless of content detection.
+  // These are formats where content heuristics commonly produce false positives.
+  const EXTENSION_AUTHORITATIVE: Record<string, string> = {
+    md: "md",
+    markdown: "markdown",
+    html: "html",
+    htm: "html",
+    txt: "txt",
+    rst: "rst",
+    tex: "latex",
+    latex: "latex",
+  };
+
+  if (ext && EXTENSION_AUTHORITATIVE[ext]) {
+    return EXTENSION_AUTHORITATIVE[ext];
+  }
+
+  // If extension matches a known structured-data format, trust the extension
+  const STRUCTURED_DATA_EXTS = new Set([
+    "json",
+    "yaml",
+    "yml",
+    "toml",
+    "xml",
+    "csv",
+    "tsv",
+  ]);
+  if (ext && STRUCTURED_DATA_EXTS.has(ext)) {
+    return ext;
+  }
+
+  return detected ?? ext ?? "unknown";
+}
+
 function createUniversalJob(params: UniversalJobParams): JobRow {
   const db = getDb();
   const id = crypto.randomBytes(16).toString("hex");
   const ttl = CONFIG.media.limits.jobTtlMinutes;
   const expiresAt = new Date(Date.now() + ttl * 60 * 1000).toISOString();
 
-  db.prepare(`
+  db.prepare(
+    `
     INSERT INTO jobs (
       id, input_kind, input_reference, input_title,
       operation, output_format, quality, options_json,
@@ -380,7 +509,8 @@ function createUniversalJob(params: UniversalJobParams): JobRow {
       client_ip, expires_at,
       category, engine_id, conversion_id, input_mime_type, input_format
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', 'En cola', 0, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
+  `,
+  ).run(
     id,
     params.inputKind,
     params.inputReference,
@@ -388,14 +518,16 @@ function createUniversalJob(params: UniversalJobParams): JobRow {
     params.operation,
     params.outputFormat,
     params.quality,
-    Object.keys(params.options).length > 0 ? JSON.stringify(params.options) : null,
+    Object.keys(params.options).length > 0
+      ? JSON.stringify(params.options)
+      : null,
     params.clientIp,
     expiresAt,
     params.category,
     params.engineId,
     params.capabilityId,
     params.inputMimeType,
-    params.inputFormat
+    params.inputFormat,
   );
 
   // Fetch and return the created job
