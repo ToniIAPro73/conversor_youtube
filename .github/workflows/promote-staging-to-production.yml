@@ -1,4 +1,5 @@
 name: Promote staging to production
+run-name: Promote staging to production
 
 on:
   workflow_dispatch:
@@ -65,4 +66,3 @@ jobs:
         run: |
           git tag "${{ inputs.version }}" production
           git push origin "${{ inputs.version }}"
-

@@ -1,7 +1,8 @@
 name: Promote development to staging
+run-name: Promote development to staging
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -54,4 +55,3 @@ jobs:
           git checkout staging
           git merge --no-ff origin/development -m "chore: merge development to staging [ci-skip]"
           git push origin staging
-

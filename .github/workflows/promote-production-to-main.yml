@@ -1,4 +1,5 @@
 name: Promote production to main
+run-name: Promote production to main
 
 on:
   workflow_dispatch: {}
@@ -59,4 +60,3 @@ jobs:
       - name: Push main
         if: success()
         run: git push origin main
-
