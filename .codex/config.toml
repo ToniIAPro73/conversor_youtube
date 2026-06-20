@@ -1,8 +1,0 @@
-[mcp_servers.firecrawl-mcp]
-command = "npx"
-args = ["-y", "firecrawl-mcp"]
-env_vars = ["FIRECRAWL_API_KEY"]
-
-[mcp_servers.notebooklm]
-command = "notebooklm-mcp-server"
-
