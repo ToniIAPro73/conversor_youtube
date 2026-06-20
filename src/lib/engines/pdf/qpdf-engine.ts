@@ -190,11 +190,11 @@ export class QpdfEngine implements ConversionEngine {
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async validate(
     outputPath: string,
     _plan: ConversionPlan,
   ): Promise<ArtifactValidation> {
-    void _plan;
     const checks: ArtifactValidation["checks"] = [];
 
     const exists = fs.existsSync(outputPath);
