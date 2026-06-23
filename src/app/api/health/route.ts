@@ -82,7 +82,11 @@ export async function GET() {
     summary: {
       total: dependencies.length,
       available: dependencies.filter((d) => d.available).length,
-      missing: dependencies.filter((d) => !d.available).length,
+      // Only count non-optional tools as "missing" so the UI doesn't alarm users about
+      // optional capabilities (LibreOffice, Calibre, Tesseract, Poppler) that are
+      // intentionally absent from the base portable.
+      missing: dependencies.filter((d) => !d.available && d.portableInclusion !== "optional").length,
+      optionalMissing: dependencies.filter((d) => !d.available && d.portableInclusion === "optional").length,
     },
   });
 }

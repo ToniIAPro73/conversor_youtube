@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, XCircle, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, Info, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 
 interface HealthDependency {
   id: string;
@@ -11,6 +11,8 @@ interface HealthDependency {
   path: string | null;
   status: "ok" | "missing" | "error";
   recommendedAction: string | null;
+  portableInclusion?: "required" | "included" | "optional" | "unexpected-missing";
+  optionalDescription?: string;
 }
 
 interface HealthData {
@@ -22,29 +24,55 @@ interface HealthData {
     total: number;
     available: number;
     missing: number;
+    optionalMissing?: number;
   };
 }
 
 function ToolRow({ dep }: { dep: HealthDependency }) {
+  const isOptional = dep.portableInclusion === "optional";
+  const isOptionalMissing = isOptional && !dep.available;
+  const isRequiredMissing =
+    !dep.available && (dep.portableInclusion !== "optional");
+
   return (
     <div className="flex items-start justify-between gap-3 border-b border-white/7 py-3 last:border-0">
       <div className="flex items-start gap-2.5 min-w-0">
-        {dep.available ? (
+        {isOptionalMissing ? (
+          <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+        ) : dep.available ? (
           <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" aria-hidden="true" />
         ) : (
           <XCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" aria-hidden="true" />
         )}
         <div className="min-w-0">
           <span className="text-sm font-semibold text-stone-100">{dep.displayName}</span>
-          {!dep.available && dep.recommendedAction && (
+          {isOptionalMissing && (
+            <p className="mt-0.5 text-[10px] leading-tight text-amber-200/70">
+              Opcional — {dep.optionalDescription ?? "No incluida en el portable base."}
+            </p>
+          )}
+          {dep.available && isOptional && (
+            <p className="mt-0.5 text-[10px] leading-tight text-emerald-300/60">
+              Opcional — disponible en el sistema
+            </p>
+          )}
+          {isRequiredMissing && dep.recommendedAction && (
             <p className="mt-0.5 text-[10px] leading-tight text-amber-200/80">
               {dep.recommendedAction}
             </p>
           )}
         </div>
       </div>
-      <span className={`shrink-0 font-mono text-xs ${dep.available ? "text-stone-500" : "text-rose-300"}`}>
-        {dep.version ?? (dep.available ? "✓" : "✗")}
+      <span
+        className={`shrink-0 font-mono text-xs ${
+          isOptionalMissing
+            ? "text-amber-400/60"
+            : dep.available
+              ? "text-stone-500"
+              : "text-rose-300"
+        }`}
+      >
+        {dep.version ?? (dep.available ? "✓" : isOptionalMissing ? "—" : "✗")}
       </span>
     </div>
   );
@@ -121,7 +149,7 @@ export function ToolStatusPanel() {
             <div className="mb-4 flex gap-4 text-xs text-stone-500">
               <span>{data.summary.available}/{data.summary.total} disponibles</span>
               {data.summary.missing > 0 && (
-                <span className="text-amber-200">{data.summary.missing} no disponibles</span>
+                <span className="text-amber-200">{data.summary.missing} requeridas no disponibles</span>
               )}
             </div>
 
@@ -131,15 +159,31 @@ export function ToolStatusPanel() {
                 <ToolRow key={dep.id} dep={dep} />
               ))}
             </div>
+
+            {/* Legend */}
+            <div className="mt-4 pt-3 border-t border-white/7 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-stone-500">
+              <span className="flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-emerald-400" aria-hidden="true" />
+                Disponible y listo
+              </span>
+              <span className="flex items-center gap-1">
+                <Info className="h-3 w-3 text-amber-400" aria-hidden="true" />
+                Opcional — instalar solo si necesitas esa función
+              </span>
+              <span className="flex items-center gap-1">
+                <XCircle className="h-3 w-3 text-red-400" aria-hidden="true" />
+                Componente requerido ausente — revisar instalación
+              </span>
+            </div>
           </div>
 
-          {/* Missing tools recommendations */}
+          {/* Missing required tools recommendations */}
           {data.summary.missing > 0 && (
             <div className="space-y-1.5 rounded-[18px] border border-amber-300/18 bg-amber-400/8 p-4 text-sm text-amber-200">
               <p className="font-medium">¿Cómo solucionar esto?</p>
               <ul className="space-y-1 text-xs text-amber-100/75">
                 {data.dependencies
-                  .filter((d) => !d.available && d.recommendedAction)
+                  .filter((d) => !d.available && d.portableInclusion !== "optional" && d.recommendedAction)
                   .map((d) => (
                     <li key={d.id}>• <strong>{d.displayName}:</strong> {d.recommendedAction}</li>
                   ))}

@@ -61,6 +61,16 @@ export interface ToolProbeResult {
   group: "runtime" | "media" | "document" | "image" | "archive" | "ocr" | "ebook" | "data";
   requiredFor: string[];
   recommendedAction: string | null;
+  /**
+   * Describes the tool's role in the portable distribution:
+   * - `required`: essential for the core workflow (YouTube/basic conversion). Absence is a real error.
+   * - `included`: bundled in the portable; absence is unexpected.
+   * - `optional`: additional capability not included in the base portable; absence is NOT an error.
+   * - `unexpected-missing`: should be present per the manifest but wasn't found; diagnostic error.
+   */
+  portableInclusion: "required" | "included" | "optional" | "unexpected-missing";
+  /** Human-readable explanation shown only when portableInclusion === 'optional' and the tool is absent. */
+  optionalDescription?: string;
 }
 
 // ── Binary probe helpers ──────────────────────────────────────────────────────
@@ -159,6 +169,8 @@ interface ProbeDefinition {
   group: ToolProbeResult["group"];
   requiredFor: string[];
   recommendedAction: string;
+  portableInclusion: ToolProbeResult["portableInclusion"];
+  optionalDescription?: string;
 }
 
 // ── Cache ─────────────────────────────────────────────────────────────────────
@@ -187,6 +199,7 @@ export const toolchainProbe = {
           id: "ytdlp", displayName: "yt-dlp",
           args: ["--version"], versionPattern: "(\\d{4}\\.\\d{2}\\.\\d{2})",
           group: "media", requiredFor: ["youtube-download"],
+          portableInclusion: "required",
           recommendedAction: getRecommendedAction(
             "Instala yt-dlp: pip install yt-dlp",
             "Incluido en el portable — descárgalo de nuevo si falta: yt-dlp.org"
@@ -199,6 +212,7 @@ export const toolchainProbe = {
           id: "ffmpeg", displayName: "FFmpeg",
           args: ["-version"], versionPattern: "ffmpeg version (\\S+)",
           group: "media", requiredFor: ["audio", "video", "gif", "thumbnail"],
+          portableInclusion: "required",
           recommendedAction: getRecommendedAction(
             "Instala FFmpeg desde ffmpeg.org",
             "Incluido en el portable — descárgalo de nuevo si falta: ffmpeg.org"
@@ -211,6 +225,7 @@ export const toolchainProbe = {
           id: "ffprobe", displayName: "FFprobe",
           args: ["-version"], versionPattern: "ffprobe version (\\S+)",
           group: "media", requiredFor: ["media-analysis"],
+          portableInclusion: "required",
           recommendedAction: getRecommendedAction(
             "FFprobe se instala junto con FFmpeg",
             "Incluido en el portable junto con FFmpeg"
@@ -223,6 +238,7 @@ export const toolchainProbe = {
           id: "qpdf", displayName: "QPDF",
           args: ["--version"], versionPattern: "qpdf version (\\d+\\.\\d+\\.\\d+)",
           group: "document", requiredFor: ["pdf"],
+          portableInclusion: "included",
           recommendedAction: getRecommendedAction(
             "sudo apt install qpdf",
             "Incluido en el portable — descárgalo de nuevo si falta: qpdf.sourceforge.net"
@@ -235,6 +251,7 @@ export const toolchainProbe = {
           id: "sevenzip", displayName: "7-Zip",
           args: ["i"], versionPattern: "7-Zip (?:\\([az]\\) )?(\\d+\\.\\d+)",
           group: "archive", requiredFor: ["archive"],
+          portableInclusion: "included",
           recommendedAction: getRecommendedAction(
             "sudo apt install p7zip-full",
             "Incluido en el portable — descárgalo de nuevo si falta: 7-zip.org"
@@ -247,6 +264,7 @@ export const toolchainProbe = {
           id: "pandoc", displayName: "Pandoc",
           args: ["--version"], versionPattern: "pandoc (\\d+\\.\\d+\\.\\d+)",
           group: "document", requiredFor: ["document"],
+          portableInclusion: "included",
           recommendedAction: getRecommendedAction(
             "Descarga desde pandoc.org",
             "Incluido en el portable — descárgalo de nuevo si falta: pandoc.org"
@@ -261,6 +279,8 @@ export const toolchainProbe = {
           args: getLibreOfficeProbeArgs(),
           versionPattern: "LibreOffice (\\d+\\.\\d+\\.\\d+(?:\\.\\d+)?)",
           group: "document", requiredFor: ["office-conversion"],
+          portableInclusion: "optional",
+          optionalDescription: "Conversión de documentos Office (DOCX, XLSX, PPTX). Instala LibreOffice para habilitar esta función.",
           recommendedAction: getRecommendedAction(
             "sudo apt install libreoffice",
             "Instala LibreOffice desde libreoffice.org (se detecta en C:\\Program Files\\LibreOffice)"
@@ -273,6 +293,8 @@ export const toolchainProbe = {
           id: "calibre", displayName: "Calibre",
           args: ["--version"], versionPattern: "calibre (\\d+\\.\\d+\\.\\d+)",
           group: "ebook", requiredFor: ["ebook"],
+          portableInclusion: "optional",
+          optionalDescription: "Conversión de libros electrónicos (EPUB, MOBI). Instala Calibre para habilitar esta función.",
           recommendedAction: getRecommendedAction(
             "Instala Calibre desde calibre-ebook.com",
             "Instala Calibre desde calibre-ebook.com (se detecta en C:\\Program Files\\Calibre2)"
@@ -285,6 +307,8 @@ export const toolchainProbe = {
           id: "tesseract", displayName: "Tesseract OCR",
           args: ["--version"], versionPattern: "tesseract (\\d+\\.\\d+\\.\\d+)",
           group: "ocr", requiredFor: ["ocr-image", "ocr-pdf"],
+          portableInclusion: "optional",
+          optionalDescription: "Reconocimiento de texto en imágenes (OCR). Instala Tesseract para habilitar esta función.",
           recommendedAction: getRecommendedAction(
             "sudo apt install tesseract-ocr tesseract-ocr-spa tesseract-ocr-eng",
             "Instala Tesseract desde github.com/UB-Mannheim/tesseract (se detecta en C:\\Program Files\\Tesseract-OCR)"
@@ -297,6 +321,8 @@ export const toolchainProbe = {
           id: "poppler", displayName: "Poppler (pdftoppm)",
           args: ["-v"], versionPattern: "pdftoppm version (\\d+\\.\\d+\\.\\d+)",
           group: "ocr", requiredFor: ["ocr-pdf", "pdf-to-image"],
+          portableInclusion: "optional",
+          optionalDescription: "Conversión de PDF a imagen. Instala Poppler para habilitar esta función.",
           recommendedAction: getRecommendedAction(
             "sudo apt install poppler-utils",
             "Descarga Poppler para Windows desde github.com/oschwartz10612/poppler-windows y colócalo en tools\\poppler\\ (el portable buscará en Library\\bin\\ y bin\\). Las conversiones PDF→imagen y OCR de PDF quedarán deshabilitadas sin esta herramienta."
@@ -321,6 +347,8 @@ export const toolchainProbe = {
           group: def.group,
           requiredFor: def.requiredFor,
           recommendedAction: probe.available ? null : def.recommendedAction,
+          portableInclusion: def.portableInclusion,
+          ...(def.optionalDescription !== undefined ? { optionalDescription: def.optionalDescription } : {}),
         };
       })
     );
