@@ -25,7 +25,9 @@ export type ErrorCode =
   | "MISSING_CONVERSION_ID"
   | "INVALID_STATE"
   | "RATE_LIMITED"
-  | "CONCURRENCY_LIMIT";
+  | "CONCURRENCY_LIMIT"
+  | "DEPENDENCY_MISSING"
+  | "QUALITY_NOT_DELIVERED";
 
 export interface AppError extends Error {
   code: ErrorCode;
@@ -101,4 +103,6 @@ export const ERROR_MESSAGES: Readonly<Record<ErrorCode, string>> = {
   INVALID_STATE: "El estado del proceso no es válido para esta operación.",
   RATE_LIMITED: "Demasiadas peticiones. Por favor, espera un momento.",
   CONCURRENCY_LIMIT: "Se ha alcanzado el límite de conversiones simultáneas.",
+  DEPENDENCY_MISSING: "No se han encontrado las dependencias necesarias (ffprobe/ffmpeg/yt-dlp). Verifica la instalación.",
+  QUALITY_NOT_DELIVERED: "La resolución entregada es inferior a la solicitada. El vídeo puede no tener ese formato disponible.",
 };
