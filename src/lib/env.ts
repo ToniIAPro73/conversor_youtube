@@ -20,6 +20,7 @@ const envSchema = z.object({
   ANCLORA_FILESTUDIO_POPPLER_PATH: z.string().default(""),
   ANCLORA_FILESTUDIO_DATA_DIR: z.string().default(""),
   ANCLORA_FILESTUDIO_TEMP_DIR: z.string().default(""),
+  ANCLORA_FILESTUDIO_LOGS_DIR: z.string().default(""),
   ANCLORA_FILESTUDIO_PLATFORM: z.string().default(""),
   ANCLORA_FILESTUDIO_DEPLOYMENT_TARGET: z.string().default(""),
   ANCLORA_FILESTUDIO_ENABLE_SERVER_CONVERSIONS: z.string().default(""),

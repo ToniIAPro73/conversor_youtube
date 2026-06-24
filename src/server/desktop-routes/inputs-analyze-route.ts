@@ -3,6 +3,7 @@ import { probeFile, MediaDescriptor } from "@/lib/media/probe";
 import { getVideoMetadata } from "@/lib/media/metadata";
 import { normalizeYoutubeUrl } from "@/lib/youtube/normalize-url";
 import { analyzeRemoteMedia } from "@/lib/remote-media/remote-media-analyzer";
+import { AppError } from "@/lib/errors";
 import { CONFIG } from "@/lib/config";
 import { sanitizeFilename } from "@/lib/security/sanitize-filename";
 import { ensurePathSafety } from "@/lib/security/path-safety";
@@ -137,6 +138,12 @@ export async function POST(req: NextRequest) {
       videoFormats: remoteAnalysis.videoVariants,
     });
   } catch (error: unknown) {
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.status ?? 500 }
+      );
+    }
     const msg = error instanceof Error ? error.message : "Error interno.";
     return NextResponse.json({ error: msg, code: "ANALYSIS_FAILED" }, { status: 500 });
   }

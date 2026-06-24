@@ -233,6 +233,7 @@ $env:ANCLORA_FILESTUDIO_TESSDATA_PREFIX    = $TessdataDir
 $env:ANCLORA_FILESTUDIO_POPPLER_PATH       = $PopplerBaseDir
 $env:ANCLORA_FILESTUDIO_DATA_DIR           = $DataDir
 $env:ANCLORA_FILESTUDIO_TEMP_DIR           = $TempDir
+$env:ANCLORA_FILESTUDIO_LOGS_DIR           = $LogDir
 
 # Legacy env vars for backward compatibility
 $env:YTDLP_BINARY                  = $YtdlpExe

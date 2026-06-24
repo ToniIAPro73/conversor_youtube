@@ -399,6 +399,59 @@ else
   PASS=$((PASS+1))
 fi
 
+# ── 17. yt-dlp path injection and logs dir smoke checks ─────────────────────
+info "Verificando inyección de ruta yt-dlp y directorio de logs..."
+
+if [[ -f "$START_PS1" ]]; then
+  # ANCLORA_FILESTUDIO_LOGS_DIR must be wired in the launcher
+  if grep -q "ANCLORA_FILESTUDIO_LOGS_DIR" "$START_PS1" 2>/dev/null; then
+    ok "  ANCLORA_FILESTUDIO_LOGS_DIR está configurado en el launcher"
+    PASS=$((PASS+1))
+  else
+    fail "  ANCLORA_FILESTUDIO_LOGS_DIR NO está en start-anclora-filestudio.ps1 (errores yt-dlp no se persistirán en logs/)"
+  fi
+
+  # ANCLORA_FILESTUDIO_YTDLP_PATH must be assigned from the resolved tool variable
+  # (not a bare "yt-dlp" string), meaning it derives from $YtdlpExe
+  if grep -q 'ANCLORA_FILESTUDIO_YTDLP_PATH\s*=\s*\$YtdlpExe' "$START_PS1" 2>/dev/null; then
+    ok "  ANCLORA_FILESTUDIO_YTDLP_PATH se asigna desde \$YtdlpExe (ruta absoluta)"
+    PASS=$((PASS+1))
+  else
+    fail "  ANCLORA_FILESTUDIO_YTDLP_PATH no usa \$YtdlpExe — posible path bare o no resuelto"
+  fi
+
+  # Launcher must not set a bare yt-dlp on PATH as fallback for ANCLORA_FILESTUDIO_YTDLP_PATH
+  if grep -Eq "ANCLORA_FILESTUDIO_YTDLP_PATH\s*=\s*['\"]?yt-dlp['\"]?" "$START_PS1" 2>/dev/null; then
+    fail "  ANCLORA_FILESTUDIO_YTDLP_PATH se asigna a 'yt-dlp' bare (depende de PATH — falla en portable)"
+  else
+    ok "  ANCLORA_FILESTUDIO_YTDLP_PATH no es 'yt-dlp' bare"
+    PASS=$((PASS+1))
+  fi
+fi
+
+# --no-check-certificates must not appear in any script or bundled JS
+info "Verificando ausencia de --no-check-certificates..."
+NC_FOUND="$(grep -rl -- "--no-check-certificates" "$EXTRACTED" \
+  --include="*.ps1" --include="*.bat" --include="*.sh" --include="*.js" \
+  --include="*.mjs" --include="*.ts" 2>/dev/null | head -5 || true)"
+if [[ -n "$NC_FOUND" ]]; then
+  fail "  --no-check-certificates encontrado en:"
+  echo "$NC_FOUND" | head -5 | while IFS= read -r f; do echo "    $f"; done
+else
+  ok "  --no-check-certificates ausente en scripts y app JS"
+  PASS=$((PASS+1))
+fi
+
+# Verify yt-dlp.exe is present and non-zero size (sanity: bundled binary exists)
+YTDLP_EXE="$EXTRACTED/tools/yt-dlp/yt-dlp.exe"
+if [[ -f "$YTDLP_EXE" ]]; then
+  YTDLP_SIZE="$(du -sh "$YTDLP_EXE" | awk '{print $1}')"
+  ok "  tools/yt-dlp/yt-dlp.exe presente ($YTDLP_SIZE)"
+  PASS=$((PASS+1))
+else
+  fail "  tools/yt-dlp/yt-dlp.exe AUSENTE — yt-dlp no estará disponible en portable"
+fi
+
 # ── Result ────────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}══════════════════════════════════════════════${NC}"

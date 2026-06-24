@@ -1,14 +1,14 @@
 {
   "$schema": "https://anclora.dev/schemas/release-manifest/v1",
-  "version": "0.2.1",
-  "commit": "3aaacb7",
-  "buildDateUtc": "2026-06-24T08:35:00Z",
+  "version": "0.2.2",
+  "commit": "273652d",
+  "buildDateUtc": "2026-06-24T09:52:00Z",
   "status": "ready-for-review",
   "platforms": {
     "windows-x64": {
       "filename": "Anclora-FileStudio-Windows-x64-Core.zip",
-      "sizeBytes": 287766093,
-      "sha256": "789beff6bfcf88dfb62480649d06bdd70ec7d6cd5a9dc6351ce76c6dcf7b8707",
+      "sizeBytes": 287777335,
+      "sha256": "6232f023bd66ac23d1ad652961ed5b3d3c40fe5b32373d5fdc98de5450e07f07",
       "downloadUrl": null,
       "publicationStatus": "not-published",
       "essentialTools": ["yt-dlp", "ffmpeg", "ffprobe"],
@@ -49,9 +49,16 @@
     "Desktop PRO: QualitySelector visible en flujo de formato para mp4/mkv/webm con toggle Máxima calidad/MP4 compatible",
     "Desktop PRO: resolucioness reales 1440p/2160p desde metadatos mostradas con etiquetas FPS",
     "Desktop PRO: input URL acepta cualquier URL de vídeo web (no solo YouTube) via analyzeRemoteMedia()",
-    "Desktop PRO: contenido protegido con DRM rechazado con mensaje claro (sin bypass)"
+    "Desktop PRO: contenido protegido con DRM rechazado con mensaje claro (sin bypass)",
+    "yt-dlp: stderr clasificado en 6 categorías (VIDEO_UNAVAILABLE, CONTENT_RESTRICTED, RATE_LIMITED, CONVERSION_TIMEOUT, DEPENDENCY_MISSING, INTERNAL_ERROR)",
+    "yt-dlp: errores escritos a logs/ytdlp-errors.log (NDJSON) con comando, exit code y stderr sanitizado",
+    "yt-dlp: ruta absoluta inyectada via ANCLORA_FILESTUDIO_YTDLP_PATH desde launcher (sin depender de PATH)",
+    "Nuevo env var ANCLORA_FILESTUDIO_LOGS_DIR wired en launcher y usado por metadata.ts",
+    "Sin --no-check-certificates en ningún path de ejecución",
+    "Pruebas integración: 9 casos getVideoMetadata() (exit 0, stderr patterns, timeout null, ENOENT, invalid JSON)",
+    "Smoke checks v2: ANCLORA_FILESTUDIO_LOGS_DIR, ruta yt-dlp absoluta, sin --no-check-certificates"
   ],
-  "notes": "ZIP generado desde commit 3aaacb7 (rama fix/youtube-quality-cross-platform-portables). No publicado. Incluye Desktop PRO shell integrado con QualitySelector y analizador de medios web. Requiere validación en máquina Windows limpia antes de publicar.",
+  "notes": "ZIP generado desde commit 273652d (rama fix/youtube-quality-cross-platform-portables). No publicado. Incluye Desktop PRO shell integrado con QualitySelector, analizador de medios web, clasificación de errores yt-dlp y logs estructurados. Requiere validación en máquina Windows limpia antes de publicar.",
   "publishingSteps": {
     "1_validate_zip": "bash scripts/verify-windows-portable-v2.sh",
     "2_windows_clean_machine": "pwsh scripts/acceptance/run-windows-portable-clean-machine.ps1 -ZipPath dist/windows/Anclora-FileStudio-Windows-x64-Core.zip",
