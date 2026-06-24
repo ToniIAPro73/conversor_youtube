@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { VideoQualitySelectionSchema } from "@/lib/quality/quality-contract";
 import { jobManager } from "@/lib/jobs/job-manager";
 import { processJob } from "@/lib/media/processor";
 import { processUniversalJob } from "@/lib/jobs/universal-job-processor";
@@ -36,6 +37,8 @@ const JobRequestSchema = z
     localFilePath: z.string().optional(),
     format: z.string().optional(),
     quality: z.string().min(1).max(10).optional(),
+    // Canonical quality object — replaces legacy quality string for video jobs
+    qualitySelection: VideoQualitySelectionSchema.optional(),
     rightsConfirmed: z.boolean(),
     operation: z.string().optional(),
     // New universal fields
@@ -54,8 +57,10 @@ export async function POST(req: NextRequest) {
     const validated = JobRequestSchema.safeParse(body);
 
     if (!validated.success) {
+      const issue = validated.error.issues[0];
+      const fieldPath = issue.path.length > 0 ? `[${issue.path.join(".")}] ` : "";
       return NextResponse.json(
-        { error: validated.error.issues[0].message, code: "VALIDATION_ERROR" },
+        { error: `${fieldPath}${issue.message}`, code: "VALIDATION_ERROR" },
         { status: 400 },
       );
     }
@@ -361,7 +366,11 @@ function handleLegacyMediaJob(
         ? "transcode-audio"
         : "transcode-video";
 
-  const quality = data.quality ?? "5";
+  // Prefer structured qualitySelection; fall back to legacy quality string.
+  // qualitySelection is serialized as JSON so processRemoteUrl can reconstruct it.
+  const quality = data.qualitySelection
+    ? JSON.stringify(data.qualitySelection)
+    : (data.quality ?? "5");
 
   const job = jobManager.createJob(
     inputReference,

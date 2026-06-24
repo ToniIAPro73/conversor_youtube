@@ -215,11 +215,11 @@ export function DesktopProShell() {
       } else if (analysisResult.kind === "remote-url") {
         body.url = analysisResult.normalizedUrl;
         body.format = selectedCap.outputFormat;
-        if (qualitySelection) body.quality = qualitySelection;
+        if (qualitySelection) body.qualitySelection = qualitySelection;
       } else {
         body.localFilePath = analysisResult.storedRelativePath;
         body.format = selectedCap.outputFormat;
-        if (qualitySelection) body.quality = qualitySelection;
+        if (qualitySelection) body.qualitySelection = qualitySelection;
       }
 
       const response = await fetch("/api/jobs", {
