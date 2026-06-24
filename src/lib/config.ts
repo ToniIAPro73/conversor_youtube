@@ -17,6 +17,11 @@ export const CONFIG = {
     dataDir: env.ANCLORA_FILESTUDIO_DATA_DIR
       ? path.resolve(env.ANCLORA_FILESTUDIO_DATA_DIR)
       : path.resolve(process.cwd(), "data"),
+    logsDir: env.ANCLORA_FILESTUDIO_LOGS_DIR
+      ? path.resolve(env.ANCLORA_FILESTUDIO_LOGS_DIR)
+      : env.ANCLORA_FILESTUDIO_DATA_DIR
+        ? path.resolve(env.ANCLORA_FILESTUDIO_DATA_DIR, "..", "logs")
+        : path.resolve(process.cwd(), ".tmp", "logs"),
     binaries: {
       ytdlp: resolveToolPath(env.ANCLORA_FILESTUDIO_YTDLP_PATH, env.YTDLP_BINARY),
       ffmpeg: resolveToolPath(env.ANCLORA_FILESTUDIO_FFMPEG_PATH, env.FFMPEG_BINARY),
