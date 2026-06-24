@@ -289,7 +289,7 @@ export function SourceSelector({ onUrlAnalyzed, onFileAnalyzed, isLoading, setLo
             )}
           </button>
           <p className="text-center text-[10px] text-stone-600">
-            Compatible con YouTube, Vimeo, páginas con vídeo público y streams HLS/DASH directos · El contenido protegido con DRM o que requiere autenticación no es compatible
+            Pega una URL pública de vídeo, YouTube, Vimeo, página web con vídeo o stream HLS/DASH público · Algunos proveedores pueden requerir acceso o aplicar protecciones externas no compatibles
           </p>
         </form>
       )}

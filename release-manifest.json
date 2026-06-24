@@ -1,14 +1,14 @@
 {
   "$schema": "https://anclora.dev/schemas/release-manifest/v1",
-  "version": "0.2.2",
-  "commit": "273652d",
-  "buildDateUtc": "2026-06-24T09:52:00Z",
+  "version": "0.2.3",
+  "commit": "566ae38",
+  "buildDateUtc": "2026-06-24T21:36:00Z",
   "status": "ready-for-review",
   "platforms": {
     "windows-x64": {
       "filename": "Anclora-FileStudio-Windows-x64-Core.zip",
-      "sizeBytes": 287777335,
-      "sha256": "6232f023bd66ac23d1ad652961ed5b3d3c40fe5b32373d5fdc98de5450e07f07",
+      "sizeBytes": 287776408,
+      "sha256": "74491aec4c09b33cd5e27aa20f625005c4920ebd2209f963c6ce63d0e9eac4d4",
       "downloadUrl": null,
       "publicationStatus": "not-published",
       "essentialTools": ["yt-dlp", "ffmpeg", "ffprobe"],
@@ -38,6 +38,15 @@
     }
   },
   "fixes": [
+    "Desktop PRO: eliminado bloqueo heurístico previo al extractor (requiresAuthentication, ageVerification, botVerification, DRM keywords, domain/provider/page-type)",
+    "Desktop PRO: cualquier URL http/https pública intentada con yt-dlp primero; error sólo si extractor falla de verdad",
+    "Nuevo código de error PROVIDER_VERIFICATION para verificación anti-bot/captcha del proveedor (distinto de CONTENT_RESTRICTED)",
+    "Clasificación de error yt-dlp: 'Sign in to confirm you're not a bot' → PROVIDER_VERIFICATION, no CONTENT_RESTRICTED",
+    "SSRF guard conservado como único bloqueo de red (IPs privadas, loopback, RFC1918, link-local)",
+    "Flujo web-page: yt-dlp primero → HTML fallback → error clasificado propagado (sin bloques preventivos)",
+    "Flujo unsupported-or-protected: yt-dlp intentado antes de rechazar",
+    "Texto UI actualizado: 'Pega una URL pública de vídeo, YouTube, Vimeo, página web con vídeo o stream HLS/DASH público · Algunos proveedores pueden requerir acceso o aplicar protecciones externas no compatibles'",
+    "11 tests de regresión: prueban que ninguna URL pública es bloqueada por heurísticas internas",
     "YouTube 4K/1440p: eliminado filtro [ext=mp4] que bloqueaba VP9/AV1",
     "Calidad canónica: QualityProfile source-max vs mp4-compatible con validación Zod",
     "Sin degradación silenciosa: parseLegacyQualityString() lanza TypeError en lugar de NaN",
@@ -58,7 +67,7 @@
     "Pruebas integración: 9 casos getVideoMetadata() (exit 0, stderr patterns, timeout null, ENOENT, invalid JSON)",
     "Smoke checks v2: ANCLORA_FILESTUDIO_LOGS_DIR, ruta yt-dlp absoluta, sin --no-check-certificates"
   ],
-  "notes": "ZIP generado desde commit 273652d (rama fix/youtube-quality-cross-platform-portables). No publicado. Incluye Desktop PRO shell integrado con QualitySelector, analizador de medios web, clasificación de errores yt-dlp y logs estructurados. Requiere validación en máquina Windows limpia antes de publicar.",
+  "notes": "ZIP generado desde commit 566ae38 (rama fix/youtube-quality-cross-platform-portables). No publicado. Elimina todos los bloqueos heurísticos preventivos de URLs YouTube/web; yt-dlp se invoca primero para cualquier URL pública; errores de proveedor diferenciados (PROVIDER_VERIFICATION vs CONTENT_RESTRICTED). Requiere validación en máquina Windows limpia antes de publicar.",
   "publishingSteps": {
     "1_validate_zip": "bash scripts/verify-windows-portable-v2.sh",
     "2_windows_clean_machine": "pwsh scripts/acceptance/run-windows-portable-clean-machine.ps1 -ZipPath dist/windows/Anclora-FileStudio-Windows-x64-Core.zip",

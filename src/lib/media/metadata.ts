@@ -61,17 +61,35 @@ function classifyYtdlpFailure(stderr: string, exitCode: number | null): YtdlpErr
     return { code: "VIDEO_UNAVAILABLE", message: "El vídeo no está disponible o ha sido eliminado." };
   }
 
-  // Authentication / age restriction / bot check
+  // Bot/captcha verification — BEFORE generic "sign in" to give a specific error.
+  // This is a PROVIDER-SIDE challenge (YouTube anti-bot, etc.), not a content restriction.
   if (
-    s.includes("sign in") ||
-    s.includes("confirm your age") ||
     s.includes("not a bot") ||
-    s.includes("confirm you") ||
-    s.includes("requires authentication")
+    s.includes("confirm you're not") ||
+    s.includes("i'm not a robot") ||
+    s.includes("captcha") ||
+    s.includes("are you a robot")
+  ) {
+    return {
+      code: "PROVIDER_VERIFICATION",
+      message:
+        "El proveedor requiere verificación anti-bot o captcha. Puede ser temporal — inténtalo de nuevo más tarde.",
+    };
+  }
+
+  // Age restriction / authenticated-only content (actual content restriction)
+  if (
+    s.includes("confirm your age") ||
+    s.includes("age-restricted") ||
+    s.includes("age restricted") ||
+    s.includes("requires authentication") ||
+    s.includes("sign in") ||
+    s.includes("login required")
   ) {
     return {
       code: "CONTENT_RESTRICTED",
-      message: "Este vídeo requiere verificación de edad, inicio de sesión o confirmar que no eres un bot.",
+      message:
+        "El contenido requiere inicio de sesión o tiene restricción de edad. El acceso autenticado no está soportado.",
     };
   }
 

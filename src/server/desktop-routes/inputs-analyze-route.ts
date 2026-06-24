@@ -96,10 +96,20 @@ export async function POST(req: NextRequest) {
 
     const remoteAnalysis = await analyzeRemoteMedia(trimmedUrl);
 
-    if (!remoteAnalysis.isPubliclyAccessible || remoteAnalysis.drmDetected) {
-      const msg = remoteAnalysis.limitationMessages[0]
-        ?? "Este vídeo parece protegido, requiere acceso autenticado o no ofrece un stream compatible. Anclora FileStudio no intenta eludir esas protecciones.";
-      return NextResponse.json({ error: msg, code: "PROTECTED_CONTENT" }, { status: 422 });
+    // Only block on SSRF (private network / security guard).
+    // Heuristic signals like requiresAuthentication, drmDetected from HTML analysis
+    // are NOT blocking — they were derived without running the extractor.
+    if (remoteAnalysis.ssrfBlocked) {
+      const msg = remoteAnalysis.limitationMessages[0] ?? "URL bloqueada por seguridad de red interna.";
+      return NextResponse.json({ error: msg, code: "INVALID_URL" }, { status: 400 });
+    }
+
+    // When both yt-dlp AND HTML analysis failed, return the classified extractor error.
+    if (remoteAnalysis.classifiedError) {
+      return NextResponse.json(
+        { error: remoteAnalysis.classifiedError.message, code: remoteAnalysis.classifiedError.code },
+        { status: remoteAnalysis.classifiedError.status }
+      );
     }
 
     const hasVideo = remoteAnalysis.videoVariants.length > 0;
