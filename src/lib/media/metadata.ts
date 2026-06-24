@@ -228,10 +228,29 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
       url,
     ];
 
+    // Build a clean environment: inherit parent env but remove Python/curl SSL
+    // overrides that may be inherited from system config or antivirus proxies.
+    // If those vars point to invalid/missing paths, Python (yt-dlp) fails with
+    // CERTIFICATE_VERIFY_FAILED even though the network is fine.
+    // We do NOT set PYTHONHTTPSVERIFY=0 — that would disable verification.
+    // Clearing invalid overrides restores Python's default certifi verification.
+    const spawnEnv: NodeJS.ProcessEnv = { ...process.env };
+    const SSL_ENV_OVERRIDES = [
+      "PYTHONHTTPSVERIFY",   // =0 disables SSL; if set to garbage, confuses yt-dlp
+      "REQUESTS_CA_BUNDLE",  // if invalid path → SSL fail in Python requests
+      "SSL_CERT_FILE",       // if invalid path → SSL fail in Python ssl module
+      "CURL_CA_BUNDLE",      // if invalid path → SSL fail in curl-based yt-dlp transports
+    ] as const;
+    for (const key of SSL_ENV_OVERRIDES) {
+      delete spawnEnv[key];
+    }
+
     const proc = spawn(ytdlpBin, args, {
       shell: false,
       windowsHide: true,
       timeout: CONFIG.media.limits.metadataTimeoutSeconds * 1000,
+      env: spawnEnv,
+      stdio: ["ignore", "pipe", "pipe"],
     });
 
     let stdout = "";
