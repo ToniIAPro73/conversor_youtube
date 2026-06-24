@@ -16,9 +16,10 @@ import {
   ScanText,
   Stethoscope,
 } from "lucide-react";
-import { SourceSelector, type AnalysisResult, type UniversalAnalysisResult } from "@/components/converter/source-selector";
+import { SourceSelector, type AnalysisResult, type UniversalAnalysisResult, type RemoteAnalysisResult } from "@/components/converter/source-selector";
 import { InputAnalysisCard } from "@/components/converter/input-analysis-card";
 import { CompatibilityPanel } from "@/components/converter/compatibility-panel";
+import { QualitySelector } from "@/components/converter/quality-selector";
 import { JobProgressCard } from "@/components/converter/job-progress-card";
 import { ArtifactResultCard } from "@/components/converter/artifact-result-card";
 import { JobHistory } from "@/components/history/job-history";
@@ -27,6 +28,8 @@ import { ImageTool } from "@/components/web-tools/images/image-tool";
 import { PdfTool } from "@/components/web-tools/pdf/pdf-tool";
 import { StructuredDataTool } from "@/components/web-tools/structured/structured-data-tool";
 import type { CapabilityInfo } from "@/lib/domain/unified-analysis";
+import type { VideoFormat } from "@/lib/media/metadata";
+import { VideoQualitySelectionSchema, type QualityProfile } from "@/lib/quality/quality-contract";
 import { DESKTOP_PRO_GROUPS, type DesktopProGroupId } from "@/lib/capabilities/desktop-capabilities";
 import { FILESTUDIO_BRAND } from "@/lib/filestudio-brand";
 import { t } from "@/i18n";
@@ -81,6 +84,9 @@ export function DesktopProShell() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<JobStatusData | null>(null);
   const [isConverting, setIsConverting] = useState(false);
+  const [qualityProfile, setQualityProfile] = useState<QualityProfile>("source-max");
+  const [quality, setQuality] = useState<string>("max");
+  const [videoFormats, setVideoFormats] = useState<VideoFormat[]>([]);
 
   const activeGroup = DESKTOP_PRO_GROUPS.find((group) => group.id === activeTab);
   const selectedKey = selectedCap ? selectedCap.id : null;
@@ -164,6 +170,9 @@ export function DesktopProShell() {
     setJobStatus(null);
     setIsConverting(false);
     setFlowStep("source");
+    setQualityProfile("source-max");
+    setQuality("max");
+    setVideoFormats([]);
   }, []);
 
   const handleTabChange = useCallback((tab: DesktopTab) => {
@@ -171,12 +180,31 @@ export function DesktopProShell() {
     resetFlow();
   }, [resetFlow]);
 
+  const handleAnalysisResult = useCallback((result: AnalysisResult) => {
+    setAnalysisResult(result);
+    if (result.kind === "remote-url") {
+      const formats = (result as RemoteAnalysisResult).videoFormats;
+      setVideoFormats(Array.isArray(formats) ? formats : []);
+    } else {
+      setVideoFormats([]);
+    }
+  }, []);
+
   const handleStartConversion = async () => {
     if (!analysisResult || !selectedCap) return;
 
     setIsConverting(true);
     setFlowStep("progress");
     setJobStatus({ jobId: "pending", status: "queued", stage: t("progress.queued"), progress: 0 });
+
+    const isVideoFormat = selectedCap.outputFormat === "mp4" || selectedCap.outputFormat === "mkv" || selectedCap.outputFormat === "webm";
+    const qualitySelection = isVideoFormat
+      ? VideoQualitySelectionSchema.parse({
+          profile: qualityProfile,
+          resolutionLimit: quality === "max" ? "max" : Number(quality),
+          fallbackPolicy: "reject",
+        })
+      : undefined;
 
     try {
       const body: Record<string, unknown> = { rightsConfirmed: true };
@@ -187,11 +215,11 @@ export function DesktopProShell() {
       } else if (analysisResult.kind === "remote-url") {
         body.url = analysisResult.normalizedUrl;
         body.format = selectedCap.outputFormat;
-        body.quality = "5";
+        if (qualitySelection) body.quality = qualitySelection;
       } else {
         body.localFilePath = analysisResult.storedRelativePath;
         body.format = selectedCap.outputFormat;
-        body.quality = "5";
+        if (qualitySelection) body.quality = qualitySelection;
       }
 
       const response = await fetch("/api/jobs", {
@@ -297,13 +325,18 @@ export function DesktopProShell() {
             currentStepIndex={currentStepIndex}
             analysisResult={analysisResult}
             capabilities={capabilities}
+            qualityProfile={qualityProfile}
+            quality={quality}
+            videoFormats={videoFormats}
+            onProfileChange={setQualityProfile}
+            onQualityChange={setQuality}
             selectedKey={selectedKey}
             selectedCap={selectedCap}
             isLoading={isLoading}
             isConverting={isConverting}
             jobStatus={jobStatus}
-            onFileAnalyzed={setAnalysisResult}
-            onUrlAnalyzed={setAnalysisResult}
+            onFileAnalyzed={handleAnalysisResult}
+            onUrlAnalyzed={handleAnalysisResult}
             setLoading={setIsLoading}
             onReset={resetFlow}
             onCapSelect={setSelectedCap}
@@ -348,6 +381,11 @@ function NativeConversionWorkspace(props: {
   isLoading: boolean;
   isConverting: boolean;
   jobStatus: JobStatusData | null;
+  qualityProfile: QualityProfile;
+  quality: string;
+  videoFormats: VideoFormat[];
+  onProfileChange: (profile: QualityProfile) => void;
+  onQualityChange: (quality: string) => void;
   onFileAnalyzed: (result: AnalysisResult) => void;
   onUrlAnalyzed: (result: AnalysisResult) => void;
   setLoading: (loading: boolean) => void;
@@ -369,6 +407,11 @@ function NativeConversionWorkspace(props: {
     isLoading,
     isConverting,
     jobStatus,
+    qualityProfile,
+    quality,
+    videoFormats,
+    onProfileChange,
+    onQualityChange,
     onFileAnalyzed,
     onUrlAnalyzed,
     setLoading,
@@ -416,6 +459,17 @@ function NativeConversionWorkspace(props: {
                 recommended={capabilities.recommended}
                 onSelect={onCapSelect}
                 selectedKey={selectedKey}
+              />
+            )}
+            {flowStep === "format" && selectedCap && (selectedCap.outputFormat === "mp4" || selectedCap.outputFormat === "mkv" || selectedCap.outputFormat === "webm") && (
+              <QualitySelector
+                format="mp4"
+                quality={quality}
+                onQualityChange={onQualityChange}
+                availableHeights={analysisResult?.descriptor?.videoStreams?.map((s) => s.height).filter((h): h is number => h !== null) ?? []}
+                qualityProfile={qualityProfile}
+                onProfileChange={onProfileChange}
+                videoFormats={videoFormats.length > 0 ? videoFormats : undefined}
               />
             )}
             {flowStep === "format" && selectedCap && (
