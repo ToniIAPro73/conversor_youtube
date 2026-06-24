@@ -117,6 +117,14 @@ export const messages = {
   // Web mode — CSV warnings
   "web.csv.nested-warning": "Some values contain nested structures. They have been serialized as JSON text inside the cell.",
   "web.csv.root-invalid": "Cannot create CSV from this content. The file must contain a list of records (array of objects).",
+
+  // Quality selector
+  "quality.sourceMax": "Maximum original quality",
+  "quality.mp4Compatible": "MP4 compatible",
+  "quality.maxAvailable": "Max available",
+  "quality.profileSourceMaxDesc": "No re-encoding · preserves 4K/60fps · may produce MKV/WebM",
+  "quality.profileMp4Desc": "Compatible with more players · may require re-encoding",
+  "quality.resolutionNotDelivered": "Delivered resolution ({delivered}p) lower than requested ({requested}p)",
 } as const;
 
 export type MessageKey = keyof typeof messages;

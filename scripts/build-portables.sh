@@ -70,6 +70,15 @@ if [[ "$BUILD_LINUX" -eq 1 ]]; then
   if bash "$SCRIPT_DIR/build-linux-portable.sh"; then
     LINUX_STATUS="OK"
     ok "Linux build complete → dist/linux/Anclora-FileStudio-Linux-x64.tar.zst"
+    # Update release manifest with artifact metadata
+    LINUX_ARTIFACT="$REPO_ROOT/dist/linux/Anclora-FileStudio-Linux-x64.tar.zst"
+    if [[ -f "$LINUX_ARTIFACT" ]]; then
+      bash "$SCRIPT_DIR/update-release-manifest.sh" \
+        --platform linux-x64 \
+        --file "$LINUX_ARTIFACT" || warn "Could not update release-manifest.json for linux-x64 (non-fatal)"
+    else
+      warn "Linux artifact not found at expected path, skipping manifest update: $LINUX_ARTIFACT"
+    fi
   else
     LINUX_STATUS="FAILED"
     error "Linux build failed"
@@ -83,6 +92,15 @@ if [[ "$BUILD_WINDOWS" -eq 1 ]]; then
   if bash "$SCRIPT_DIR/build-windows-portable.sh"; then
     WINDOWS_STATUS="OK"
     ok "Windows build complete → dist/windows/Anclora-FileStudio-Windows-x64-Core.zip"
+    # Update release manifest with artifact metadata
+    WINDOWS_ARTIFACT="$REPO_ROOT/dist/windows/Anclora-FileStudio-Windows-x64-Core.zip"
+    if [[ -f "$WINDOWS_ARTIFACT" ]]; then
+      bash "$SCRIPT_DIR/update-release-manifest.sh" \
+        --platform windows-x64 \
+        --file "$WINDOWS_ARTIFACT" || warn "Could not update release-manifest.json for windows-x64 (non-fatal)"
+    else
+      warn "Windows artifact not found at expected path, skipping manifest update: $WINDOWS_ARTIFACT"
+    fi
   else
     WINDOWS_STATUS="FAILED"
     error "Windows build failed"

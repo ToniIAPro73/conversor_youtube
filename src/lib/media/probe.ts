@@ -1,5 +1,7 @@
 import { spawn } from "child_process";
+import fs from "fs";
 import { CONFIG } from "../config";
+import { createAppError } from "../errors/error-codes";
 
 // --- Legacy simple verifyFile (kept for backwards compat) ---
 
@@ -212,4 +214,152 @@ function parseFps(rational: string | undefined): number | null {
   const den = parseFloat(parts[1]);
   if (!den || den === 0) return null;
   return Math.round((num / den) * 100) / 100;
+}
+
+// --- probeOutputFile: structured probe for post-conversion quality verification ---
+
+export interface ProbeResult {
+  width: number | null;
+  height: number | null;
+  fps: number | null;
+  videoCodec: string | null;
+  audioCodec: string | null;
+  container: string | null;
+  durationSeconds: number | null;
+  fileSizeBytes: number;
+}
+
+/**
+ * Runs ffprobe on a completed output file and returns structured media metadata.
+ *
+ * @throws AppError(DEPENDENCY_MISSING) if ffprobeBinary is not found (ENOENT)
+ * @throws AppError(ARTIFACT_VALIDATION_FAILED) if the file does not exist
+ * @throws AppError(INTERNAL_ERROR) if ffprobe output is not valid JSON
+ */
+export async function probeOutputFile(
+  filePath: string,
+  ffprobeBinary: string
+): Promise<ProbeResult> {
+  if (!fs.existsSync(filePath)) {
+    throw createAppError(
+      "ARTIFACT_VALIDATION_FAILED",
+      `El archivo de salida no existe: ${filePath}`,
+      { stage: "probe" }
+    );
+  }
+
+  return new Promise((resolve, reject) => {
+    const args = [
+      "-v", "quiet",
+      "-print_format", "json",
+      "-show_streams",
+      "-show_format",
+      filePath,
+    ];
+
+    const proc = spawn(ffprobeBinary, args, {
+      shell: false,
+      windowsHide: true,
+    });
+
+    let stdout = "";
+    let stderr = "";
+    const MAX_OUTPUT = 2 * 1024 * 1024;
+
+    proc.stdout.on("data", (d: Buffer) => {
+      if (stdout.length < MAX_OUTPUT) stdout += d.toString();
+    });
+    proc.stderr.on("data", (d: Buffer) => {
+      stderr += d.toString().slice(0, 4096);
+    });
+
+    const timeout = setTimeout(() => {
+      proc.kill("SIGKILL");
+      reject(
+        createAppError(
+          "PROCESS_TIMEOUT",
+          "ffprobe tardó demasiado al analizar el archivo de salida.",
+          { stage: "probe" }
+        )
+      );
+    }, 30_000);
+
+    proc.on("close", (code) => {
+      clearTimeout(timeout);
+      if (code !== 0) {
+        console.error("[probeOutputFile] ffprobe error:", stderr.slice(0, 500));
+        reject(
+          createAppError(
+            "ARTIFACT_VALIDATION_FAILED",
+            `ffprobe devolvió código ${code} al analizar el archivo de salida.`,
+            { stage: "probe" }
+          )
+        );
+        return;
+      }
+
+      try {
+        const data = JSON.parse(stdout) as FfprobeOutput;
+        const stats = fs.statSync(filePath);
+
+        let videoCodec: string | null = null;
+        let audioCodec: string | null = null;
+        let width: number | null = null;
+        let height: number | null = null;
+        let fps: number | null = null;
+
+        for (const s of data.streams ?? []) {
+          if (s.codec_type === "video" && videoCodec === null) {
+            videoCodec = s.codec_name ?? null;
+            width = s.width ?? null;
+            height = s.height ?? null;
+            fps = parseFps(s.r_frame_rate);
+          } else if (s.codec_type === "audio" && audioCodec === null) {
+            audioCodec = s.codec_name ?? null;
+          }
+        }
+
+        const fmt = data.format ?? {};
+        resolve({
+          width,
+          height,
+          fps,
+          videoCodec,
+          audioCodec,
+          container: fmt.format_name?.split(",")[0] ?? null,
+          durationSeconds: fmt.duration ? parseFloat(fmt.duration) : null,
+          fileSizeBytes: stats.size,
+        });
+      } catch {
+        reject(
+          createAppError(
+            "ENGINE_EXECUTE_FAILED",
+            "La salida de ffprobe no es JSON válido.",
+            { stage: "probe" }
+          )
+        );
+      }
+    });
+
+    proc.on("error", (err: NodeJS.ErrnoException) => {
+      clearTimeout(timeout);
+      if (err.code === "ENOENT") {
+        reject(
+          createAppError(
+            "DEPENDENCY_MISSING",
+            `ffprobe no encontrado en: ${ffprobeBinary}`,
+            { stage: "probe" }
+          )
+        );
+      } else {
+        reject(
+          createAppError(
+            "ENGINE_EXECUTE_FAILED",
+            `Error al ejecutar ffprobe: ${err.message}`,
+            { stage: "probe", cause: err }
+          )
+        );
+      }
+    });
+  });
 }
