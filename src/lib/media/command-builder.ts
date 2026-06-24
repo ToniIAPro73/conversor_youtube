@@ -1,4 +1,9 @@
 import { AudioOutputFormat, VideoOutputFormat } from "../jobs/job-types";
+import {
+  VideoQualitySelection,
+  buildYtdlpFormatSelector,
+  parseLegacyQualityString,
+} from "../quality/quality-contract";
 
 export type OutputFormat = AudioOutputFormat | VideoOutputFormat;
 
@@ -27,7 +32,8 @@ export interface VideoConversionOptions {
 export interface YtdlpConversionOptions {
   url: string;
   format: OutputFormat;
-  quality: string;
+  /** Accepts a typed VideoQualitySelection (new callers) or a legacy string (persisted jobs). */
+  quality: string | VideoQualitySelection;
   outputPath: string;
   ffmpegLocation?: string;
 }
@@ -38,7 +44,6 @@ export function buildYtdlpArgs(options: YtdlpConversionOptions): string[] {
   const baseArgs = [
     "--no-playlist",
     "--newline",
-    "--no-check-certificates",
     ...(ffmpegLocation ? ["--ffmpeg-location", ffmpegLocation] : []),
     "--output",
     outputPath,
@@ -48,27 +53,29 @@ export function buildYtdlpArgs(options: YtdlpConversionOptions): string[] {
 
   const audioFormats: AudioOutputFormat[] = ["mp3", "m4a", "wav", "flac", "ogg"];
   if (audioFormats.includes(format as AudioOutputFormat)) {
+    // Audio quality must be a string; VideoQualitySelection is not valid here.
+    const qualityStr = typeof quality === "string" ? quality : "best";
     return [
       "--extract-audio",
       "--audio-format",
       format,
       "--audio-quality",
-      mapAudioQuality(quality, format as AudioOutputFormat),
+      mapAudioQuality(qualityStr, format as AudioOutputFormat),
       ...baseArgs,
     ];
   }
 
-  // Video
-  const height = parseInt(quality, 10);
-  const formatSelector = Number.isNaN(height)
-    ? `bestvideo+bestaudio/best`
-    : `bestvideo[height<=${height}][ext=mp4]+bestaudio[ext=m4a]/best[height<=${height}][ext=mp4]/best`;
+  // Video: resolve typed selection or adapt legacy string
+  const selection: VideoQualitySelection =
+    typeof quality === "string"
+      ? parseLegacyQualityString(quality, format)
+      : quality;
 
-  const mergeFormat = format === "webm" ? "webm" : format === "mkv" ? "mkv" : "mp4";
+  const { formatArg, mergeFormat } = buildYtdlpFormatSelector(selection);
 
   return [
     "--format",
-    formatSelector,
+    formatArg,
     "--merge-output-format",
     mergeFormat,
     ...baseArgs,

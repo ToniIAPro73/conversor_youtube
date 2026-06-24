@@ -1,0 +1,58 @@
+{
+  "$schema": "https://anclora.dev/schemas/release-manifest/v1",
+  "version": "0.2.0",
+  "commit": "0ef9bff",
+  "buildDateUtc": "2026-06-24T00:29:50Z",
+  "status": "ready-for-review",
+  "platforms": {
+    "windows-x64": {
+      "filename": "Anclora-FileStudio-Windows-x64-Core.zip",
+      "sizeBytes": 287624800,
+      "sha256": "b4f5942d77a4f42a83ff1a17aec498c666be29ef04182db3c08bc53047e03945",
+      "downloadUrl": null,
+      "publicationStatus": "not-published",
+      "essentialTools": ["yt-dlp", "ffmpeg", "ffprobe"],
+      "tools": {
+        "ytDlp": "2026.06.09",
+        "ffmpeg": "GPL-2.0 / git-master-2026-06-09",
+        "ffprobe": "GPL-2.0 / git-master-2026-06-09",
+        "node": "24.16.0",
+        "nodeAbi": "137",
+        "betterSqlite3": "12.10.1",
+        "sharp": "0.35.1",
+        "pandoc": "3.6.4",
+        "qpdf": "11.10.0",
+        "poppler": "26.02.0-0"
+      },
+      "published": false,
+      "localPath": "dist/windows/Anclora-FileStudio-Windows-x64-Core.zip"
+    },
+    "linux-x64": {
+      "filename": "Anclora-FileStudio-Linux-x64.tar.zst",
+      "sizeBytes": null,
+      "sha256": null,
+      "downloadUrl": null,
+      "publicationStatus": "not-published",
+      "essentialTools": ["yt-dlp", "ffmpeg", "ffprobe"],
+      "published": false
+    }
+  },
+  "fixes": [
+    "YouTube 4K/1440p: eliminado filtro [ext=mp4] que bloqueaba VP9/AV1",
+    "Calidad canónica: QualityProfile source-max vs mp4-compatible con validación Zod",
+    "Sin degradación silenciosa: parseLegacyQualityString() lanza TypeError en lugar de NaN",
+    "Validación post-descarga con ffprobe: falla job si altura entregada < 90% de la solicitada",
+    "Análisis de URL web con SSRF guard (RFC1918, loopback, link-local)",
+    "Diagnóstico honesto: herramientas opcionales en ámbar, no en rojo",
+    "Eliminado --no-check-certificates de todos los paths"
+  ],
+  "notes": "ZIP generado desde commit 0ef9bff (rama fix/youtube-quality-cross-platform-portables). No publicado. Requiere validación en máquina Windows limpia antes de publicar.",
+  "publishingSteps": {
+    "1_validate_zip": "bash scripts/verify-windows-portable-v2.sh",
+    "2_windows_clean_machine": "pwsh scripts/acceptance/run-windows-portable-clean-machine.ps1 -ZipPath dist/windows/Anclora-FileStudio-Windows-x64-Core.zip",
+    "3_update_download_url": "Actualizar downloadUrl con la URL del CDN/GitHub Releases donde se suba el ZIP",
+    "4_verify_sha256_public": "Confirmar que el SHA-256 publicado coincide con el ZIP descargado públicamente",
+    "5_update_web_link": "Actualizar enlace en la web de Vercel (variable de entorno o config) para apuntar al nuevo ZIP",
+    "6_create_github_release": "gh release create v0.2.0 --title 'v0.2.0 - YouTube 4K quality fix' dist/windows/Anclora-FileStudio-Windows-x64-Core.zip"
+  }
+}

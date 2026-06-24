@@ -3,9 +3,31 @@ import { CONFIG } from "../config";
 import { AppError, ERROR_CODES, ERROR_MESSAGES } from "../errors";
 import { MetadataResponse } from "../youtube/schemas";
 
+export interface VideoFormat {
+  formatId: string;
+  width: number | null;
+  height: number | null;
+  fps: number | null;
+  ext: string;
+  vcodec: string | null;
+  acodec: string | null;
+  isVideoOnly: boolean;
+  fileSizeBytes: number | null;
+  fileSizeApproxBytes: number | null;
+  tbr: number | null;
+}
+
 interface YtdlpFormat {
+  format_id?: string;
   vcodec?: string;
+  acodec?: string;
   height?: number;
+  width?: number;
+  fps?: number;
+  ext?: string;
+  filesize?: number;
+  filesize_approx?: number;
+  tbr?: number;
 }
 
 export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
@@ -14,7 +36,6 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
       "--dump-single-json",
       "--skip-download",
       "--no-playlist",
-      "--no-check-certificates",
       url,
     ];
 
@@ -73,6 +94,22 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
           )
         ).sort((a, b) => b - a);
 
+        const videoFormats: VideoFormat[] = formats
+          .filter((f) => f.vcodec && f.vcodec !== "none" && f.height && f.height > 0)
+          .map((f) => ({
+            formatId: f.format_id ?? "",
+            width: f.width ?? null,
+            height: f.height ?? null,
+            fps: f.fps ?? null,
+            ext: f.ext ?? "",
+            vcodec: f.vcodec ?? null,
+            acodec: f.acodec && f.acodec !== "none" ? f.acodec : null,
+            isVideoOnly: !f.acodec || f.acodec === "none",
+            fileSizeBytes: f.filesize ?? null,
+            fileSizeApproxBytes: f.filesize_approx ?? null,
+            tbr: f.tbr ?? null,
+          }));
+
         resolve({
           videoId: data.id,
           title: data.title,
@@ -82,6 +119,7 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
           durationLabel: formatDuration(durationSeconds),
           availableHeights,
           supported: true,
+          videoFormats,
         });
       } catch {
         reject(

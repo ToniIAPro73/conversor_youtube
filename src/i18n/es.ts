@@ -117,6 +117,14 @@ export const messages = {
   // Web mode — CSV warnings
   "web.csv.nested-warning": "Algunos valores contienen estructuras anidadas. Se han serializado como texto JSON dentro de la celda.",
   "web.csv.root-invalid": "No se puede crear un CSV con este contenido. Para convertir a CSV, el archivo debe contener una lista de registros.",
+
+  // Quality selector
+  "quality.sourceMax": "Máxima calidad original",
+  "quality.mp4Compatible": "MP4 compatible",
+  "quality.maxAvailable": "Máx disponible",
+  "quality.profileSourceMaxDesc": "Sin recodificación · preserva 4K/60fps · puede ser MKV/WebM",
+  "quality.profileMp4Desc": "Compatible con más reproductores · puede requerir recodificación",
+  "quality.resolutionNotDelivered": "Resolución entregada ({delivered}p) inferior a la solicitada ({requested}p)",
 } as const;
 
 export type MessageKey = keyof typeof messages;

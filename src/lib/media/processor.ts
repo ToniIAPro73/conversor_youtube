@@ -5,8 +5,9 @@ import { CONFIG } from "../config";
 import { jobManager } from "../jobs/job-manager";
 import { buildYtdlpArgs, buildFfmpegAudioArgs, buildFfmpegVideoArgs } from "./command-builder";
 import { parseProgress } from "./progress-parser";
-import { verifyFile } from "./probe";
+import { verifyFile, probeOutputFile } from "./probe";
 import { sanitizeFilename } from "../security/sanitize-filename";
+import { parseLegacyQualityString, VideoQualitySelection } from "../quality/quality-contract";
 import { getVideoMetadata } from "./metadata";
 import { AudioOutputFormat, VideoOutputFormat } from "../jobs/job-types";
 import { createAppError, type ErrorCode } from "../errors/error-codes";
@@ -200,6 +201,51 @@ async function processRemoteUrl(
   });
 
   await runProcess(CONFIG.media.binaries.ytdlp, args, jobId);
+
+  // Probe output for quality verification (video jobs only)
+  const isVideoOutputFormat = ["mp4", "webm", "mkv"].includes(outputFormat);
+  if (isVideoOutputFormat) {
+    try {
+      const probe = await probeOutputFile(outputPath, CONFIG.media.binaries.ffprobe);
+
+      // Determine requested quality selection
+      let requestedSelection: VideoQualitySelection | null = null;
+      try {
+        requestedSelection =
+          typeof quality === "string"
+            ? parseLegacyQualityString(quality, outputFormat)
+            : (quality as VideoQualitySelection);
+      } catch {
+        // Audio bitrate string or uninterpretable quality — skip quality check
+        requestedSelection = null;
+      }
+
+      if (
+        requestedSelection !== null &&
+        requestedSelection.resolutionLimit !== "max" &&
+        requestedSelection.fallbackPolicy === "reject" &&
+        probe.height !== null &&
+        typeof requestedSelection.resolutionLimit === "number" &&
+        probe.height < requestedSelection.resolutionLimit * 0.9
+      ) {
+        jobManager.updateJob(jobId, {
+          status: "failed",
+          error_code: "QUALITY_NOT_DELIVERED",
+          error_message: `Resolución entregada (${probe.height}p) inferior a la solicitada (${requestedSelection.resolutionLimit}p). El vídeo puede no tener ese formato disponible.`,
+          stage: "Error",
+        });
+        return;
+      }
+
+      // Log probe results for diagnostics
+      console.info(
+        `[probe] jobId=${jobId} height=${probe.height} fps=${probe.fps} videoCodec=${probe.videoCodec} audioCodec=${probe.audioCodec} container=${probe.container} duration=${probe.durationSeconds}s size=${probe.fileSizeBytes}B`
+      );
+    } catch (probeErr) {
+      // Non-fatal: probe failure should not block a completed download
+      console.warn("[probe] probeOutputFile failed (non-fatal):", probeErr);
+    }
+  }
 }
 
 async function processLocalAudio(

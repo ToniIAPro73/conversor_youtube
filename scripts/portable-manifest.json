@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anclora.dev/schemas/portable-manifest/v1",
+  "version": "1.0",
+  "description": "Herramientas incluidas por plataforma en el portable de Anclora FileStudio",
+  "windows": {
+    "requiredTools": ["ytdlp", "ffmpeg", "ffprobe"],
+    "includedTools": ["qpdf", "7zip", "pandoc", "poppler"],
+    "optionalTools": ["libreoffice", "calibre", "tesseract"],
+    "optionalToolsDescription": "Las herramientas opcionales no están incluidas en el portable base y pueden instalarse independientemente para habilitar funciones adicionales."
+  },
+  "linux": {
+    "requiredTools": ["ytdlp", "ffmpeg", "ffprobe"],
+    "includedTools": ["qpdf", "7zip", "pandoc"],
+    "optionalTools": ["libreoffice", "calibre", "tesseract", "poppler"],
+    "optionalToolsDescription": "Las herramientas opcionales no están incluidas en el portable base. Pueden instalarse desde el gestor de paquetes del sistema."
+  },
+  "essentialYouTubeWorkflow": ["ytdlp", "ffmpeg", "ffprobe"],
+  "notes": {
+    "windows": "El portable Windows incluye yt-dlp, FFmpeg, FFprobe, QPDF, 7-Zip, Pandoc y Poppler como binarios empaquetados. No requiere instalación adicional para el flujo esencial de YouTube.",
+    "linux": "El portable Linux incluye yt-dlp, FFmpeg, FFprobe, QPDF, 7-Zip y Pandoc como binarios empaquetados. Poppler puede estar disponible en el PATH del sistema."
+  }
+}
