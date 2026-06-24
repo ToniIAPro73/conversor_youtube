@@ -1,5 +1,6 @@
 import { getVideoMetadata } from '../media/metadata';
 import type { VideoFormat } from '../media/metadata';
+import { AppError } from '../errors';
 import { validateRemoteUrl, redactSensitiveQueryParams } from './ssrf-guard';
 import { classifyRemoteUrl } from './url-classifier';
 import type { SourceKind } from './url-classifier';
@@ -24,6 +25,8 @@ export interface RemoteMediaAnalysis {
   sourceKind: SourceKind;
   sourceProvider: string | null;
   sourceUrlRedacted: string;
+  /** True ONLY when validateRemoteUrl() blocks the URL (SSRF / private network). */
+  ssrfBlocked: boolean;
   isPubliclyAccessible: boolean;
   requiresAuthentication: boolean;
   drmDetected: boolean;
@@ -37,6 +40,11 @@ export interface RemoteMediaAnalysis {
   thumbnailUrl?: string;
   durationSeconds?: number;
   durationLabel?: string;
+  /**
+   * When both yt-dlp and HTML analysis failed, stores the classified error so
+   * the route can forward it directly instead of returning a generic message.
+   */
+  classifiedError?: { code: string; message: string; status: number };
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +67,22 @@ function mediaSourceToVideoFormat(src: MediaSource, index: number): VideoFormat 
   };
 }
 
+const EMPTY_SSRF_BLOCK = (sourceUrlRedacted: string, reason: string): RemoteMediaAnalysis => ({
+  sourceKind: 'unsupported-or-protected',
+  sourceProvider: null,
+  sourceUrlRedacted,
+  ssrfBlocked: true,
+  isPubliclyAccessible: false,
+  requiresAuthentication: false,
+  drmDetected: false,
+  extractorAvailable: false,
+  analysisStatus: 'failed',
+  videoVariants: [],
+  audioVariants: [],
+  limitationMessages: [reason],
+  alternativeMessage: null,
+});
+
 // ---------------------------------------------------------------------------
 // Orchestrator
 // ---------------------------------------------------------------------------
@@ -66,26 +90,13 @@ function mediaSourceToVideoFormat(src: MediaSource, index: number): VideoFormat 
 export async function analyzeRemoteMedia(url: string): Promise<RemoteMediaAnalysis> {
   const sourceUrlRedacted = redactSensitiveQueryParams(url);
 
-  // Layer 1 — SSRF guard
+  // Layer 1 — SSRF guard (network security requirement; hard block)
   const guard = await validateRemoteUrl(url);
   if (!guard.safe) {
-    return {
-      sourceKind: 'unsupported-or-protected',
-      sourceProvider: null,
-      sourceUrlRedacted,
-      isPubliclyAccessible: false,
-      requiresAuthentication: false,
-      drmDetected: false,
-      extractorAvailable: false,
-      analysisStatus: 'failed',
-      videoVariants: [],
-      audioVariants: [],
-      limitationMessages: [guard.reason ?? 'URL bloqueada por seguridad'],
-      alternativeMessage: null,
-    };
+    return EMPTY_SSRF_BLOCK(sourceUrlRedacted, guard.reason ?? 'URL bloqueada por seguridad de red.');
   }
 
-  // Layer 2 — Classify URL
+  // Layer 2 — Classify URL by extension / Content-Type / host
   const classification = await classifyRemoteUrl(url);
 
   // Layer 3 — Dispatch by kind
@@ -97,6 +108,7 @@ export async function analyzeRemoteMedia(url: string): Promise<RemoteMediaAnalys
           sourceKind: 'youtube',
           sourceProvider: 'YouTube',
           sourceUrlRedacted,
+          ssrfBlocked: false,
           isPubliclyAccessible: true,
           requiresAuthentication: false,
           drmDetected: false,
@@ -112,11 +124,12 @@ export async function analyzeRemoteMedia(url: string): Promise<RemoteMediaAnalys
           durationLabel: meta.durationLabel,
         };
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const appErr = err instanceof AppError ? err : null;
         return {
           sourceKind: 'youtube',
           sourceProvider: 'YouTube',
           sourceUrlRedacted,
+          ssrfBlocked: false,
           isPubliclyAccessible: false,
           requiresAuthentication: false,
           drmDetected: false,
@@ -124,8 +137,11 @@ export async function analyzeRemoteMedia(url: string): Promise<RemoteMediaAnalys
           analysisStatus: 'failed',
           videoVariants: [],
           audioVariants: [],
-          limitationMessages: [msg],
+          limitationMessages: [appErr?.message ?? (err instanceof Error ? err.message : String(err))],
           alternativeMessage: null,
+          classifiedError: appErr
+            ? { code: appErr.code, message: appErr.message, status: appErr.status ?? 500 }
+            : undefined,
         };
       }
     }
@@ -136,8 +152,9 @@ export async function analyzeRemoteMedia(url: string): Promise<RemoteMediaAnalys
         sourceKind: 'direct-media',
         sourceProvider: classification.sourceProvider,
         sourceUrlRedacted,
-        isPubliclyAccessible: classification.isPubliclyAccessible,
-        requiresAuthentication: classification.requiresAuthentication,
+        ssrfBlocked: false,
+        isPubliclyAccessible: true,
+        requiresAuthentication: false,
         drmDetected: false,
         extractorAvailable: true,
         analysisStatus: 'resolved',
@@ -165,74 +182,155 @@ export async function analyzeRemoteMedia(url: string): Promise<RemoteMediaAnalys
     case 'hls':
     case 'dash': {
       const kindLabel = classification.kind === 'hls' ? 'HLS' : 'DASH';
+      // For DRM streams, yt-dlp will also fail — let it try and report the real error.
+      // Here we return the detected stream type without blocking.
       return {
         sourceKind: classification.kind,
         sourceProvider: classification.sourceProvider,
         sourceUrlRedacted,
-        isPubliclyAccessible: classification.isPubliclyAccessible,
-        requiresAuthentication: classification.requiresAuthentication,
+        ssrfBlocked: false,
+        isPubliclyAccessible: true,
+        requiresAuthentication: false,
         drmDetected: classification.drmDetected,
-        extractorAvailable: !classification.drmDetected,
-        analysisStatus: classification.analysisStatus,
+        extractorAvailable: true,
+        analysisStatus: 'resolved',
         videoVariants: [],
         audioVariants: [],
         limitationMessages: [],
         alternativeMessage: classification.drmDetected
-          ? `Este stream ${kindLabel} está protegido con DRM. Anclora FileStudio no intenta eludir esas protecciones.`
-          : `Stream ${kindLabel} detectado. Puede ser procesado si no contiene DRM.`,
+          ? `Stream ${kindLabel} protegido con DRM detectado. Anclora FileStudio no puede procesar contenido DRM.`
+          : null,
       };
     }
 
     case 'web-page': {
-      const pageResult = await analyzeWebPage(url);
-      const limitations: string[] = [];
-      if (pageResult.limitationMessage) limitations.push(pageResult.limitationMessage);
-      if (pageResult.drmDetected) {
-        limitations.push('Se detectaron indicios de DRM en la página.');
-      }
-      if (pageResult.requiresAuth) {
-        limitations.push('La página parece requerir autenticación.');
+      // Strategy: try yt-dlp first (supports hundreds of sites), then fall back
+      // to HTML source extraction for simple pages with <video>/<source> tags.
+      // Auth/DRM heuristics from HTML are NOT used as blocking signals.
+
+      let ytdlpError: AppError | null = null;
+
+      try {
+        const meta = await getVideoMetadata(url);
+        return {
+          sourceKind: 'web-page',
+          sourceProvider: classification.sourceProvider,
+          sourceUrlRedacted,
+          ssrfBlocked: false,
+          isPubliclyAccessible: true,
+          requiresAuthentication: false,
+          drmDetected: false,
+          extractorAvailable: true,
+          analysisStatus: 'resolved',
+          videoVariants: meta.videoFormats,
+          audioVariants: [],
+          limitationMessages: [],
+          alternativeMessage: null,
+          title: meta.title,
+          thumbnailUrl: meta.thumbnailUrl,
+          durationSeconds: meta.durationSeconds,
+          durationLabel: meta.durationLabel,
+        };
+      } catch (err) {
+        ytdlpError = err instanceof AppError ? err : new AppError('INTERNAL_ERROR', err instanceof Error ? err.message : String(err), 500);
       }
 
+      // yt-dlp failed — try HTML analysis for simple pages with direct video elements
+      const pageResult = await analyzeWebPage(url);
       const videoVariants = pageResult.sources
         .filter((s) => s.kind === 'direct')
         .map(mediaSourceToVideoFormat);
 
+      if (videoVariants.length > 0) {
+        // HTML found direct sources; return them (ignore auth/DRM heuristics)
+        return {
+          sourceKind: 'web-page',
+          sourceProvider: classification.sourceProvider,
+          sourceUrlRedacted,
+          ssrfBlocked: false,
+          isPubliclyAccessible: true,
+          requiresAuthentication: false,
+          drmDetected: false,
+          extractorAvailable: true,
+          analysisStatus: 'partial',
+          videoVariants,
+          audioVariants: [],
+          limitationMessages: pageResult.limitationMessage ? [pageResult.limitationMessage] : [],
+          alternativeMessage: null,
+        };
+      }
+
+      // Both failed — propagate the classified yt-dlp error
       return {
         sourceKind: 'web-page',
         sourceProvider: classification.sourceProvider,
         sourceUrlRedacted,
-        isPubliclyAccessible: !pageResult.requiresAuth,
-        requiresAuthentication: pageResult.requiresAuth,
-        drmDetected: pageResult.drmDetected,
-        extractorAvailable: pageResult.found && !pageResult.drmDetected,
-        analysisStatus: pageResult.found ? 'resolved' : 'partial',
-        videoVariants,
-        audioVariants: [],
-        limitationMessages: limitations,
-        alternativeMessage: pageResult.found
-          ? null
-          : 'No se encontraron fuentes de vídeo directas en esta página.',
-      };
-    }
-
-    case 'unsupported-or-protected':
-    default: {
-      return {
-        sourceKind: 'unsupported-or-protected',
-        sourceProvider: null,
-        sourceUrlRedacted,
+        ssrfBlocked: false,
         isPubliclyAccessible: false,
-        requiresAuthentication: true,
+        requiresAuthentication: false,
         drmDetected: false,
         extractorAvailable: false,
         analysisStatus: 'failed',
         videoVariants: [],
         audioVariants: [],
-        limitationMessages: [classification.reason ?? 'Fuente no compatible'],
-        alternativeMessage:
-          'Este vídeo parece protegido, requiere acceso autenticado o no ofrece un stream compatible. Anclora FileStudio no intenta eludir esas protecciones.',
+        limitationMessages: [ytdlpError.message],
+        alternativeMessage: null,
+        classifiedError: {
+          code: ytdlpError.code,
+          message: ytdlpError.message,
+          status: ytdlpError.status ?? 500,
+        },
       };
+    }
+
+    case 'unsupported-or-protected':
+    default: {
+      // Try yt-dlp anyway — it supports many sites that look "unsupported"
+      // by extension/content-type alone (Vimeo, Twitter, TikTok, etc.)
+      try {
+        const meta = await getVideoMetadata(url);
+        return {
+          sourceKind: 'unsupported-or-protected',
+          sourceProvider: null,
+          sourceUrlRedacted,
+          ssrfBlocked: false,
+          isPubliclyAccessible: true,
+          requiresAuthentication: false,
+          drmDetected: false,
+          extractorAvailable: true,
+          analysisStatus: 'resolved',
+          videoVariants: meta.videoFormats,
+          audioVariants: [],
+          limitationMessages: [],
+          alternativeMessage: null,
+          title: meta.title,
+          thumbnailUrl: meta.thumbnailUrl,
+          durationSeconds: meta.durationSeconds,
+          durationLabel: meta.durationLabel,
+        };
+      } catch (err) {
+        const appErr = err instanceof AppError ? err : new AppError('INTERNAL_ERROR', err instanceof Error ? err.message : String(err), 500);
+        return {
+          sourceKind: 'unsupported-or-protected',
+          sourceProvider: null,
+          sourceUrlRedacted,
+          ssrfBlocked: false,
+          isPubliclyAccessible: false,
+          requiresAuthentication: false,
+          drmDetected: false,
+          extractorAvailable: false,
+          analysisStatus: 'failed',
+          videoVariants: [],
+          audioVariants: [],
+          limitationMessages: [appErr.message],
+          alternativeMessage: null,
+          classifiedError: {
+            code: appErr.code,
+            message: appErr.message,
+            status: appErr.status ?? 500,
+          },
+        };
+      }
     }
   }
 }

@@ -179,7 +179,7 @@ describe("getVideoMetadata — yt-dlp failure paths", () => {
     });
   });
 
-  it("rejects with CONTENT_RESTRICTED when stderr contains 'Sign in to confirm'", async () => {
+  it("rejects with PROVIDER_VERIFICATION when stderr contains 'Sign in to confirm you're not a bot'", async () => {
     const spawnMock = vi.mocked(child_process.spawn);
     const proc = makeFakeProcess();
     spawnMock.mockReturnValue(proc as unknown as ReturnType<typeof child_process.spawn>);
@@ -193,8 +193,9 @@ describe("getVideoMetadata — yt-dlp failure paths", () => {
     );
     proc.emit("close", 1);
 
+    // Bot check is PROVIDER_VERIFICATION, not CONTENT_RESTRICTED
     await expect(promise).rejects.toMatchObject({
-      code: "CONTENT_RESTRICTED",
+      code: "PROVIDER_VERIFICATION",
     });
   });
 

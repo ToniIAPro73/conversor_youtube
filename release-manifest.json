@@ -1,14 +1,14 @@
 {
   "$schema": "https://anclora.dev/schemas/release-manifest/v1",
-  "version": "0.2.2",
-  "commit": "273652d",
-  "buildDateUtc": "2026-06-24T09:52:00Z",
-  "status": "ready-for-review",
+  "version": "0.2.4",
+  "commit": "1bd954e",
+  "buildDateUtc": "2026-06-24T22:36:00Z",
+  "status": "not-ready",
   "platforms": {
     "windows-x64": {
       "filename": "Anclora-FileStudio-Windows-x64-Core.zip",
-      "sizeBytes": 287777335,
-      "sha256": "6232f023bd66ac23d1ad652961ed5b3d3c40fe5b32373d5fdc98de5450e07f07",
+      "sizeBytes": 287777764,
+      "sha256": "26db28c8f2303164af5dd8435a996ad5d8acfccf8c06d0d9d0be4b291fc2ed4c",
       "downloadUrl": null,
       "publicationStatus": "not-published",
       "essentialTools": ["yt-dlp", "ffmpeg", "ffprobe"],
@@ -38,6 +38,15 @@
     }
   },
   "fixes": [
+    "Desktop PRO: eliminado bloqueo heurístico previo al extractor (requiresAuthentication, ageVerification, botVerification, DRM keywords, domain/provider/page-type)",
+    "Desktop PRO: cualquier URL http/https pública intentada con yt-dlp primero; error sólo si extractor falla de verdad",
+    "Nuevo código de error PROVIDER_VERIFICATION para verificación anti-bot/captcha del proveedor (distinto de CONTENT_RESTRICTED)",
+    "Clasificación de error yt-dlp: 'Sign in to confirm you're not a bot' → PROVIDER_VERIFICATION, no CONTENT_RESTRICTED",
+    "SSRF guard conservado como único bloqueo de red (IPs privadas, loopback, RFC1918, link-local)",
+    "Flujo web-page: yt-dlp primero → HTML fallback → error clasificado propagado (sin bloques preventivos)",
+    "Flujo unsupported-or-protected: yt-dlp intentado antes de rechazar",
+    "Texto UI actualizado: 'Pega una URL pública de vídeo, YouTube, Vimeo, página web con vídeo o stream HLS/DASH público · Algunos proveedores pueden requerir acceso o aplicar protecciones externas no compatibles'",
+    "11 tests de regresión: prueban que ninguna URL pública es bloqueada por heurísticas internas",
     "YouTube 4K/1440p: eliminado filtro [ext=mp4] que bloqueaba VP9/AV1",
     "Calidad canónica: QualityProfile source-max vs mp4-compatible con validación Zod",
     "Sin degradación silenciosa: parseLegacyQualityString() lanza TypeError en lugar de NaN",
@@ -45,6 +54,8 @@
     "Análisis de URL web con SSRF guard (RFC1918, loopback, link-local)",
     "Diagnóstico honesto: herramientas opcionales en ámbar, no en rojo",
     "Eliminado --no-check-certificates de todos los paths",
+    "Fix SSL regresión: limpieza de env vars Python SSL (PYTHONHTTPSVERIFY, REQUESTS_CA_BUNDLE, SSL_CERT_FILE, CURL_CA_BUNDLE) en spawn de yt-dlp para restaurar verificación TLS correcta en equipos con antivirus o proxy SSL corporativo",
+    "9 tests de regresión para ruta YouTube: flujo directo yt-dlp, formatos 1440p/2160p, sin quality:'5', clasificación errores SSL, normalización youtu.be, bloqueos SSRF",
     "Desktop PRO: eliminado quality:'5' magic string; reemplazado por VideoQualitySelection con perfil canónico",
     "Desktop PRO: QualitySelector visible en flujo de formato para mp4/mkv/webm con toggle Máxima calidad/MP4 compatible",
     "Desktop PRO: resolucioness reales 1440p/2160p desde metadatos mostradas con etiquetas FPS",
@@ -58,7 +69,7 @@
     "Pruebas integración: 9 casos getVideoMetadata() (exit 0, stderr patterns, timeout null, ENOENT, invalid JSON)",
     "Smoke checks v2: ANCLORA_FILESTUDIO_LOGS_DIR, ruta yt-dlp absoluta, sin --no-check-certificates"
   ],
-  "notes": "ZIP generado desde commit 273652d (rama fix/youtube-quality-cross-platform-portables). No publicado. Incluye Desktop PRO shell integrado con QualitySelector, analizador de medios web, clasificación de errores yt-dlp y logs estructurados. Requiere validación en máquina Windows limpia antes de publicar.",
+  "notes": "ZIP generado desde commit 1bd954e (rama fix/youtube-quality-cross-platform-portables). No publicado. Corrige regresión SSL: limpieza de variables de entorno Python SSL heredadas (PYTHONHTTPSVERIFY, REQUESTS_CA_BUNDLE, SSL_CERT_FILE, CURL_CA_BUNDLE) para que yt-dlp use el store de certificados correcto en equipos con antivirus/proxy SSL corporativo. Sin --no-check-certificates. Requiere validación en máquina Windows limpia antes de publicar.",
   "publishingSteps": {
     "1_validate_zip": "bash scripts/verify-windows-portable-v2.sh",
     "2_windows_clean_machine": "pwsh scripts/acceptance/run-windows-portable-clean-machine.ps1 -ZipPath dist/windows/Anclora-FileStudio-Windows-x64-Core.zip",
