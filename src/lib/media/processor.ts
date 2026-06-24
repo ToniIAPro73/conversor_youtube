@@ -7,7 +7,7 @@ import { buildYtdlpArgs, buildFfmpegAudioArgs, buildFfmpegVideoArgs } from "./co
 import { parseProgress } from "./progress-parser";
 import { verifyFile, probeOutputFile } from "./probe";
 import { sanitizeFilename } from "../security/sanitize-filename";
-import { parseLegacyQualityString, VideoQualitySelection } from "../quality/quality-contract";
+import { parseLegacyQualityString, VideoQualitySelection, VideoQualitySelectionSchema } from "../quality/quality-contract";
 import { getVideoMetadata } from "./metadata";
 import { AudioOutputFormat, VideoOutputFormat } from "../jobs/job-types";
 import { createAppError, type ErrorCode } from "../errors/error-codes";
@@ -17,6 +17,25 @@ import crypto from "crypto";
 const AUDIO_FORMATS: AudioOutputFormat[] = ["mp3", "m4a", "wav", "flac", "ogg"];
 const VIDEO_FORMATS: VideoOutputFormat[] = ["mp4", "webm", "mkv"];
 const IMAGE_OUTPUT_FORMATS = ["gif", "jpg", "jpeg", "png"] as const;
+
+/**
+ * Resolves a quality value from the DB quality column.
+ * The column may hold a JSON-serialized VideoQualitySelection (new path)
+ * or a legacy string like "1080", "best", "5" (old path).
+ * Returns VideoQualitySelection when parseable, otherwise the raw string.
+ */
+function resolveQuality(qualityStr: string): VideoQualitySelection | string {
+  if (qualityStr.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(qualityStr);
+      const result = VideoQualitySelectionSchema.safeParse(parsed);
+      if (result.success) return result.data;
+    } catch {
+      // fall through to legacy
+    }
+  }
+  return qualityStr;
+}
 
 function getMimeType(format: string): string {
   const map: Record<string, string> = {
@@ -192,10 +211,12 @@ async function processRemoteUrl(
     });
   }
 
+  const resolvedQuality = resolveQuality(quality);
+
   const args = buildYtdlpArgs({
     url,
     format: outputFormat as AudioOutputFormat | VideoOutputFormat,
-    quality,
+    quality: resolvedQuality,
     outputPath,
     ffmpegLocation: path.dirname(CONFIG.media.binaries.ffmpeg),
   });
@@ -211,10 +232,11 @@ async function processRemoteUrl(
       // Determine requested quality selection
       let requestedSelection: VideoQualitySelection | null = null;
       try {
-        requestedSelection =
-          typeof quality === "string"
-            ? parseLegacyQualityString(quality, outputFormat)
-            : (quality as VideoQualitySelection);
+        if (typeof resolvedQuality !== "string") {
+          requestedSelection = resolvedQuality;
+        } else {
+          requestedSelection = parseLegacyQualityString(resolvedQuality, outputFormat);
+        }
       } catch {
         // Audio bitrate string or uninterpretable quality — skip quality check
         requestedSelection = null;
