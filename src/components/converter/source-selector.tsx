@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Loader2, Link2, Upload, AlertTriangle } from "lucide-react";
 import { INPUT_ACCEPT_ATTR } from "@/lib/domain/format-catalog";
+import type { VideoFormat } from "@/lib/media/metadata";
 
 interface SourceSelectorProps {
   onUrlAnalyzed: (result: RemoteAnalysisResult) => void;
@@ -18,6 +19,7 @@ export interface RemoteAnalysisResult {
   thumbnailUrl?: string;
   normalizedUrl: string;
   descriptor: MediaDescriptorLite;
+  videoFormats?: VideoFormat[];
 }
 
 export interface LocalAnalysisResult {
@@ -102,7 +104,15 @@ export function SourceSelector({ onUrlAnalyzed, onFileAnalyzed, isLoading, setLo
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error al analizar el enlace");
-      onUrlAnalyzed(data as RemoteAnalysisResult);
+      onUrlAnalyzed({
+        kind: "remote-url",
+        title: data.title ?? "",
+        channel: data.channel ?? undefined,
+        thumbnailUrl: data.thumbnailUrl ?? undefined,
+        normalizedUrl: data.normalizedUrl ?? urlInput.trim(),
+        descriptor: data.descriptor,
+        videoFormats: Array.isArray(data.videoFormats) ? data.videoFormats : undefined,
+      } satisfies RemoteAnalysisResult);
       setUrlInput("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error inesperado");
@@ -250,18 +260,18 @@ export function SourceSelector({ onUrlAnalyzed, onFileAnalyzed, isLoading, setLo
         <form onSubmit={handleUrlSubmit} className="space-y-2.5">
           <div>
             <label htmlFor="url-input" className="mb-1 block text-xs font-semibold text-stone-300/70">
-              Enlace de YouTube
+              URL de vídeo o página web
             </label>
             <input
               id="url-input"
               type="url"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              placeholder="https://youtube.com/watch?v=..."
+              placeholder="https://youtube.com/watch?v=... o cualquier URL de vídeo"
               className="min-h-11 w-full rounded-xl border border-white/10 bg-[#0b0d10] px-4 py-2.5 text-sm text-stone-100 placeholder:text-stone-600 inset-shadow-sm focus:border-teal-300/40 focus:outline-none focus:ring-2 focus:ring-teal-300/40"
               autoComplete="off"
               disabled={isLoading}
-              aria-label="URL de YouTube"
+              aria-label="URL de vídeo o página web"
             />
           </div>
           <button
@@ -279,7 +289,7 @@ export function SourceSelector({ onUrlAnalyzed, onFileAnalyzed, isLoading, setLo
             )}
           </button>
           <p className="text-center text-[10px] text-stone-600">
-            Compatible con youtube.com, youtu.be y music.youtube.com
+            Compatible con YouTube, Vimeo, páginas con vídeo público y streams HLS/DASH directos · El contenido protegido con DRM o que requiere autenticación no es compatible
           </p>
         </form>
       )}

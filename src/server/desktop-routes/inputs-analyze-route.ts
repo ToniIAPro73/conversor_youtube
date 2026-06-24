@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { probeFile, MediaDescriptor } from "@/lib/media/probe";
 import { getVideoMetadata } from "@/lib/media/metadata";
 import { normalizeYoutubeUrl } from "@/lib/youtube/normalize-url";
+import { analyzeRemoteMedia } from "@/lib/remote-media/remote-media-analyzer";
 import { CONFIG } from "@/lib/config";
 import { sanitizeFilename } from "@/lib/security/sanitize-filename";
 import { ensurePathSafety } from "@/lib/security/path-safety";
@@ -27,38 +28,97 @@ export async function POST(req: NextRequest) {
       return handleFileUpload(req);
     }
 
-    // JSON body: URL analysis (YouTube only — legacy path)
+    // JSON body: URL analysis (YouTube or generic web video)
     const body = await req.json();
     const rawUrl: unknown = body?.url;
     if (typeof rawUrl !== "string" || !rawUrl.trim()) {
       return NextResponse.json({ error: "Falta el campo 'url'.", code: "INVALID_INPUT" }, { status: 400 });
     }
 
-    const normalizedUrl = normalizeYoutubeUrl(rawUrl.trim());
-    if (!normalizedUrl) {
+    const trimmedUrl = rawUrl.trim();
+
+    // Try YouTube first
+    const normalizedYtUrl = normalizeYoutubeUrl(trimmedUrl);
+    if (normalizedYtUrl) {
+      const meta = await getVideoMetadata(normalizedYtUrl);
+
+      const descriptor: MediaDescriptor = {
+        container: null,
+        durationSeconds: meta.durationSeconds,
+        sizeBytes: null,
+        bitrate: null,
+        hasAudio: true,
+        hasVideo: meta.availableHeights.length > 0,
+        hasSubtitles: false,
+        audioStreams: [{ index: 0, codec: "aac", sampleRate: 44100, channels: 2, channelLayout: "stereo", bitrate: null, language: null, isDefault: true }],
+        videoStreams: meta.availableHeights.map((h, i) => ({
+          index: i,
+          codec: "h264",
+          width: null,
+          height: h,
+          fps: null,
+          bitrate: null,
+          pixelFormat: null,
+          isDefault: i === 0,
+        })),
+        subtitleStreams: [],
+      };
+
+      return NextResponse.json({
+        kind: "remote-url",
+        provider: "youtube",
+        title: meta.title,
+        channel: meta.channel,
+        thumbnailUrl: meta.thumbnailUrl,
+        normalizedUrl: normalizedYtUrl,
+        descriptor,
+        videoFormats: meta.videoFormats,
+      });
+    }
+
+    // Non-YouTube: run the SSRF-protected remote media analyzer
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(trimmedUrl);
+    } catch {
       return NextResponse.json(
-        { error: "URL no válida o no soportada. Usa enlaces de YouTube.", code: "UNSUPPORTED_URL" },
+        { error: "URL no válida. Introduce una URL completa que empiece por https://", code: "INVALID_URL" },
+        { status: 400 }
+      );
+    }
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      return NextResponse.json(
+        { error: "Solo se admiten URLs http:// o https://", code: "UNSUPPORTED_PROTOCOL" },
         { status: 400 }
       );
     }
 
-    const meta = await getVideoMetadata(normalizedUrl);
+    const remoteAnalysis = await analyzeRemoteMedia(trimmedUrl);
 
+    if (!remoteAnalysis.isPubliclyAccessible || remoteAnalysis.drmDetected) {
+      const msg = remoteAnalysis.limitationMessages[0]
+        ?? "Este vídeo parece protegido, requiere acceso autenticado o no ofrece un stream compatible. Anclora FileStudio no intenta eludir esas protecciones.";
+      return NextResponse.json({ error: msg, code: "PROTECTED_CONTENT" }, { status: 422 });
+    }
+
+    const hasVideo = remoteAnalysis.videoVariants.length > 0;
     const descriptor: MediaDescriptor = {
       container: null,
-      durationSeconds: meta.durationSeconds,
+      durationSeconds: remoteAnalysis.durationSeconds ?? null,
       sizeBytes: null,
       bitrate: null,
-      hasAudio: true,
-      hasVideo: meta.availableHeights.length > 0,
+      hasAudio: remoteAnalysis.audioVariants.length > 0 || hasVideo,
+      hasVideo,
       hasSubtitles: false,
-      audioStreams: [{ index: 0, codec: "aac", sampleRate: 44100, channels: 2, channelLayout: "stereo", bitrate: null, language: null, isDefault: true }],
-      videoStreams: meta.availableHeights.map((h, i) => ({
+      audioStreams: remoteAnalysis.audioVariants.length > 0
+        ? [{ index: 0, codec: remoteAnalysis.audioVariants[0].acodec ?? "aac", sampleRate: null, channels: null, channelLayout: null, bitrate: null, language: null, isDefault: true }]
+        : [],
+      videoStreams: remoteAnalysis.videoVariants.map((v, i) => ({
         index: i,
-        codec: "h264",
-        width: null,
-        height: h,
-        fps: null,
+        codec: v.vcodec ?? "h264",
+        width: v.width,
+        height: v.height,
+        fps: v.fps,
         bitrate: null,
         pixelFormat: null,
         isDefault: i === 0,
@@ -68,12 +128,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       kind: "remote-url",
-      provider: "youtube",
-      title: meta.title,
-      channel: meta.channel,
-      thumbnailUrl: meta.thumbnailUrl,
-      normalizedUrl,
+      provider: remoteAnalysis.sourceProvider ?? "web",
+      title: remoteAnalysis.title ?? trimmedUrl,
+      channel: null,
+      thumbnailUrl: remoteAnalysis.thumbnailUrl ?? null,
+      normalizedUrl: trimmedUrl,
       descriptor,
+      videoFormats: remoteAnalysis.videoVariants,
     });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Error interno.";
