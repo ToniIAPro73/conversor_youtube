@@ -1,14 +1,14 @@
 {
   "$schema": "https://anclora.dev/schemas/release-manifest/v1",
   "version": "0.2.6",
-  "commit": "faa38b7",
-  "buildDateUtc": "2026-06-25T00:30:00Z",
+  "commit": "ed6bef0",
+  "buildDateUtc": "2026-06-25T09:00:00Z",
   "status": "not-ready",
   "platforms": {
     "windows-x64": {
       "filename": "Anclora-FileStudio-Windows-x64-Core.zip",
-      "sizeBytes": 287788384,
-      "sha256": "bcb4f3b06ae3e60dbb5bb755363167680b6dfa80ea31c1264f2ccea4cfaaa0db",
+      "sizeBytes": 287788378,
+      "sha256": "6da956f6542fd96ed75116be0aa3beb5f98a818f344bd90080239fbda432a4d8",
       "downloadUrl": null,
       "publicationStatus": "not-published",
       "essentialTools": ["yt-dlp", "ffmpeg", "ffprobe"],
