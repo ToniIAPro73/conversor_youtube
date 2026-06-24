@@ -1,14 +1,14 @@
 {
   "$schema": "https://anclora.dev/schemas/release-manifest/v1",
-  "version": "0.2.5",
-  "commit": "da114b6",
-  "buildDateUtc": "2026-06-24T23:18:00Z",
+  "version": "0.2.6",
+  "commit": "faa38b7",
+  "buildDateUtc": "2026-06-25T00:30:00Z",
   "status": "not-ready",
   "platforms": {
     "windows-x64": {
       "filename": "Anclora-FileStudio-Windows-x64-Core.zip",
-      "sizeBytes": 287788176,
-      "sha256": "934108d92ceffa24172f7e5124fc4f5eb4217ca7f4fd51e05f45ff0d022715e3",
+      "sizeBytes": 287788384,
+      "sha256": "bcb4f3b06ae3e60dbb5bb755363167680b6dfa80ea31c1264f2ccea4cfaaa0db",
       "downloadUrl": null,
       "publicationStatus": "not-published",
       "essentialTools": ["yt-dlp", "ffmpeg", "ffprobe"],
@@ -71,9 +71,16 @@
     "Nuevo env var ANCLORA_FILESTUDIO_LOGS_DIR wired en launcher y usado por metadata.ts",
     "Sin --no-check-certificates en ningún path de ejecución",
     "Pruebas integración: 9 casos getVideoMetadata() (exit 0, stderr patterns, timeout null, ENOENT, invalid JSON)",
-    "Smoke checks v2: ANCLORA_FILESTUDIO_LOGS_DIR, ruta yt-dlp absoluta, sin --no-check-certificates"
+    "Smoke checks v2: ANCLORA_FILESTUDIO_LOGS_DIR, ruta yt-dlp absoluta, sin --no-check-certificates",
+    "BUGFIX: Regresión contrato UI→backend POST /api/jobs: 'Invalid input: expected string, received object' al elegir MKV + Convertir",
+    "Causa: desktop-pro-shell.tsx enviaba body.quality = qualitySelection (objeto VideoQualitySelection); Zod esperaba string",
+    "Fix UI: body.qualitySelection = qualitySelection (campo canónico separado)",
+    "Fix backend: JobRequestSchema acepta qualitySelection: VideoQualitySelectionSchema.optional(); serializado como JSON para columna quality del DB",
+    "Fix processor: resolveQuality() detecta JSON-encoded VideoQualitySelection en campo quality del DB y lo parsea antes de buildYtdlpArgs()",
+    "Fix error messages: incluyen path del campo Zod ([campo] mensaje) para diagnóstico más fácil",
+    "7 tests de regresión: contract qualitySelection→job, legacy quality string, old broken shape → 400, MKV serialization, rightsConfirmed, invalid profile field path, JSON round-trip"
   ],
-  "notes": "ZIP generado desde commit da114b6 (rama fix/youtube-quality-cross-platform-portables). No publicado. Restaura --no-check-certificates en todas las invocaciones yt-dlp del portable Windows via getYtdlpCommonArgs() condicional; solo activo cuando ANCLORA_FILESTUDIO_PLATFORM=windows. Soluciona análisis de URLs YouTube en redes corporativas con inspección SSL. Requiere validación en máquina Windows real con https://youtu.be/88fD-UtG_yo?si=bVVz9CYpM4j5IjdA antes de publicar.",
+  "notes": "ZIP generado desde commit faa38b7 (rama fix/youtube-quality-cross-platform-portables). No publicado. Corrige regresión de contrato UI→backend en POST /api/jobs: el campo 'quality' recibía un objeto VideoQualitySelection cuando Zod esperaba string. Fix: UI envía 'qualitySelection' (objeto canónico); backend acepta ambos; processor.ts parsea JSON serializado del DB. 7 tests de regresión añadidos. Requiere validación en máquina Windows real: YouTube → elegir MKV → Convertir → debe iniciar job sin error 400.",
   "publishingSteps": {
     "1_validate_zip": "bash scripts/verify-windows-portable-v2.sh",
     "2_windows_clean_machine": "pwsh scripts/acceptance/run-windows-portable-clean-machine.ps1 -ZipPath dist/windows/Anclora-FileStudio-Windows-x64-Core.zip",
