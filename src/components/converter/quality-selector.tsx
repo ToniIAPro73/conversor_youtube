@@ -67,7 +67,7 @@ export function QualitySelector({
           Selecciona la calidad
         </label>
 
-        <div className="flex gap-1.5 p-1.5 bg-white/[0.025] border border-white/[0.06] rounded-2xl backdrop-blur-sm">
+        <div className="flex gap-1.5 p-1.5 bg-white/2.5 border border-white/6 rounded-2xl backdrop-blur-sm">
           {currentQualities.map((q, index) => {
             const isActive = quality === q;
             const accent = getAccentClasses(format, isActive);
@@ -83,22 +83,22 @@ export function QualitySelector({
                   "border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                   isActive
                     ? accent.container
-                    : "border-transparent text-white/30 hover:text-white/60 hover:bg-white/[0.04]"
+                    : "border-transparent text-white/30 hover:text-white/60 hover:bg-white/4"
                 )}
               >
-                <div className="flex items-end gap-[2.5px] h-[14px]">
+                <div className="flex items-end gap-[2.5px] h-3.5">
                   {[1, 2, 3, 4].map((b) => {
                     const filled = b <= filledBars;
                     return (
                       <div
                         key={b}
                         className={cn(
-                          "w-[3px] rounded-[1.5px] transition-all duration-300",
+                          "w-0.75 rounded-[1.5px] transition-all duration-300",
                           filled
                             ? isActive
                               ? accent.bar
                               : "bg-white/25"
-                            : "bg-white/[0.08]"
+                            : "bg-white/8"
                         )}
                         style={{ height: `${b * 3 + 2}px` }}
                       />
@@ -115,7 +115,7 @@ export function QualitySelector({
                 </span>
                 <span
                   className={cn(
-                    "text-[8px] font-semibold uppercase tracking-[0.1em] transition-colors duration-300",
+                    "text-[8px] font-semibold uppercase tracking-widest transition-colors duration-300",
                     isActive ? accent.unit : "text-white/20"
                   )}
                 >
@@ -167,7 +167,7 @@ export function QualitySelector({
           <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/25 ml-0.5">
             Perfil de entrega
           </span>
-          <div className="flex gap-1.5 p-1.5 bg-white/[0.025] border border-white/[0.06] rounded-2xl backdrop-blur-sm">
+          <div className="flex gap-1.5 p-1.5 bg-white/2.5 border border-white/6 rounded-2xl backdrop-blur-sm">
             {(["source-max", "mp4-compatible"] as const).map((profile) => {
               const isActive = activeProfile === profile;
               return (
@@ -180,7 +180,7 @@ export function QualitySelector({
                     "border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                     isActive
                       ? accent.container
-                      : "border-transparent text-white/30 hover:text-white/60 hover:bg-white/[0.04]"
+                      : "border-transparent text-white/30 hover:text-white/60 hover:bg-white/4"
                   )}
                 >
                   <span
@@ -218,7 +218,7 @@ export function QualitySelector({
               Resolución máxima
             </span>
           )}
-          <div className="flex gap-1.5 p-1.5 bg-white/[0.025] border border-white/[0.06] rounded-2xl backdrop-blur-sm flex-wrap">
+          <div className="flex gap-1.5 p-1.5 bg-white/2.5 border border-white/6 rounded-2xl backdrop-blur-sm flex-wrap">
             {availableResolutions.map((res, index) => {
               const resStr = String(res);
               const isActive = quality === resStr;
@@ -237,26 +237,26 @@ export function QualitySelector({
                   type="button"
                   onClick={() => onQualityChange(resStr)}
                   className={cn(
-                    "flex-1 min-w-[52px] flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-xl transition-all duration-300",
+                    "flex-1 min-w-13 flex flex-col items-center justify-center gap-1.5 py-3 px-1 rounded-xl transition-all duration-300",
                     "border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
                     isActive
                       ? resAccent.container
-                      : "border-transparent text-white/30 hover:text-white/60 hover:bg-white/[0.04]"
+                      : "border-transparent text-white/30 hover:text-white/60 hover:bg-white/4"
                   )}
                 >
-                  <div className="flex items-end gap-[2.5px] h-[14px]">
+                  <div className="flex items-end gap-[2.5px] h-3.5">
                     {[1, 2, 3, 4].map((b) => {
                       const filled = b <= filledBars;
                       return (
                         <div
                           key={b}
                           className={cn(
-                            "w-[3px] rounded-[1.5px] transition-all duration-300",
+                            "w-0.75 rounded-[1.5px] transition-all duration-300",
                             filled
                               ? isActive
                                 ? resAccent.bar
                                 : "bg-white/25"
-                              : "bg-white/[0.08]"
+                              : "bg-white/8"
                           )}
                           style={{ height: `${b * 3 + 2}px` }}
                         />
@@ -273,7 +273,7 @@ export function QualitySelector({
                   </span>
                   <span
                     className={cn(
-                      "text-[8px] font-semibold uppercase tracking-[0.1em] transition-colors duration-300",
+                      "text-[8px] font-semibold uppercase tracking-widest transition-colors duration-300",
                       isActive ? resAccent.unit : "text-white/20"
                     )}
                   >
