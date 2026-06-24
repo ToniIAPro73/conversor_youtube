@@ -116,7 +116,8 @@ describe("getVideoMetadata — success path", () => {
     expect(result.durationSeconds).toBe(120);
   });
 
-  it("does NOT invoke --no-check-certificates in the spawn args", async () => {
+  it("does NOT include --no-check-certificates in non-Windows mode", async () => {
+    delete process.env.ANCLORA_FILESTUDIO_PLATFORM;
     const spawnMock = vi.mocked(child_process.spawn);
     let capturedArgs: string[] = [];
     const proc = makeFakeProcess();
@@ -136,6 +137,29 @@ describe("getVideoMetadata — success path", () => {
     expect(capturedArgs).toContain("--dump-single-json");
     expect(capturedArgs).toContain("--skip-download");
     expect(capturedArgs).toContain("--no-playlist");
+  });
+
+  it("includes --no-check-certificates in Windows portable mode", async () => {
+    process.env.ANCLORA_FILESTUDIO_PLATFORM = "windows";
+    const spawnMock = vi.mocked(child_process.spawn);
+    let capturedArgs: string[] = [];
+    const proc = makeFakeProcess();
+    spawnMock.mockImplementation((_bin, args) => {
+      capturedArgs = args as string[];
+      return proc as unknown as ReturnType<typeof child_process.spawn>;
+    });
+
+    const { getVideoMetadata } = await import("../../src/lib/media/metadata");
+    const promise = getVideoMetadata("https://www.youtube.com/watch?v=88fD-UtG_yo");
+
+    proc.stdout.emit("data", VALID_METADATA_JSON);
+    proc.emit("close", 0);
+
+    await promise;
+    expect(capturedArgs).toContain("--no-check-certificates");
+    expect(capturedArgs).toContain("--dump-single-json");
+    expect(capturedArgs).toContain("--no-playlist");
+    delete process.env.ANCLORA_FILESTUDIO_PLATFORM;
   });
 
   it("uses shell: false in spawn options", async () => {

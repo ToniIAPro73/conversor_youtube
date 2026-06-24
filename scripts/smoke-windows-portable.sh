@@ -230,8 +230,8 @@ if ! command -v powershell.exe >/dev/null 2>&1; then
   echo "       The native test must be run manually on a Windows machine:"
   echo "       powershell.exe -ExecutionPolicy Bypass -File smoke-windows-portable.ps1 -ZipPath <path>"
 else
-  # Get Windows TEMP dir
-  WIN_TEMP="$(powershell.exe -NoProfile -NonInteractive -Command '$env:TEMP' 2>/dev/null | tr -d '\r\n')"
+  # Get Windows TEMP dir (|| true: powershell.exe sometimes exits non-zero even on success; set -e guard)
+  WIN_TEMP="$(powershell.exe -NoProfile -NonInteractive -Command '$env:TEMP' 2>/dev/null | tr -d '\r\n')" || WIN_TEMP=""
   if [[ -z "$WIN_TEMP" ]]; then
     echo "[WARN] Could not determine Windows TEMP — using C:\\Temp"
     WIN_TEMP="C:\\Temp"

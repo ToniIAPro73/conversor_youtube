@@ -429,16 +429,16 @@ if [[ -f "$START_PS1" ]]; then
   fi
 fi
 
-# --no-check-certificates must not appear in any script or bundled JS
-info "Verificando ausencia de --no-check-certificates..."
-NC_FOUND="$(grep -rl -- "--no-check-certificates" "$EXTRACTED" \
-  --include="*.ps1" --include="*.bat" --include="*.sh" --include="*.js" \
-  --include="*.mjs" --include="*.ts" 2>/dev/null | head -5 || true)"
+# --no-check-certificates must not appear in launcher scripts (.ps1/.bat/.sh)
+# It IS allowed in bundled app JS (getYtdlpCommonArgs() adds it conditionally in Windows portable mode)
+info "Verificando ausencia de --no-check-certificates en scripts de lanzador..."
+NC_FOUND="$(grep -rl --include="*.ps1" --include="*.bat" --include="*.sh" \
+  -- "--no-check-certificates" "$EXTRACTED" 2>/dev/null | head -5 || true)"
 if [[ -n "$NC_FOUND" ]]; then
-  fail "  --no-check-certificates encontrado en:"
+  fail "  --no-check-certificates encontrado en scripts de lanzador (solo permitido en app JS via getYtdlpCommonArgs):"
   echo "$NC_FOUND" | head -5 | while IFS= read -r f; do echo "    $f"; done
 else
-  ok "  --no-check-certificates ausente en scripts y app JS"
+  ok "  --no-check-certificates ausente en scripts de lanzador"
   PASS=$((PASS+1))
 fi
 

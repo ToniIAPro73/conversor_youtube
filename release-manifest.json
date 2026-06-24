@@ -1,14 +1,14 @@
 {
   "$schema": "https://anclora.dev/schemas/release-manifest/v1",
-  "version": "0.2.4",
-  "commit": "1bd954e",
-  "buildDateUtc": "2026-06-24T22:36:00Z",
+  "version": "0.2.5",
+  "commit": "da114b6",
+  "buildDateUtc": "2026-06-24T23:18:00Z",
   "status": "not-ready",
   "platforms": {
     "windows-x64": {
       "filename": "Anclora-FileStudio-Windows-x64-Core.zip",
-      "sizeBytes": 287777764,
-      "sha256": "26db28c8f2303164af5dd8435a996ad5d8acfccf8c06d0d9d0be4b291fc2ed4c",
+      "sizeBytes": 287788176,
+      "sha256": "934108d92ceffa24172f7e5124fc4f5eb4217ca7f4fd51e05f45ff0d022715e3",
       "downloadUrl": null,
       "publicationStatus": "not-published",
       "essentialTools": ["yt-dlp", "ffmpeg", "ffprobe"],
@@ -56,6 +56,10 @@
     "Eliminado --no-check-certificates de todos los paths",
     "Fix SSL regresión: limpieza de env vars Python SSL (PYTHONHTTPSVERIFY, REQUESTS_CA_BUNDLE, SSL_CERT_FILE, CURL_CA_BUNDLE) en spawn de yt-dlp para restaurar verificación TLS correcta en equipos con antivirus o proxy SSL corporativo",
     "9 tests de regresión para ruta YouTube: flujo directo yt-dlp, formatos 1440p/2160p, sin quality:'5', clasificación errores SSL, normalización youtu.be, bloqueos SSRF",
+    "Restaurado --no-check-certificates en todas las invocaciones yt-dlp del portable Windows: metadata, descarga, conversión via getYtdlpCommonArgs() en command-builder.ts",
+    "getYtdlpCommonArgs() condicional: retorna ['--no-check-certificates'] solo en portable Windows (ANCLORA_FILESTUDIO_PLATFORM=windows), vacío en dev/Linux",
+    "Tests: --no-check-certificates presente en Windows mode, ausente en non-Windows, YouTube ruta no llama a analyzeRemoteMedia",
+    "verify-windows-portable-v2.sh: check --no-check-certificates limitado a scripts de lanzador (.ps1/.bat/.sh), permitido en JS bundled de app",
     "Desktop PRO: eliminado quality:'5' magic string; reemplazado por VideoQualitySelection con perfil canónico",
     "Desktop PRO: QualitySelector visible en flujo de formato para mp4/mkv/webm con toggle Máxima calidad/MP4 compatible",
     "Desktop PRO: resolucioness reales 1440p/2160p desde metadatos mostradas con etiquetas FPS",
@@ -69,7 +73,7 @@
     "Pruebas integración: 9 casos getVideoMetadata() (exit 0, stderr patterns, timeout null, ENOENT, invalid JSON)",
     "Smoke checks v2: ANCLORA_FILESTUDIO_LOGS_DIR, ruta yt-dlp absoluta, sin --no-check-certificates"
   ],
-  "notes": "ZIP generado desde commit 1bd954e (rama fix/youtube-quality-cross-platform-portables). No publicado. Corrige regresión SSL: limpieza de variables de entorno Python SSL heredadas (PYTHONHTTPSVERIFY, REQUESTS_CA_BUNDLE, SSL_CERT_FILE, CURL_CA_BUNDLE) para que yt-dlp use el store de certificados correcto en equipos con antivirus/proxy SSL corporativo. Sin --no-check-certificates. Requiere validación en máquina Windows limpia antes de publicar.",
+  "notes": "ZIP generado desde commit da114b6 (rama fix/youtube-quality-cross-platform-portables). No publicado. Restaura --no-check-certificates en todas las invocaciones yt-dlp del portable Windows via getYtdlpCommonArgs() condicional; solo activo cuando ANCLORA_FILESTUDIO_PLATFORM=windows. Soluciona análisis de URLs YouTube en redes corporativas con inspección SSL. Requiere validación en máquina Windows real con https://youtu.be/88fD-UtG_yo?si=bVVz9CYpM4j5IjdA antes de publicar.",
   "publishingSteps": {
     "1_validate_zip": "bash scripts/verify-windows-portable-v2.sh",
     "2_windows_clean_machine": "pwsh scripts/acceptance/run-windows-portable-clean-machine.ps1 -ZipPath dist/windows/Anclora-FileStudio-Windows-x64-Core.zip",

@@ -4,6 +4,7 @@ import path from "path";
 import { CONFIG } from "../config";
 import { AppError, ERROR_CODES, ERROR_MESSAGES } from "../errors";
 import { MetadataResponse } from "../youtube/schemas";
+import { getYtdlpCommonArgs } from "./command-builder";
 
 export interface VideoFormat {
   formatId: string;
@@ -220,6 +221,7 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
 
   return new Promise((resolve, reject) => {
     const args = [
+      ...getYtdlpCommonArgs(),
       "--dump-single-json",
       "--skip-download",
       "--no-playlist",

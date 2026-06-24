@@ -12,7 +12,8 @@ const DUMMY_OUTPUT = '/tmp/output.mp4';
 // ---------------------------------------------------------------------------
 
 describe('buildYtdlpArgs — source-max profile', () => {
-  it('source-max + max → result does NOT contain --no-check-certificates', () => {
+  it('source-max + max → does NOT contain --no-check-certificates in non-Windows mode', () => {
+    delete process.env.ANCLORA_FILESTUDIO_PLATFORM;
     const args = buildYtdlpArgs({
       url: DUMMY_URL,
       format: 'mp4',
@@ -20,6 +21,18 @@ describe('buildYtdlpArgs — source-max profile', () => {
       outputPath: DUMMY_OUTPUT,
     });
     expect(args).not.toContain('--no-check-certificates');
+  });
+
+  it('source-max + max → contains --no-check-certificates in Windows portable mode', () => {
+    process.env.ANCLORA_FILESTUDIO_PLATFORM = 'windows';
+    const args = buildYtdlpArgs({
+      url: DUMMY_URL,
+      format: 'mp4',
+      quality: { profile: 'source-max', resolutionLimit: 'max', fallbackPolicy: 'reject' },
+      outputPath: DUMMY_OUTPUT,
+    });
+    expect(args).toContain('--no-check-certificates');
+    delete process.env.ANCLORA_FILESTUDIO_PLATFORM;
   });
 
   it('source-max → result does NOT contain [ext=mp4] in any argument', () => {

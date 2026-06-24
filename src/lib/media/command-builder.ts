@@ -4,6 +4,18 @@ import {
   buildYtdlpFormatSelector,
   parseLegacyQualityString,
 } from "../quality/quality-contract";
+import { isAncloraWindowsRuntime } from "../runtime-platform";
+
+/**
+ * Common yt-dlp flags injected on every invocation (metadata, download, conversion).
+ * On Windows portable, SSL inspection by antivirus/corporate proxies breaks yt-dlp's
+ * certificate verification. --no-check-certificates is the only reliable workaround
+ * for portable distributions running in arbitrary Windows corporate environments.
+ * It is NOT added in dev/Linux mode where TLS verification works as expected.
+ */
+export function getYtdlpCommonArgs(): string[] {
+  return isAncloraWindowsRuntime() ? ["--no-check-certificates"] : [];
+}
 
 export type OutputFormat = AudioOutputFormat | VideoOutputFormat;
 
@@ -42,6 +54,7 @@ export function buildYtdlpArgs(options: YtdlpConversionOptions): string[] {
   const { url, format, quality, outputPath, ffmpegLocation } = options;
 
   const baseArgs = [
+    ...getYtdlpCommonArgs(),
     "--no-playlist",
     "--newline",
     ...(ffmpegLocation ? ["--ffmpeg-location", ffmpegLocation] : []),

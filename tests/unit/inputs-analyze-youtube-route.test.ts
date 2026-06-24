@@ -248,3 +248,37 @@ describe("yt-dlp binary path — portable resolution", () => {
     expect(resolveToolPath("", fallback)).toBe(fallback);
   });
 });
+
+describe("Windows portable — --no-check-certificates injected by getYtdlpCommonArgs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("getYtdlpCommonArgs returns --no-check-certificates when ANCLORA_FILESTUDIO_PLATFORM=windows", async () => {
+    process.env.ANCLORA_FILESTUDIO_PLATFORM = "windows";
+    const { getYtdlpCommonArgs } = await import("@/lib/media/command-builder");
+    expect(getYtdlpCommonArgs()).toContain("--no-check-certificates");
+    delete process.env.ANCLORA_FILESTUDIO_PLATFORM;
+  });
+
+  it("getYtdlpCommonArgs returns empty array in non-Windows mode", async () => {
+    delete process.env.ANCLORA_FILESTUDIO_PLATFORM;
+    const { getYtdlpCommonArgs } = await import("@/lib/media/command-builder");
+    expect(getYtdlpCommonArgs()).not.toContain("--no-check-certificates");
+    expect(getYtdlpCommonArgs()).toHaveLength(0);
+  });
+
+  it("YouTube URL goes through getVideoMetadata (never analyzeRemoteMedia) — no fetch() precheck", async () => {
+    // This proves there is no Node.js fetch() before yt-dlp that could fail on TLS
+    const { getVideoMetadata } = await import("@/lib/media/metadata");
+    const { analyzeRemoteMedia } = await import("@/lib/remote-media/remote-media-analyzer");
+    vi.mocked(getVideoMetadata).mockResolvedValue(VALID_META);
+
+    const { POST } = await import("@/server/desktop-routes/inputs-analyze-route");
+    const res = await POST(makeJsonRequest("https://www.youtube.com/watch?v=88fD-UtG_yo"));
+
+    expect(analyzeRemoteMedia).not.toHaveBeenCalled();
+    expect(getVideoMetadata).toHaveBeenCalledOnce();
+    expect(res.status).toBe(200);
+  });
+});
