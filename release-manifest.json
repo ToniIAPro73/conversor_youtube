@@ -1,14 +1,14 @@
 {
   "$schema": "https://anclora.dev/schemas/release-manifest/v1",
   "version": "0.2.6",
-  "commit": "ed6bef0",
-  "buildDateUtc": "2026-06-25T09:00:00Z",
+  "commit": "44e7b04",
+  "buildDateUtc": "2026-06-25T08:10:00Z",
   "status": "not-ready",
   "platforms": {
     "windows-x64": {
       "filename": "Anclora-FileStudio-Windows-x64-Core.zip",
-      "sizeBytes": 287788378,
-      "sha256": "6da956f6542fd96ed75116be0aa3beb5f98a818f344bd90080239fbda432a4d8",
+      "sizeBytes": 287792885,
+      "sha256": "6a8c4f0c299440eafa61bbcd5e850167bd05e6566b30b56ec03aaa9767e3a616",
       "downloadUrl": null,
       "publicationStatus": "not-published",
       "essentialTools": ["yt-dlp", "ffmpeg", "ffprobe"],
@@ -78,9 +78,10 @@
     "Fix backend: JobRequestSchema acepta qualitySelection: VideoQualitySelectionSchema.optional(); serializado como JSON para columna quality del DB",
     "Fix processor: resolveQuality() detecta JSON-encoded VideoQualitySelection en campo quality del DB y lo parsea antes de buildYtdlpArgs()",
     "Fix error messages: incluyen path del campo Zod ([campo] mensaje) para diagnóstico más fácil",
-    "7 tests de regresión: contract qualitySelection→job, legacy quality string, old broken shape → 400, MKV serialization, rightsConfirmed, invalid profile field path, JSON round-trip"
+    "7 tests de regresión: contract qualitySelection→job, legacy quality string, old broken shape → 400, MKV serialization, rightsConfirmed, invalid profile field path, JSON round-trip",
+    "Clasificación de error yt-dlp mejorada: 404/not found → VIDEO_UNAVAILABLE; Cloudflare/403/access denied → PROVIDER_VERIFICATION; members-only/premium/privado/suscripción → CONTENT_RESTRICTED; restricciones geográficas → CONTENT_RESTRICTED; unable to extract/no suitable format/unsupported url → CONTENT_RESTRICTED; rate limit con mensaje genérico (no 'YouTube'); catch-all cambiado de INTERNAL_ERROR a CONTENT_RESTRICTED con mensaje explicativo"
   ],
-  "notes": "ZIP generado desde commit faa38b7 (rama fix/youtube-quality-cross-platform-portables). No publicado. Corrige regresión de contrato UI→backend en POST /api/jobs: el campo 'quality' recibía un objeto VideoQualitySelection cuando Zod esperaba string. Fix: UI envía 'qualitySelection' (objeto canónico); backend acepta ambos; processor.ts parsea JSON serializado del DB. 7 tests de regresión añadidos. Requiere validación en máquina Windows real: YouTube → elegir MKV → Convertir → debe iniciar job sin error 400.",
+  "notes": "ZIP generado desde commit 44e7b04 (rama development). Incluye: fix regresión contrato UI→backend POST /api/jobs (ed6bef0) + mejora clasificación errores yt-dlp para sitios adultos/protegidos como xhamster (44e7b04). Sitios con anti-bot/Cloudflare/403 dan PROVIDER_VERIFICATION; sitios con age-gate/premium/login dan CONTENT_RESTRICTED en lugar de INTERNAL_ERROR genérico.",
   "publishingSteps": {
     "1_validate_zip": "bash scripts/verify-windows-portable-v2.sh",
     "2_windows_clean_machine": "pwsh scripts/acceptance/run-windows-portable-clean-machine.ps1 -ZipPath dist/windows/Anclora-FileStudio-Windows-x64-Core.zip",
