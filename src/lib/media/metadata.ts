@@ -53,13 +53,15 @@ function classifyYtdlpFailure(stderr: string, exitCode: number | null): YtdlpErr
 
   const s = stderr.toLowerCase();
 
-  // Video unavailable / deleted
+  // Video unavailable / deleted / not found
   if (
     s.includes("video unavailable") ||
     s.includes("this video is not available") ||
-    s.includes("has been removed")
+    s.includes("has been removed") ||
+    s.includes("404") ||
+    s.includes("not found")
   ) {
-    return { code: "VIDEO_UNAVAILABLE", message: "El vídeo no está disponible o ha sido eliminado." };
+    return { code: "VIDEO_UNAVAILABLE", message: "El vídeo no está disponible, ha sido eliminado o la URL no existe." };
   }
 
   // Bot/captcha verification — BEFORE generic "sign in" to give a specific error.
@@ -69,28 +71,51 @@ function classifyYtdlpFailure(stderr: string, exitCode: number | null): YtdlpErr
     s.includes("confirm you're not") ||
     s.includes("i'm not a robot") ||
     s.includes("captcha") ||
-    s.includes("are you a robot")
+    s.includes("are you a robot") ||
+    s.includes("cloudflare") ||
+    s.includes("access denied") ||
+    s.includes("403")
   ) {
     return {
       code: "PROVIDER_VERIFICATION",
       message:
-        "El proveedor requiere verificación anti-bot o captcha. Puede ser temporal — inténtalo de nuevo más tarde.",
+        "El proveedor bloquea el acceso automático (anti-bot, Cloudflare o acceso denegado). Este sitio puede no ser compatible.",
     };
   }
 
-  // Age restriction / authenticated-only content (actual content restriction)
+  // Age restriction / authenticated-only / subscription content
   if (
     s.includes("confirm your age") ||
     s.includes("age-restricted") ||
     s.includes("age restricted") ||
     s.includes("requires authentication") ||
     s.includes("sign in") ||
-    s.includes("login required")
+    s.includes("login required") ||
+    s.includes("members only") ||
+    s.includes("members-only") ||
+    s.includes("premium") ||
+    s.includes("subscription required") ||
+    s.includes("private video") ||
+    s.includes("log in")
   ) {
     return {
       code: "CONTENT_RESTRICTED",
       message:
-        "El contenido requiere inicio de sesión o tiene restricción de edad. El acceso autenticado no está soportado.",
+        "El contenido requiere inicio de sesión, cuenta premium o tiene restricción de edad. El acceso autenticado no está soportado.",
+    };
+  }
+
+  // Geographic restriction
+  if (
+    s.includes("geo") ||
+    s.includes("not available in your country") ||
+    s.includes("not available in your region") ||
+    s.includes("region") && s.includes("blocked") ||
+    s.includes("country") && s.includes("not available")
+  ) {
+    return {
+      code: "CONTENT_RESTRICTED",
+      message: "El vídeo no está disponible en tu región o país.",
     };
   }
 
@@ -98,7 +123,22 @@ function classifyYtdlpFailure(stderr: string, exitCode: number | null): YtdlpErr
   if (s.includes("429") || s.includes("too many requests") || s.includes("rate limit")) {
     return {
       code: "RATE_LIMITED",
-      message: "YouTube está limitando las peticiones. Espera unos minutos e inténtalo de nuevo.",
+      message: "El proveedor está limitando las peticiones. Espera unos minutos e inténtalo de nuevo.",
+    };
+  }
+
+  // General extraction failure (site-specific extractor failed)
+  if (
+    s.includes("unable to extract") ||
+    s.includes("could not find") ||
+    s.includes("no video formats") ||
+    s.includes("no suitable format") ||
+    s.includes("unsupported url")
+  ) {
+    return {
+      code: "CONTENT_RESTRICTED",
+      message:
+        "No se pudo extraer el vídeo de este sitio. Puede que el sitio no sea compatible, requiera autenticación o haya cambiado su estructura.",
     };
   }
 
@@ -145,7 +185,10 @@ function classifyYtdlpFailure(stderr: string, exitCode: number | null): YtdlpErr
   }
 
   // Generic catch-all
-  return { code: "INTERNAL_ERROR", message: "Error al obtener metadatos del vídeo." };
+  return {
+    code: "CONTENT_RESTRICTED",
+    message: "No se pudo obtener información del vídeo. El sitio puede requerir inicio de sesión, tener protección anti-bot, o el contenido puede no estar disponible públicamente.",
+  };
 }
 
 // ---------------------------------------------------------------------------
